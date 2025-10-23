@@ -1,5 +1,5 @@
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dcc
+from dash import html
 from dash.dependencies import Input, Output
 from texts import (
     URL_KOFI,
@@ -90,6 +90,6 @@ def display_page(pathname):
 # Run server
 # ....................
 if __name__ == "__main__":
-    app.run_server(
+    app.run(
         debug=DEBUG_MODE, dev_tools_ui=DEBUG_MODE, dev_tools_props_check=DEBUG_MODE
     )
