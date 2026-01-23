@@ -1,6 +1,5 @@
 # Widgets used to set the leg pose of all legs uniformly
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dcc, html
 from dash.dependencies import Input
 import dash_daq
 from texts import PATTERNS_WIDGETS_HEADER

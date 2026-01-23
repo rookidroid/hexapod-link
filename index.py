@@ -1,6 +1,4 @@
-from dash import dcc
-from dash import html
-from dash.dependencies import Input, Output
+from dash import dcc, html, callback, Input, Output
 from texts import (
     URL_KOFI,
     URL_REPO,
@@ -78,7 +76,7 @@ PAGES = {
 # ....................
 # Callback to display page given URL
 # ....................
-@app.callback(Output("page-content", "children"), [Input("url", "pathname")])
+@callback(Output("page-content", "children"), Input("url", "pathname"))
 def display_page(pathname):
     try:
         return PAGES[pathname]

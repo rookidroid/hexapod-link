@@ -1,5 +1,5 @@
 # Used to build the widgets for changing the joint angles
-import dash_core_components as dcc
+from dash import dcc
 import dash_daq
 from hexapod.const import NAMES_JOINT, NAMES_LEG
 from settings import (

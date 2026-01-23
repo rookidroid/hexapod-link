@@ -1,5 +1,5 @@
 # Used to make html divisions
-import dash_html_components as html
+from dash import html
 
 
 def make_section_type3(div1, div2, div3, name1="", name2="", name3=""):

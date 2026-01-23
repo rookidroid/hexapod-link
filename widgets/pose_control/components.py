@@ -1,5 +1,4 @@
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dcc, html
 from dash.dependencies import Input
 from texts import KINEMATICS_WIDGETS_HEADER
 from hexapod.const import NAMES_LEG, NAMES_JOINT

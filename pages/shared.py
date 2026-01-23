@@ -1,7 +1,6 @@
 import json
-import dash_core_components as dcc
+from dash import dcc, html
 from dash.dependencies import Output, Input, State
-import dash_html_components as html
 from app import app
 from settings import (
     UI_SIDEBAR_WIDTH,

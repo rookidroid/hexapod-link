@@ -1,6 +1,5 @@
 # Widgets used to set the dimensions of the hexapod
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dcc, html
 from dash.dependencies import Input
 from texts import DIMENSIONS_WIDGETS_HEADER
 from settings import INPUT_DIMENSIONS_RESOLUTION

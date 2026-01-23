@@ -1,6 +1,6 @@
 from copy import deepcopy
 import json
-import dash_core_components as dcc
+from dash import dcc
 from hexapod.const import (
     BASE_PLOTTER,
     BASE_POSE,

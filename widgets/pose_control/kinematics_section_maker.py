@@ -1,5 +1,4 @@
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dcc, html
 from widgets.section_maker import make_section_type3, make_section_type2
 from widgets.pose_control.components import HEADER
 
