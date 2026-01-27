@@ -1,12 +1,9 @@
 import json
+import dash_bootstrap_components as dbc
 from dash import dcc, html
 from dash.dependencies import Output, Input, State
 from app import app
-from settings import (
-    UI_SIDEBAR_WIDTH,
-    UI_GRAPH_WIDTH,
-    UI_GRAPH_HEIGHT,
-)
+from settings import UI_GRAPH_HEIGHT
 from widgets.dimensions_ui import DIMENSION_CALLBACK_INPUTS, DIMENSIONS_WIDGETS_SECTION
 from hexapod.const import BASE_FIGURE
 
@@ -43,14 +40,26 @@ def update_dimensions(front, side, middle, coxia, femur, tibia):
 
 
 def make_standard_page_layout(graph_id, sidebar_sections):
-    sidebar = html.Div(sidebar_sections, style={"width": UI_SIDEBAR_WIDTH})
-    graph = dcc.Graph(
-        id=graph_id,
-        figure=BASE_FIGURE,
-        style={"width": UI_GRAPH_WIDTH, "height": UI_GRAPH_HEIGHT},
+    sidebar = dbc.Col(
+        dbc.Card(
+            dbc.CardBody(sidebar_sections),
+            className="h-100",
+        ),
+        width=12,
+        lg=4,
+        className="mb-3",
+    )
+    graph = dbc.Col(
+        dcc.Graph(
+            id=graph_id,
+            figure=BASE_FIGURE,
+            style={"height": UI_GRAPH_HEIGHT},
+        ),
+        width=12,
+        lg=8,
     )
 
-    layout = html.Div([sidebar, graph], style={"display": "flex"})
+    layout = dbc.Row([sidebar, graph])
     return layout
 
 

@@ -1,4 +1,5 @@
 # Widgets used to set the inverse kinematics parameters
+import dash_bootstrap_components as dbc
 from dash import dcc, html
 from dash.dependencies import Input
 import dash_daq
@@ -19,10 +20,8 @@ from settings import (
 
 
 def make_row(divs):
-    widget_style = {"padding": "1.0em 0 0 4.0em"}
-    row_style = {"display": "flex", "flex-direction": "row"}
-    widgets = [html.Div(div, style=widget_style) for div in divs]
-    return html.Div(widgets, style=row_style)
+    cols = [dbc.Col(div, className="text-center") for div in divs]
+    return dbc.Row(cols, className="g-2 my-2")
 
 
 def make_translate_slider(name, slider_label):
@@ -103,4 +102,8 @@ w_rz = make_rotate_slider(IK_WIDGETS_IDS[7], "rot.z")
 row1 = make_row([w_hips, w_tx, w_ty, w_tz])
 row2 = make_row([w_legs, w_rx, w_ry, w_rz])
 
-IK_WIDGETS_SECTION = html.Div([HEADER, row1, row2])
+HEADER = html.H6(IK_WIDGETS_HEADER, className="mb-3")
+IK_WIDGETS_SECTION = dbc.Card(
+    dbc.CardBody([HEADER, row1, row2]),
+    className="mb-3",
+)

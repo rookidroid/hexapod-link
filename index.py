@@ -1,3 +1,4 @@
+import dash_bootstrap_components as dbc
 from dash import dcc, html, callback, Input, Output
 from texts import (
     URL_KOFI,
@@ -14,50 +15,68 @@ from pages import page_inverse, page_kinematics, page_patterns, page_landing
 
 server = app.server
 
-# ....................
+# .....................
 # Navigation partials
-# ....................
-icon_link_style = {"margin": "0 0 0 0.5em"}
+# .....................
 
-div_header = html.Div(
-    [
-        html.A(html.H6("👾"), href=URL_REPO, target="_blank", style=icon_link_style),
-        html.A(html.H6("☕"), href=URL_KOFI, target="_blank", style=icon_link_style),
-        dcc.Link(html.H6("●"), href=PATTERNS_PAGE_PATH, style=icon_link_style),
-        dcc.Link(html.H6("●"), href=IK_PAGE_PATH, style=icon_link_style),
-        dcc.Link(html.H6("●"), href=KINEMATICS_PAGE_PATH, style=icon_link_style),
-        dcc.Link(html.H6("●"), href=ROOT_PATH, style=icon_link_style),
-    ],
-    style={"display": "flex", "flex-direction": "row"},
+div_header = dbc.Navbar(
+    dbc.Container(
+        [
+            dbc.NavbarBrand("Hexapod Simulator", href=ROOT_PATH),
+            dbc.Nav(
+                [
+                    dbc.NavItem(dbc.NavLink("Home", href=ROOT_PATH)),
+                    dbc.NavItem(dbc.NavLink("Kinematics", href=KINEMATICS_PAGE_PATH)),
+                    dbc.NavItem(dbc.NavLink("Inverse Kinematics", href=IK_PAGE_PATH)),
+                    dbc.NavItem(dbc.NavLink("Leg Patterns", href=PATTERNS_PAGE_PATH)),
+                    dbc.NavItem(dbc.NavLink("👾 Source", href=URL_REPO, target="_blank")),
+                    dbc.NavItem(dbc.NavLink("☕ Ko-fi", href=URL_KOFI, target="_blank")),
+                ],
+                navbar=True,
+            ),
+        ],
+        fluid=True,
+    ),
+    color="dark",
+    dark=True,
+    className="mb-3",
 )
 
-div_footer = html.Div(
-    [
-        html.A("👾 Source Code", href=URL_REPO, target="_blank"),
-        html.Br(),
-        html.A("☕ Buy Mithi coffee", href=URL_KOFI, target="_blank"),
-        html.Br(),
-        dcc.Link("● Leg Patterns", href=PATTERNS_PAGE_PATH),
-        html.Br(),
-        dcc.Link("● Inverse Kinematics", href=IK_PAGE_PATH),
-        html.Br(),
-        dcc.Link("● Kinematics", href=KINEMATICS_PAGE_PATH),
-        html.Br(),
-        dcc.Link("● Root", href=ROOT_PATH),
-        html.Br(),
-    ],
+div_footer = dbc.Container(
+    # dbc.Row(
+    #     dbc.Col(
+    #         [
+    #             html.Hr(),
+    #             dbc.Nav(
+    #                 [
+    #                     dbc.NavItem(dbc.NavLink("👾 Source Code", href=URL_REPO, target="_blank")),
+    #                     dbc.NavItem(dbc.NavLink("☕ Buy Mithi coffee", href=URL_KOFI, target="_blank")),
+    #                     dbc.NavItem(dbc.NavLink("● Leg Patterns", href=PATTERNS_PAGE_PATH)),
+    #                     dbc.NavItem(dbc.NavLink("● Inverse Kinematics", href=IK_PAGE_PATH)),
+    #                     dbc.NavItem(dbc.NavLink("● Kinematics", href=KINEMATICS_PAGE_PATH)),
+    #                     dbc.NavItem(dbc.NavLink("● Root", href=ROOT_PATH)),
+    #                 ],
+    #                 vertical=True,
+    #             ),
+    #         ],
+    #         width=12,
+    #     ),
+    # ),
+    # fluid=True,
+    # className="mt-3",
 )
 
 # ....................
 # Page layout
 # ....................
-app.layout = html.Div(
+app.layout = dbc.Container(
     [
         div_header,
         dcc.Location(id="url", refresh=False),
         html.Div(id="page-content"),
         div_footer,
     ],
+    fluid=True,
     style=GLOBAL_PAGE_STYLE,
 )
 

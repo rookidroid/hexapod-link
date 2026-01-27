@@ -1,4 +1,5 @@
-from dash import dcc, html
+import dash_bootstrap_components as dbc
+from dash import html
 from hexapod.const import NAMES_LEG
 from widgets.section_maker import make_section_type4
 from widgets.pose_control.joint_widget_maker import (
@@ -11,19 +12,19 @@ from widgets.pose_control.components import HEADER
 def make_leg_sections(jwidgets):
     widget_sections = []
     header_section = make_section_type4(
-        "", html.H5("coxia"), html.H5("femur"), html.H5("tibia")
+        "", html.H6("coxia"), html.H6("femur"), html.H6("tibia")
     )
     widget_sections.append(header_section)
 
     for leg in NAMES_LEG:
-        header = html.Label(dcc.Markdown("**`{}`**".format(leg)))
+        header = dbc.Badge(leg, color="primary")
         coxia = jwidgets[leg]["coxia"]
         femur = jwidgets[leg]["femur"]
         tibia = jwidgets[leg]["tibia"]
         section = make_section_type4(header, coxia, femur, tibia)
         widget_sections.append(section)
 
-    return html.Div(widget_sections)
+    return dbc.Container(widget_sections, fluid=True, className="p-0")
 
 
 # ................................
@@ -32,4 +33,7 @@ def make_leg_sections(jwidgets):
 
 widgets = make_all_joint_widgets(joint_input_function=make_slider)
 sections = make_leg_sections(widgets)
-KINEMATICS_WIDGETS_SECTION = html.Div([HEADER, sections])
+KINEMATICS_WIDGETS_SECTION = dbc.Card(
+    dbc.CardBody([HEADER, sections]),
+    className="mb-3",
+)

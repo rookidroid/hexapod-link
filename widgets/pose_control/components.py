@@ -1,4 +1,4 @@
-from dash import dcc, html
+from dash import html
 from dash.dependencies import Input
 from texts import KINEMATICS_WIDGETS_HEADER
 from hexapod.const import NAMES_LEG, NAMES_JOINT
@@ -21,5 +21,5 @@ def make_all_joint_callback_inputs():
 # COMPONENTS
 # ................................
 
-HEADER = html.Label(dcc.Markdown(f"**{KINEMATICS_WIDGETS_HEADER}**"))
+HEADER = html.H6(KINEMATICS_WIDGETS_HEADER, className="mb-3")
 KINEMATICS_CALLBACK_INPUTS = make_all_joint_callback_inputs()

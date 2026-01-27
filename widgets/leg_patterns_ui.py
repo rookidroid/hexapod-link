@@ -1,5 +1,6 @@
 # Widgets used to set the leg pose of all legs uniformly
-from dash import dcc, html
+import dash_bootstrap_components as dbc
+from dash import html
 from dash.dependencies import Input
 import dash_daq
 from texts import PATTERNS_WIDGETS_HEADER
@@ -34,14 +35,14 @@ def make_slider(slider_id, name, max_angle):
         theme=SLIDER_THEME,
     )
 
-    return html.Div(daq_slider, style={"padding": "2em"})
+    return html.Div(daq_slider, className="py-3")
 
 
 # ................................
 # COMPONENTS
 # ................................
 
-HEADER = html.Label(dcc.Markdown(f"**{PATTERNS_WIDGETS_HEADER}**"))
+HEADER = html.H6(PATTERNS_WIDGETS_HEADER, className="mb-3")
 WIDGET_NAMES = ["alpha", "beta", "gamma"]
 PATTERNS_WIDGET_IDS = [f"widget-{name}" for name in WIDGET_NAMES]
 PATTERNS_CALLBACK_INPUTS = [Input(i, "value") for i in PATTERNS_WIDGET_IDS]
@@ -51,4 +52,7 @@ widgets = [
     make_slider(id, name, angle)
     for id, name, angle in zip(PATTERNS_WIDGET_IDS, WIDGET_NAMES, max_angles)
 ]
-PATTERNS_WIDGETS_SECTION = html.Div([HEADER] + widgets)
+PATTERNS_WIDGETS_SECTION = dbc.Card(
+    dbc.CardBody([HEADER] + widgets),
+    className="mb-3",
+)

@@ -1,4 +1,5 @@
 # Used to build the widgets for changing the joint angles
+import dash_bootstrap_components as dbc
 from dash import dcc
 import dash_daq
 from hexapod.const import NAMES_JOINT, NAMES_LEG
@@ -9,7 +10,6 @@ from settings import (
     UPDATE_MODE,
 )
 from style_settings import (
-    NUMBER_INPUT_STYLE,
     SLIDER_THEME,
     SLIDER_HANDLE_COLOR,
     SLIDER_COLOR,
@@ -79,11 +79,11 @@ def make_slider(widget_id, max_angle):
 
 
 def make_number_widget(widget_id, max_angle):
-    return dcc.Input(
+    return dbc.Input(
         id=widget_id,
         type="number",
         value=0.0,
         min=-max_angle,
         max=max_angle,
-        style=NUMBER_INPUT_STYLE,
+        className="mb-2",
     )
