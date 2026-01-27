@@ -1,7 +1,6 @@
 import dash_bootstrap_components as dbc
 from dash import dcc, html, callback, Input, Output
 from texts import (
-    URL_KOFI,
     URL_REPO,
     KINEMATICS_PAGE_PATH,
     IK_PAGE_PATH,
@@ -36,8 +35,7 @@ div_header = dbc.Navbar(
         ],
         fluid=True,
     ),
-    color="primary",
-    dark=True,
+    # color="primary",
     className="mb-3",
 )
 
