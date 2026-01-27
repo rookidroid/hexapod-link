@@ -1,16 +1,10 @@
-import dash_bootstrap_components as dbc
+DARKMODE = False
 
-DARKMODE = True
+# Bootstrap theme - using local CSS file from assets folder
+BOOTSTRAP_THEME = "/assets/bootstrap.min.css"
 
-DARK_CSS_PATH = "https://mithi.github.io/hexapod-robot-simulator/dark.css"
-LIGHT_CSS_PATH = "https://mithi.github.io/hexapod-robot-simulator/light.css"
-
-# Bootstrap theme selection
-BOOTSTRAP_THEME = dbc.themes.DARKLY if DARKMODE else dbc.themes.FLATLY
-
-EXTERNAL_STYLESHEETS = [BOOTSTRAP_THEME, DARK_CSS_PATH]
-if not DARKMODE:
-    EXTERNAL_STYLESHEETS = [BOOTSTRAP_THEME, LIGHT_CSS_PATH]
+# Only use Bootstrap CSS without external overrides
+EXTERNAL_STYLESHEETS = [BOOTSTRAP_THEME]
 
 
 # ***************************************

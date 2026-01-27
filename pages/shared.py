@@ -3,7 +3,6 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html
 from dash.dependencies import Output, Input, State
 from app import app
-from settings import UI_GRAPH_HEIGHT
 from widgets.dimensions_ui import DIMENSION_CALLBACK_INPUTS, DIMENSIONS_WIDGETS_SECTION
 from hexapod.const import BASE_FIGURE
 
@@ -53,7 +52,7 @@ def make_standard_page_layout(graph_id, sidebar_sections):
         dcc.Graph(
             id=graph_id,
             figure=BASE_FIGURE,
-            style={"height": UI_GRAPH_HEIGHT},
+            style={"height": "calc(100vh - 120px)"},
         ),
         width=12,
         lg=8,
