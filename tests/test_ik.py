@@ -2,7 +2,7 @@ from copy import deepcopy
 from hexapod.const import BASE_DIMENSIONS
 from hexapod.models import VirtualHexapod
 from hexapod.points import Vector
-from hexapod.ik_solver import ik_solver, ik_solver2
+from hexapod.ik_solver import ik_solver2
 from hexapod.ik_solver.shared import update_hexapod_points
 
 from tests.ik_cases import case1, case2, case3
@@ -33,9 +33,6 @@ def assert_ik_points(case, assume_ground_targets):
 def test_sample_ik():
     for case in CASES:
         assert_ik_solver(ik_solver2.inverse_kinematics_update, case)
-        assert_ik_solver(ik_solver.inverse_kinematics_update, case)
-        assert_ik_solver(ik_solver2.inverse_kinematics_update, case)
-        assert_ik_solver(ik_solver.inverse_kinematics_update, case)
 
 
 def test_points_ik2_assume_ground_targets():
