@@ -6,6 +6,7 @@ URL_IMG_LANDING = "https://mithi.github.io/robotics-blog/v2-hexapod-1.gif"
 KINEMATICS_PAGE_PATH = "/kinematics"
 IK_PAGE_PATH = "/inverse-kinematics"
 PATTERNS_PAGE_PATH = "/leg-patterns"
+MOTION_PAGE_PATH = "/motion-animations"
 ROOT_PATH = "/"
 
 DIMENSIONS_WIDGETS_HEADER = "robot dimensions".upper()

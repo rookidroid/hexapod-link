@@ -5,12 +5,13 @@ from texts import (
     KINEMATICS_PAGE_PATH,
     IK_PAGE_PATH,
     PATTERNS_PAGE_PATH,
+    MOTION_PAGE_PATH,
     ROOT_PATH,
 )
 from settings import DEBUG_MODE
 from style_settings import GLOBAL_PAGE_STYLE
 from app import app
-from pages import page_inverse, page_kinematics, page_patterns, page_landing
+from pages import page_inverse, page_kinematics, page_patterns, page_landing, page_motion
 
 server = app.server
 
@@ -28,6 +29,7 @@ div_header = dbc.Navbar(
                     dbc.NavItem(dbc.NavLink("Kinematics", href=KINEMATICS_PAGE_PATH)),
                     dbc.NavItem(dbc.NavLink("Inverse Kinematics", href=IK_PAGE_PATH)),
                     dbc.NavItem(dbc.NavLink("Leg Patterns", href=PATTERNS_PAGE_PATH)),
+                    dbc.NavItem(dbc.NavLink("Motion", href=MOTION_PAGE_PATH)),
                     dbc.NavItem(dbc.NavLink("👾 Source", href=URL_REPO, target="_blank")),
                 ],
                 navbar=True,
@@ -50,6 +52,7 @@ div_footer = html.Footer(
                             dbc.NavItem(dbc.NavLink("Kinematics", href=KINEMATICS_PAGE_PATH)),
                             dbc.NavItem(dbc.NavLink("Inverse Kinematics", href=IK_PAGE_PATH)),
                             dbc.NavItem(dbc.NavLink("Leg Patterns", href=PATTERNS_PAGE_PATH)),
+                            dbc.NavItem(dbc.NavLink("Motion", href=MOTION_PAGE_PATH)),
                             dbc.NavItem(dbc.NavLink("👾 Source", href=URL_REPO, target="_blank")),
                         ],
                     ),
@@ -92,6 +95,7 @@ PAGES = {
     IK_PAGE_PATH: page_inverse.layout,
     KINEMATICS_PAGE_PATH: page_kinematics.layout,
     PATTERNS_PAGE_PATH: page_patterns.layout,
+    MOTION_PAGE_PATH: page_motion.layout,
     ROOT_PATH: page_landing.layout,
 }
 
