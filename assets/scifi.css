@@ -6,16 +6,16 @@
 
 /* ---- CSS Variables ---- */
 :root {
-    --scifi-cyan: #0ea5e9;
-    --scifi-cyan-light: #38bdf8;
-    --scifi-cyan-glow: rgba(14, 165, 233, 0.4);
-    --scifi-blue-deep: #0284c7;
-    --scifi-slate: #1e293b;
-    --scifi-slate-light: #334155;
-    --scifi-bg: #a8b4c5; /* Dimmed light mode background */
-    --scifi-glass: rgba(220, 230, 240, 0.45); /* Less white glass */
-    --scifi-glass-border: rgba(14, 165, 233, 0.35);
-    --scifi-rose: #f43f5e;
+    --scifi-cyan: #005bb5; /* Gundam Blue */
+    --scifi-cyan-light: #4c9aff;
+    --scifi-cyan-glow: rgba(0, 91, 181, 0.4);
+    --scifi-blue-deep: #e60012; /* Gundam Red */
+    --scifi-slate: #1a202c;
+    --scifi-slate-light: #4a5568;
+    --scifi-bg: #e2e8f0;
+    --scifi-glass: rgba(255, 255, 255, 0.90);
+    --scifi-glass-border: rgba(0, 91, 181, 0.35);
+    --scifi-rose: #ffcc00; /* Gundam Yellow */
     --scifi-font: 'Rajdhani', sans-serif;
     --scifi-mono: 'Share Tech Mono', 'Courier New', monospace;
 }
@@ -30,8 +30,8 @@ body {
 
 /* ---- Keyframe Animations ---- */
 @keyframes borderPulse {
-    0%, 100% { border-color: rgba(14, 165, 233, 0.25); box-shadow: 0 4px 20px rgba(14, 165, 233, 0.08); }
-    50%      { border-color: rgba(14, 165, 233, 0.5);  box-shadow: 0 4px 24px rgba(14, 165, 233, 0.18); }
+    0%, 100% { border-color: rgba(0, 91, 181, 0.25); box-shadow: 0 4px 20px rgba(0, 91, 181, 0.08); }
+    50%      { border-color: rgba(0, 91, 181, 0.5);  box-shadow: 0 4px 24px rgba(0, 91, 181, 0.18); }
 }
 
 @keyframes fadeInUp {
@@ -45,8 +45,8 @@ body {
 }
 
 @keyframes glowPulse {
-    0%, 100% { text-shadow: 0 0 6px rgba(2, 132, 199, 0.3); }
-    50%      { text-shadow: 0 0 14px rgba(2, 132, 199, 0.55); }
+    0%, 100% { text-shadow: 0 0 6px rgba(230, 0, 18, 0.3); }
+    50%      { text-shadow: 0 0 14px rgba(230, 0, 18, 0.55); }
 }
 
 /* ---- Page Content Fade-In ---- */
@@ -63,13 +63,13 @@ body {
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
     border-bottom: 2px solid var(--scifi-cyan);
-    box-shadow: 0 4px 18px rgba(14, 165, 233, 0.15);
+    box-shadow: 0 4px 18px rgba(0, 91, 181, 0.15);
     padding: 0.6rem 0;
     transition: box-shadow 0.3s ease;
 }
 
 .scifi-navbar:hover {
-    box-shadow: 0 4px 24px rgba(14, 165, 233, 0.25);
+    box-shadow: 0 4px 24px rgba(0, 91, 181, 0.25);
 }
 
 .scifi-navbar .navbar-brand {
@@ -126,7 +126,7 @@ body {
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--scifi-glass-border) !important;
     border-radius: 12px !important;
-    box-shadow: 0 4px 20px rgba(14, 165, 233, 0.08);
+    box-shadow: 0 4px 20px rgba(0, 91, 181, 0.08);
     color: var(--scifi-slate);
     animation: borderPulse 4s ease-in-out infinite;
     transition: transform 0.2s ease, box-shadow 0.3s ease;
@@ -135,7 +135,7 @@ body {
 .scifi-card:hover,
 .card:hover {
     transform: translateY(-1px);
-    box-shadow: 0 6px 28px rgba(14, 165, 233, 0.16);
+    box-shadow: 0 6px 28px rgba(0, 91, 181, 0.16);
 }
 
 .scifi-card .card-body,
@@ -166,7 +166,7 @@ input[type="number"],
     font-family: var(--scifi-mono) !important;
     font-size: 0.9rem;
     background: rgba(235, 240, 245, 0.7) !important;
-    border: 1px solid rgba(14, 165, 233, 0.4) !important;
+    border: 1px solid rgba(0, 91, 181, 0.4) !important;
     border-radius: 8px !important;
     color: var(--scifi-slate) !important;
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
@@ -176,7 +176,7 @@ input[type="number"],
 input[type="number"]:focus,
 .form-control:focus {
     border-color: var(--scifi-cyan) !important;
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15), 0 0 8px rgba(14, 165, 233, 0.2) !important;
+    box-shadow: 0 0 0 3px rgba(0, 91, 181, 0.15), 0 0 8px rgba(0, 91, 181, 0.2) !important;
     outline: none !important;
     background: rgba(245, 250, 255, 0.9) !important;
 }
@@ -206,7 +206,7 @@ input[type="number"]:focus,
     text-transform: uppercase;
     font-weight: 500;
     padding-bottom: 0.3rem;
-    border-bottom: 1px solid rgba(14, 165, 233, 0.15);
+    border-bottom: 1px solid rgba(0, 91, 181, 0.15);
 }
 
 /* Tone down any remaining badges */
@@ -249,7 +249,7 @@ div[class*="Slider"] {
     border: 1px solid var(--scifi-glass-border);
     border-radius: 12px;
     padding: 8px;
-    box-shadow: 0 4px 20px rgba(14, 165, 233, 0.08);
+    box-shadow: 0 4px 20px rgba(0, 91, 181, 0.08);
 }
 
 /* The plotly modebar */
@@ -273,11 +273,11 @@ div[class*="Slider"] {
     border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb {
-    background: rgba(14, 165, 233, 0.35);
+    background: rgba(0, 91, 181, 0.35);
     border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(14, 165, 233, 0.55);
+    background: rgba(0, 91, 181, 0.55);
 }
 
 /* ===========================================
@@ -287,7 +287,7 @@ div[class*="Slider"] {
 .scifi-landing-img {
     border: 2px solid var(--scifi-cyan-light);
     border-radius: 14px;
-    box-shadow: 0 0 24px rgba(56, 189, 248, 0.35);
+    box-shadow: 0 0 24px rgba(76, 154, 255, 0.35);
     padding: 4px;
     background: rgba(255, 255, 255, 0.5);
     backdrop-filter: blur(5px);
@@ -295,7 +295,7 @@ div[class*="Slider"] {
 }
 
 .scifi-landing-img:hover {
-    box-shadow: 0 0 36px rgba(56, 189, 248, 0.5);
+    box-shadow: 0 0 36px rgba(76, 154, 255, 0.5);
 }
 
 .scifi-hero-title {
@@ -336,7 +336,7 @@ div[class*="Slider"] {
 
 .feature-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 8px 32px rgba(14, 165, 233, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 91, 181, 0.2);
 }
 
 .feature-card .feature-icon {
@@ -367,7 +367,7 @@ div[class*="Slider"] {
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     border-top: 2px solid var(--scifi-cyan);
-    box-shadow: 0 -4px 15px rgba(14, 165, 233, 0.1);
+    box-shadow: 0 -4px 15px rgba(0, 91, 181, 0.1);
     padding: 0.8rem 0;
     margin-top: 2rem;
 }
@@ -400,7 +400,7 @@ div[class*="Slider"] {
 code, pre {
     font-family: var(--scifi-mono) !important;
     font-size: 0.82rem;
-    background: rgba(14, 165, 233, 0.06);
+    background: rgba(0, 91, 181, 0.06);
     border-radius: 6px;
     color: var(--scifi-slate);
 }

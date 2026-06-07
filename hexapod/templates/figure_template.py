@@ -15,6 +15,7 @@ from style_settings import (
     PAPER_BG_COLOR,
     GROUND_COLOR,
     LEGEND_FONT_COLOR,
+    HEAD_COLOR,
 )
 
 data = [
@@ -50,7 +51,7 @@ data = [
         "z": [100.0],
     },
     {
-        "marker": {"color": BODY_COLOR, "opacity": 1.0, "size": HEAD_SIZE},
+        "marker": {"color": HEAD_COLOR, "opacity": 1.0, "size": HEAD_SIZE},
         "mode": "markers",
         "name": "head",
         "type": "scatter3d",

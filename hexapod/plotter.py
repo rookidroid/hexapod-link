@@ -25,7 +25,8 @@ class HexapodPlotter:
     @staticmethod
     def _draw_hexapod(fig, hexapod):
         # Body
-        points = hexapod.body.vertices + [hexapod.body.vertices[0]]
+        v = hexapod.body.vertices
+        points = [v[0], v[1], v[2], v[5], v[4], v[3], v[0]]
 
         # Body Surface Mesh
         fig["data"][0]["x"] = [point.x for point in points]

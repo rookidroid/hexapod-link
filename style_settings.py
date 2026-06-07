@@ -22,8 +22,8 @@ GLOBAL_PAGE_STYLE = {
 
 if not DARKMODE:
     GLOBAL_PAGE_STYLE = {
-        "background": "#cbd5e1",  # Dimmed Slate-300
-        "color": "#1e293b",       # Slate for text
+        "background": "#e2e8f0",  # Light metallic grey
+        "color": "#1a202c",       # Dark slate text
         "padding": "0em",
         "fontFamily": "'Rajdhani', sans-serif"
     }
@@ -46,11 +46,11 @@ if DARKMODE:
     NUMBER_INPUT_STYLE["backgroundColor"] = "#2c3e50"
     NUMBER_INPUT_STYLE["color"] = "#2ecc71"
     NUMBER_INPUT_STYLE["borderColor"] = "#2980b9"
-else:
+if not DARKMODE:
     NUMBER_INPUT_STYLE["fontFamily"] = "'Share Tech Mono', 'Courier New', monospace"
-    NUMBER_INPUT_STYLE["borderColor"] = "rgba(14, 165, 233, 0.3)"
-    NUMBER_INPUT_STYLE["backgroundColor"] = "rgba(255, 255, 255, 0.7)"
-    NUMBER_INPUT_STYLE["color"] = "#1e293b"
+    NUMBER_INPUT_STYLE["borderColor"] = "rgba(0, 91, 181, 0.4)" # Gundam Blue
+    NUMBER_INPUT_STYLE["backgroundColor"] = "rgba(255, 255, 255, 0.9)"
+    NUMBER_INPUT_STYLE["color"] = "#1a202c"
 
 
 # ***************************************
@@ -70,8 +70,8 @@ SLIDER_HANDLE_COLOR = "#2ecc71"
 SLIDER_COLOR = "#FC427B"
 
 if not DARKMODE:
-    SLIDER_HANDLE_COLOR = "#0ea5e9"  # Cyan/Blue handle
-    SLIDER_COLOR = "#38bdf8"         # Light blue slider track
+    SLIDER_HANDLE_COLOR = "#e60012"  # Gundam Red handle
+    SLIDER_COLOR = "#005bb5"         # Gundam Blue slider track
 
 
 # ***************************************
@@ -96,20 +96,20 @@ GROUND_COLOR = "#0a3d62"
 LEGEND_FONT_COLOR = "#2ecc71"
 
 if not DARKMODE:
-    BODY_MESH_COLOR = "#38bdf8"       # Cyan for body mesh
-    BODY_MESH_OPACITY = 0.5
-    BODY_COLOR = "#0284c7"            # Deep blue body outline
+    BODY_MESH_COLOR = "#bae6fd"       # Metallic light blue armor
+    BODY_MESH_OPACITY = 0.7
+    BODY_COLOR = "#005bb5"            # Gundam Blue body outline
     BODY_OUTLINE_WIDTH = 10
-    COG_COLOR = "#f43f5e"             # Rose/Magenta for COG
+    COG_COLOR = "#ffcc00"             # Yellow COG
     COG_SIZE = 15
-    HEAD_COLOR = "#0284c7"            # Deep blue for head
+    HEAD_COLOR = "#e60012"            # Red head
     HEAD_SIZE = 12
-    LEG_COLOR = "#1e293b"             # Dark slate for legs
+    LEG_COLOR = "#334155"             # Dark gunmetal frame for legs
     LEG_OUTLINE_WIDTH = 10
-    SUPPORT_POLYGON_MESH_COLOR = "#0ea5e9"  # Energetic blue
-    SUPPORT_POLYGON_MESH_OPACITY = 0.2
-    LEGENDS_BG_COLOR = "rgba(255, 255, 255, 0.5)"
-    AXIS_ZERO_LINE_COLOR = "#94a3b8"  # Cool grey for axis
-    PAPER_BG_COLOR = "#cbd5e1"        # Dim grey
-    GROUND_COLOR = "rgb(180, 190, 200)"
-    LEGEND_FONT_COLOR = "#0f172a"
+    SUPPORT_POLYGON_MESH_COLOR = "#0ea5e9"  # Vibrant blue support polygon
+    SUPPORT_POLYGON_MESH_OPACITY = 0.10
+    LEGENDS_BG_COLOR = "rgba(255, 255, 255, 0.8)"
+    AXIS_ZERO_LINE_COLOR = "#cbd5e1"  # Light grey for axis
+    PAPER_BG_COLOR = "#ffffff"        # Clean white paper bg
+    GROUND_COLOR = "#f1f5f9"          # Light slate ground
+    LEGEND_FONT_COLOR = "#1a202c"
