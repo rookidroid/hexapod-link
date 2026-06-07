@@ -31,16 +31,22 @@ def make_section(joint_widgets, add_joint_names=False, style_to_use=None):
 
     return dbc.Card(
         dbc.CardBody([HEADER, widget_sections]),
-        className="mb-3",
+        className="mb-3 scifi-card",
     )
 
 
 def code(name):
-    return dbc.Badge(name, color="secondary", className="mt-1")
+    return html.Small(
+        name.upper(),
+        className="d-block text-center scifi-label",
+    )
 
 
 def make_leg_section(name, joint_widgets, add_joint_names=False):
-    header = dbc.Badge(name.upper(), color="primary", className="mb-2")
+    header = html.Div(
+        name.upper(),
+        className="scifi-leg-header mb-2",
+    )
     coxia = joint_widgets[name]["coxia"]
     femur = joint_widgets[name]["femur"]
     tibia = joint_widgets[name]["tibia"]

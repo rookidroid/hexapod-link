@@ -42,17 +42,21 @@ def make_standard_page_layout(graph_id, sidebar_sections):
     sidebar = dbc.Col(
         dbc.Card(
             dbc.CardBody(sidebar_sections),
-            className="h-100",
+            className="h-100 scifi-card",
+            style={"maxHeight": "calc(100vh - 140px)", "overflowY": "auto"},
         ),
         width=12,
         lg=4,
         className="mb-3",
     )
     graph = dbc.Col(
-        dcc.Graph(
-            id=graph_id,
-            figure=BASE_FIGURE,
-            style={"height": "calc(100vh - 120px)"},
+        html.Div(
+            dcc.Graph(
+                id=graph_id,
+                figure=BASE_FIGURE,
+                style={"height": "calc(100vh - 140px)"},
+            ),
+            className="graph-container",
         ),
         width=12,
         lg=8,

@@ -35,32 +35,39 @@ div_header = dbc.Navbar(
         ],
         fluid=True,
     ),
-    # color="primary",
-    className="mb-3",
+    className="mb-3 scifi-navbar",
+    sticky="top",
 )
 
-div_footer = dbc.Container(
-    # dbc.Row(
-    #     dbc.Col(
-    #         [
-    #             html.Hr(),
-    #             dbc.Nav(
-    #                 [
-    #                     dbc.NavItem(dbc.NavLink("👾 Source Code", href=URL_REPO, target="_blank")),
-    #                     dbc.NavItem(dbc.NavLink("☕ Buy Mithi coffee", href=URL_KOFI, target="_blank")),
-    #                     dbc.NavItem(dbc.NavLink("● Leg Patterns", href=PATTERNS_PAGE_PATH)),
-    #                     dbc.NavItem(dbc.NavLink("● Inverse Kinematics", href=IK_PAGE_PATH)),
-    #                     dbc.NavItem(dbc.NavLink("● Kinematics", href=KINEMATICS_PAGE_PATH)),
-    #                     dbc.NavItem(dbc.NavLink("● Root", href=ROOT_PATH)),
-    #                 ],
-    #                 vertical=True,
-    #             ),
-    #         ],
-    #         width=12,
-    #     ),
-    # ),
-    # fluid=True,
-    # className="mt-3",
+div_footer = html.Footer(
+    dbc.Container(
+        dbc.Row(
+            [
+                dbc.Col(
+                    dbc.Nav(
+                        [
+                            dbc.NavItem(dbc.NavLink("Home", href=ROOT_PATH)),
+                            dbc.NavItem(dbc.NavLink("Kinematics", href=KINEMATICS_PAGE_PATH)),
+                            dbc.NavItem(dbc.NavLink("Inverse Kinematics", href=IK_PAGE_PATH)),
+                            dbc.NavItem(dbc.NavLink("Leg Patterns", href=PATTERNS_PAGE_PATH)),
+                            dbc.NavItem(dbc.NavLink("👾 Source", href=URL_REPO, target="_blank")),
+                        ],
+                    ),
+                    width=12,
+                    md=8,
+                ),
+                dbc.Col(
+                    html.Span("SYS.STATUS: ONLINE ●", className="footer-status"),
+                    width=12,
+                    md=4,
+                    className="text-end d-flex align-items-center justify-content-end",
+                ),
+            ],
+            className="align-items-center",
+        ),
+        fluid=True,
+    ),
+    className="scifi-footer",
 )
 
 # ....................

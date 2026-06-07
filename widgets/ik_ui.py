@@ -105,5 +105,5 @@ row2 = make_row([w_legs, w_rx, w_ry, w_rz])
 HEADER = html.H6(IK_WIDGETS_HEADER, className="mb-3")
 IK_WIDGETS_SECTION = dbc.Card(
     dbc.CardBody([HEADER, row1, row2]),
-    className="mb-3",
+    className="mb-3 scifi-card",
 )

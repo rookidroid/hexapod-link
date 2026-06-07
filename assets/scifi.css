@@ -1,0 +1,423 @@
+/* =============================================
+   HEXAPOD SIMULATOR — LIGHT SCI-FI THEME
+   ============================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap');
+
+/* ---- CSS Variables ---- */
+:root {
+    --scifi-cyan: #0ea5e9;
+    --scifi-cyan-light: #38bdf8;
+    --scifi-cyan-glow: rgba(14, 165, 233, 0.4);
+    --scifi-blue-deep: #0284c7;
+    --scifi-slate: #1e293b;
+    --scifi-slate-light: #334155;
+    --scifi-bg: #f0f4f8;
+    --scifi-glass: rgba(255, 255, 255, 0.55);
+    --scifi-glass-border: rgba(14, 165, 233, 0.25);
+    --scifi-rose: #f43f5e;
+    --scifi-font: 'Rajdhani', sans-serif;
+    --scifi-mono: 'Share Tech Mono', 'Courier New', monospace;
+}
+
+/* ---- Global Reset ---- */
+body {
+    font-family: var(--scifi-font);
+    background: var(--scifi-bg);
+    color: var(--scifi-slate);
+    overflow-x: hidden;
+}
+
+/* ---- Keyframe Animations ---- */
+@keyframes borderPulse {
+    0%, 100% { border-color: rgba(14, 165, 233, 0.25); box-shadow: 0 4px 20px rgba(14, 165, 233, 0.08); }
+    50%      { border-color: rgba(14, 165, 233, 0.5);  box-shadow: 0 4px 24px rgba(14, 165, 233, 0.18); }
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scanLine {
+    0%   { background-position: 0 -100%; }
+    100% { background-position: 0 200%; }
+}
+
+@keyframes glowPulse {
+    0%, 100% { text-shadow: 0 0 6px rgba(2, 132, 199, 0.3); }
+    50%      { text-shadow: 0 0 14px rgba(2, 132, 199, 0.55); }
+}
+
+/* ---- Page Content Fade-In ---- */
+#page-content {
+    animation: fadeInUp 0.4s ease-out;
+}
+
+/* ===========================================
+   NAVBAR — HUD Header
+   =========================================== */
+
+.scifi-navbar {
+    background: rgba(255, 255, 255, 0.72) !important;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 2px solid var(--scifi-cyan);
+    box-shadow: 0 4px 18px rgba(14, 165, 233, 0.15);
+    padding: 0.6rem 0;
+    transition: box-shadow 0.3s ease;
+}
+
+.scifi-navbar:hover {
+    box-shadow: 0 4px 24px rgba(14, 165, 233, 0.25);
+}
+
+.scifi-navbar .navbar-brand {
+    font-weight: 700;
+    font-size: 1.45rem;
+    color: var(--scifi-blue-deep) !important;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    animation: glowPulse 3s ease-in-out infinite;
+    font-family: var(--scifi-font);
+}
+
+.scifi-navbar .nav-link {
+    font-weight: 600;
+    font-size: 0.92rem;
+    color: var(--scifi-slate-light) !important;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    transition: all 0.3s ease;
+    position: relative;
+    padding-bottom: 0.5rem;
+}
+
+.scifi-navbar .nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: var(--scifi-cyan);
+    box-shadow: 0 0 6px var(--scifi-cyan-glow);
+    transition: width 0.3s ease, left 0.3s ease;
+}
+
+.scifi-navbar .nav-link:hover::after {
+    width: 80%;
+    left: 10%;
+}
+
+.scifi-navbar .nav-link:hover {
+    color: var(--scifi-cyan) !important;
+}
+
+/* ===========================================
+   CARDS — Glass Panels
+   =========================================== */
+
+.scifi-card,
+.glass-panel-light,
+.card {
+    background: var(--scifi-glass) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--scifi-glass-border) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 20px rgba(14, 165, 233, 0.08);
+    color: var(--scifi-slate);
+    animation: borderPulse 4s ease-in-out infinite;
+    transition: transform 0.2s ease, box-shadow 0.3s ease;
+}
+
+.scifi-card:hover,
+.card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 28px rgba(14, 165, 233, 0.16);
+}
+
+.scifi-card .card-body,
+.card .card-body {
+    padding: 1.25rem;
+}
+
+/* Card section headers */
+.card h6,
+.card label,
+.scifi-card h6,
+.scifi-card label {
+    color: var(--scifi-blue-deep) !important;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    font-size: 0.9rem;
+    margin-bottom: 0.75rem;
+    font-family: var(--scifi-font);
+}
+
+/* ===========================================
+   FORM INPUTS — Number Fields
+   =========================================== */
+
+input[type="number"],
+.form-control {
+    font-family: var(--scifi-mono) !important;
+    font-size: 0.9rem;
+    background: rgba(255, 255, 255, 0.7) !important;
+    border: 1px solid rgba(14, 165, 233, 0.3) !important;
+    border-radius: 8px !important;
+    color: var(--scifi-slate) !important;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    padding: 0.4rem 0.6rem;
+}
+
+input[type="number"]:focus,
+.form-control:focus {
+    border-color: var(--scifi-cyan) !important;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15), 0 0 8px rgba(14, 165, 233, 0.2) !important;
+    outline: none !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* ===========================================
+   LABELS — Joint & Dimension Captions
+   =========================================== */
+
+/* Subtle text labels under input fields */
+.scifi-label {
+    font-family: var(--scifi-mono);
+    font-size: 0.68rem;
+    color: #94a3b8;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-top: 0.15rem;
+    margin-bottom: 0.5rem;
+    font-weight: 400;
+}
+
+/* Leg name section headers (LEFT-FRONT, RIGHT-BACK, etc.) */
+.scifi-leg-header {
+    font-family: var(--scifi-mono);
+    font-size: 0.72rem;
+    color: var(--scifi-slate-light);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-weight: 500;
+    padding-bottom: 0.3rem;
+    border-bottom: 1px solid rgba(14, 165, 233, 0.15);
+}
+
+/* Tone down any remaining badges */
+.badge {
+    font-family: var(--scifi-mono) !important;
+    font-size: 0.68rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border-radius: 4px;
+    padding: 0.25em 0.5em;
+    font-weight: 500;
+}
+
+.badge.bg-secondary,
+.badge.bg-primary,
+.badge.bg-info {
+    background: transparent !important;
+    color: #94a3b8 !important;
+    border: none;
+    text-shadow: none;
+    padding: 0.15em 0;
+}
+
+/* ===========================================
+   DAQ SLIDERS
+   =========================================== */
+
+div[class*="Slider"] {
+    font-family: var(--scifi-font) !important;
+}
+
+/* ===========================================
+   PLOTLY GRAPH CONTAINER
+   =========================================== */
+
+.graph-container {
+    background: var(--scifi-glass);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--scifi-glass-border);
+    border-radius: 12px;
+    padding: 8px;
+    box-shadow: 0 4px 20px rgba(14, 165, 233, 0.08);
+}
+
+/* The plotly modebar */
+.modebar {
+    opacity: 0.6;
+    transition: opacity 0.3s ease;
+}
+.modebar:hover {
+    opacity: 1;
+}
+
+/* ===========================================
+   SCROLLBAR (sidebar overflow)
+   =========================================== */
+
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-track {
+    background: rgba(240, 244, 248, 0.5);
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(14, 165, 233, 0.35);
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(14, 165, 233, 0.55);
+}
+
+/* ===========================================
+   LANDING PAGE
+   =========================================== */
+
+.scifi-landing-img {
+    border: 2px solid var(--scifi-cyan-light);
+    border-radius: 14px;
+    box-shadow: 0 0 24px rgba(56, 189, 248, 0.35);
+    padding: 4px;
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(5px);
+    transition: box-shadow 0.3s ease;
+}
+
+.scifi-landing-img:hover {
+    box-shadow: 0 0 36px rgba(56, 189, 248, 0.5);
+}
+
+.scifi-hero-title {
+    color: var(--scifi-blue-deep);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    font-weight: 700;
+    animation: glowPulse 3s ease-in-out infinite;
+    font-family: var(--scifi-font);
+    position: relative;
+}
+
+.scifi-hero-subtitle {
+    color: var(--scifi-cyan);
+    font-weight: 600;
+    letter-spacing: 2px;
+    font-family: var(--scifi-mono);
+    font-size: 0.95rem;
+    opacity: 0.85;
+}
+
+.scifi-hero-hr {
+    border: none;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--scifi-cyan-light), transparent);
+    box-shadow: 0 0 8px var(--scifi-cyan-glow);
+    margin: 1.2rem 0;
+}
+
+/* Feature cards on landing */
+.feature-card {
+    text-align: center;
+    padding: 1.5rem 1rem;
+    text-decoration: none !important;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.3s ease;
+}
+
+.feature-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 32px rgba(14, 165, 233, 0.2);
+}
+
+.feature-card .feature-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.feature-card .feature-title {
+    color: var(--scifi-blue-deep);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.95rem;
+}
+
+.feature-card .feature-desc {
+    color: var(--scifi-slate-light);
+    font-size: 0.82rem;
+    margin-top: 0.3rem;
+}
+
+/* ===========================================
+   FOOTER — HUD Bar
+   =========================================== */
+
+.scifi-footer {
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-top: 2px solid var(--scifi-cyan);
+    box-shadow: 0 -4px 15px rgba(14, 165, 233, 0.1);
+    padding: 0.8rem 0;
+    margin-top: 2rem;
+}
+
+.scifi-footer .nav-link {
+    font-family: var(--scifi-mono);
+    font-size: 0.78rem;
+    color: var(--scifi-slate-light) !important;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: color 0.3s ease;
+}
+
+.scifi-footer .nav-link:hover {
+    color: var(--scifi-cyan) !important;
+}
+
+.scifi-footer .footer-status {
+    font-family: var(--scifi-mono);
+    font-size: 0.72rem;
+    color: var(--scifi-cyan);
+    letter-spacing: 1px;
+    opacity: 0.7;
+}
+
+/* ===========================================
+   MARKDOWN / ALERT MESSAGES
+   =========================================== */
+
+code, pre {
+    font-family: var(--scifi-mono) !important;
+    font-size: 0.82rem;
+    background: rgba(14, 165, 233, 0.06);
+    border-radius: 6px;
+    color: var(--scifi-slate);
+}
+
+/* ===========================================
+   RESPONSIVE ADJUSTMENTS
+   =========================================== */
+
+@media (max-width: 992px) {
+    .scifi-navbar .navbar-brand {
+        font-size: 1.2rem;
+        letter-spacing: 2px;
+    }
+    .scifi-navbar .nav-link {
+        font-size: 0.85rem;
+    }
+    .scifi-hero-title {
+        font-size: 1.8rem !important;
+    }
+}

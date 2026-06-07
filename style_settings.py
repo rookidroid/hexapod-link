@@ -21,7 +21,12 @@ GLOBAL_PAGE_STYLE = {
 }
 
 if not DARKMODE:
-    GLOBAL_PAGE_STYLE = {"background": "#ffffff", "color": "#2c3e50", "padding": "0em"}
+    GLOBAL_PAGE_STYLE = {
+        "background": "#f0f4f8",  # Light grey-blue for high-tech lab feel
+        "color": "#1e293b",       # Slate for text
+        "padding": "0em",
+        "fontFamily": "'Rajdhani', sans-serif"
+    }
 
 
 # ***************************************
@@ -41,13 +46,18 @@ if DARKMODE:
     NUMBER_INPUT_STYLE["backgroundColor"] = "#2c3e50"
     NUMBER_INPUT_STYLE["color"] = "#2ecc71"
     NUMBER_INPUT_STYLE["borderColor"] = "#2980b9"
+else:
+    NUMBER_INPUT_STYLE["fontFamily"] = "'Share Tech Mono', 'Courier New', monospace"
+    NUMBER_INPUT_STYLE["borderColor"] = "rgba(14, 165, 233, 0.3)"
+    NUMBER_INPUT_STYLE["backgroundColor"] = "rgba(255, 255, 255, 0.7)"
+    NUMBER_INPUT_STYLE["color"] = "#1e293b"
 
 
 # ***************************************
 # DAQ SLIDER INPUT WIDGET
 # ***************************************
 
-IK_SLIDER_SIZE = 100
+IK_SLIDER_SIZE = 120
 
 SLIDER_THEME = {
     "dark": DARKMODE,
@@ -60,8 +70,8 @@ SLIDER_HANDLE_COLOR = "#2ecc71"
 SLIDER_COLOR = "#FC427B"
 
 if not DARKMODE:
-    SLIDER_HANDLE_COLOR = "#2c3e50"
-    SLIDER_COLOR = "#8e44ad"
+    SLIDER_HANDLE_COLOR = "#0ea5e9"  # Cyan/Blue handle
+    SLIDER_COLOR = "#38bdf8"         # Light blue slider track
 
 
 # ***************************************
@@ -86,20 +96,20 @@ GROUND_COLOR = "#0a3d62"
 LEGEND_FONT_COLOR = "#2ecc71"
 
 if not DARKMODE:
-    BODY_MESH_COLOR = "#8e44ad"
-    BODY_MESH_OPACITY = 0.9
-    BODY_COLOR = "#8e44ad"
+    BODY_MESH_COLOR = "#38bdf8"       # Cyan for body mesh
+    BODY_MESH_OPACITY = 0.5
+    BODY_COLOR = "#0284c7"            # Deep blue body outline
     BODY_OUTLINE_WIDTH = 10
-    COG_COLOR = "#2c3e50"
+    COG_COLOR = "#f43f5e"             # Rose/Magenta for COG
     COG_SIZE = 15
-    HEAD_COLOR = "#8e44ad"
+    HEAD_COLOR = "#0284c7"            # Deep blue for head
     HEAD_SIZE = 12
-    LEG_COLOR = "#2c3e50"
+    LEG_COLOR = "#1e293b"             # Dark slate for legs
     LEG_OUTLINE_WIDTH = 10
-    SUPPORT_POLYGON_MESH_COLOR = "#ffa801"
-    SUPPORT_POLYGON_MESH_OPACITY = 0.3
-    LEGENDS_BG_COLOR = "rgba(255, 255, 255, 0.5)"
-    AXIS_ZERO_LINE_COLOR = "#ffa801"
-    PAPER_BG_COLOR = "white"
-    GROUND_COLOR = "rgb(240, 240, 240)"
-    LEGEND_FONT_COLOR = "#34495e"
+    SUPPORT_POLYGON_MESH_COLOR = "#0ea5e9"  # Energetic blue
+    SUPPORT_POLYGON_MESH_OPACITY = 0.2
+    LEGENDS_BG_COLOR = "rgba(255, 255, 255, 0.7)"
+    AXIS_ZERO_LINE_COLOR = "#94a3b8"  # Cool grey for axis
+    PAPER_BG_COLOR = "#f0f4f8"        # High-tech light grey
+    GROUND_COLOR = "rgb(230, 235, 240)"
+    LEGEND_FONT_COLOR = "#0f172a"

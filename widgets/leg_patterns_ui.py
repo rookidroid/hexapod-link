@@ -54,5 +54,5 @@ widgets = [
 ]
 PATTERNS_WIDGETS_SECTION = dbc.Card(
     dbc.CardBody([HEADER] + widgets),
-    className="mb-3",
+    className="mb-3 scifi-card",
 )
