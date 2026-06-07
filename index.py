@@ -43,30 +43,9 @@ div_header = dbc.Navbar(
 
 div_footer = html.Footer(
     dbc.Container(
-        dbc.Row(
-            [
-                dbc.Col(
-                    dbc.Nav(
-                        [
-                            dbc.NavItem(dbc.NavLink("Home", href=ROOT_PATH)),
-                            dbc.NavItem(dbc.NavLink("Kinematics", href=KINEMATICS_PAGE_PATH)),
-                            dbc.NavItem(dbc.NavLink("Inverse Kinematics", href=IK_PAGE_PATH)),
-                            dbc.NavItem(dbc.NavLink("Leg Patterns", href=PATTERNS_PAGE_PATH)),
-                            dbc.NavItem(dbc.NavLink("Motion", href=MOTION_PAGE_PATH)),
-                            dbc.NavItem(dbc.NavLink("👾 Source", href=URL_REPO, target="_blank")),
-                        ],
-                    ),
-                    width=12,
-                    md=8,
-                ),
-                dbc.Col(
-                    html.Span("SYS.STATUS: ONLINE ●", className="footer-status"),
-                    width=12,
-                    md=4,
-                    className="text-end d-flex align-items-center justify-content-end",
-                ),
-            ],
-            className="align-items-center",
+        html.Div(
+            html.Span("SYS.STATUS: ONLINE ●", className="footer-status font-monospace text-muted fw-bold"),
+            className="d-flex justify-content-end"
         ),
         fluid=True,
     ),

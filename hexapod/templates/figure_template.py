@@ -43,7 +43,7 @@ data = [
     {
         "marker": {"color": COG_COLOR, "opacity": 1, "size": COG_SIZE},
         "mode": "markers",
-        "name": "cog",
+        "name": "Center of Gravity",
         "type": "scatter3d",
         "uid": "a819d0e4-ddaa-476b-b3e4-48fd766e749c",
         "x": [0.0],
@@ -53,7 +53,7 @@ data = [
     {
         "marker": {"color": HEAD_COLOR, "opacity": 1.0, "size": HEAD_SIZE},
         "mode": "markers",
-        "name": "head",
+        "name": "Head",
         "type": "scatter3d",
         "uid": "508caa99-c538-4cb6-b022-fbbb31c2350b",
         "x": [0.0],
