@@ -22,8 +22,8 @@ GLOBAL_PAGE_STYLE = {
 
 if not DARKMODE:
     GLOBAL_PAGE_STYLE = {
-        "background": "#e2e8f0",  # Light metallic grey
-        "color": "#1a202c",       # Dark slate text
+        "background": "#e5e7eb",  # Concrete grey
+        "color": "#111827",       # Near black text
         "padding": "0em",
         "fontFamily": "'Rajdhani', sans-serif"
     }
@@ -48,9 +48,9 @@ if DARKMODE:
     NUMBER_INPUT_STYLE["borderColor"] = "#2980b9"
 if not DARKMODE:
     NUMBER_INPUT_STYLE["fontFamily"] = "'Share Tech Mono', 'Courier New', monospace"
-    NUMBER_INPUT_STYLE["borderColor"] = "rgba(0, 91, 181, 0.4)" # Gundam Blue
-    NUMBER_INPUT_STYLE["backgroundColor"] = "rgba(255, 255, 255, 0.9)"
-    NUMBER_INPUT_STYLE["color"] = "#1a202c"
+    NUMBER_INPUT_STYLE["borderColor"] = "#9ca3af" # Heavy grey
+    NUMBER_INPUT_STYLE["backgroundColor"] = "#f9fafb"
+    NUMBER_INPUT_STYLE["color"] = "#111827"
 
 
 # ***************************************
@@ -70,8 +70,8 @@ SLIDER_HANDLE_COLOR = "#2ecc71"
 SLIDER_COLOR = "#FC427B"
 
 if not DARKMODE:
-    SLIDER_HANDLE_COLOR = "#e60012"  # Gundam Red handle
-    SLIDER_COLOR = "#005bb5"         # Gundam Blue slider track
+    SLIDER_HANDLE_COLOR = "#ea580c"  # Warning Orange handle
+    SLIDER_COLOR = "#4b5563"         # Heavy grey track
 
 
 # ***************************************

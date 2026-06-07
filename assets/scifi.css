@@ -1,141 +1,135 @@
 /* =============================================
-   HEXAPOD SIMULATOR — LIGHT SCI-FI THEME
+   HEXAPOD SIMULATOR — LIGHT INDUSTRIAL THEME
    ============================================= */
 
-@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap');
 
 /* ---- CSS Variables ---- */
 :root {
-    --scifi-cyan: #005bb5; /* Gundam Blue */
-    --scifi-cyan-light: #4c9aff;
-    --scifi-cyan-glow: rgba(0, 91, 181, 0.4);
-    --scifi-blue-deep: #e60012; /* Gundam Red */
-    --scifi-slate: #1a202c;
-    --scifi-slate-light: #4a5568;
-    --scifi-bg: #e2e8f0;
-    --scifi-glass: rgba(255, 255, 255, 0.90);
-    --scifi-glass-border: rgba(0, 91, 181, 0.35);
-    --scifi-rose: #ffcc00; /* Gundam Yellow */
-    --scifi-font: 'Rajdhani', sans-serif;
-    --scifi-mono: 'Share Tech Mono', 'Courier New', monospace;
+    --ind-bg: #e5e7eb; /* Concrete grey */
+    --ind-surface: #f9fafb; /* Off-white machinery */
+    --ind-surface-alt: #ffffff;
+    --ind-border: #4b5563; /* Heavy grey */
+    --ind-border-light: #9ca3af;
+    --ind-accent: #ea580c; /* Warning orange */
+    --ind-accent-alt: #ca8a04; /* Industrial yellow */
+    --ind-text: #111827; /* Near black */
+    --ind-text-muted: #4b5563;
+    
+    --font-heading: 'Rajdhani', sans-serif;
+    --font-mono: 'Share Tech Mono', 'Courier New', monospace;
+    
+    --shadow-hard: 4px 4px 0px rgba(17, 24, 39, 0.15);
+    --shadow-hover: 6px 6px 0px rgba(17, 24, 39, 0.2);
 }
 
 /* ---- Global Reset ---- */
 body {
-    font-family: var(--scifi-font);
-    background: var(--scifi-bg);
-    color: var(--scifi-slate);
+    font-family: var(--font-heading);
+    background: var(--ind-bg);
+    color: var(--ind-text);
     overflow-x: hidden;
 }
 
-/* ---- Keyframe Animations ---- */
-@keyframes borderPulse {
-    0%, 100% { border-color: rgba(0, 91, 181, 0.25); box-shadow: 0 4px 20px rgba(0, 91, 181, 0.08); }
-    50%      { border-color: rgba(0, 91, 181, 0.5);  box-shadow: 0 4px 24px rgba(0, 91, 181, 0.18); }
+/* ---- Animations ---- */
+@keyframes mechanicalSlide {
+    0%   { transform: translateY(-10px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
 }
 
-@keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(12px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes scanLine {
-    0%   { background-position: 0 -100%; }
-    100% { background-position: 0 200%; }
-}
-
-@keyframes glowPulse {
-    0%, 100% { text-shadow: 0 0 6px rgba(230, 0, 18, 0.3); }
-    50%      { text-shadow: 0 0 14px rgba(230, 0, 18, 0.55); }
-}
-
-/* ---- Page Content Fade-In ---- */
 #page-content {
-    animation: fadeInUp 0.4s ease-out;
+    animation: mechanicalSlide 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ===========================================
-   NAVBAR — HUD Header
+   NAVBAR — Control Panel Header
    =========================================== */
 
 .scifi-navbar {
-    background: rgba(230, 238, 248, 0.75) !important;
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border-bottom: 2px solid var(--scifi-cyan);
-    box-shadow: 0 4px 18px rgba(0, 91, 181, 0.15);
-    padding: 0.6rem 0;
-    transition: box-shadow 0.3s ease;
+    background: var(--ind-surface) !important;
+    border-bottom: 4px solid var(--ind-accent);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    padding: 0.8rem 0;
 }
 
-.scifi-navbar:hover {
-    box-shadow: 0 4px 24px rgba(0, 91, 181, 0.25);
+/* Hazard striping effect on navbar bottom */
+.scifi-navbar::after {
+    content: '';
+    display: block;
+    height: 4px;
+    width: 100%;
+    background: repeating-linear-gradient(
+      45deg,
+      var(--ind-accent),
+      var(--ind-accent) 10px,
+      var(--ind-text) 10px,
+      var(--ind-text) 20px
+    );
+    position: absolute;
+    bottom: -4px;
+    left: 0;
 }
 
 .scifi-navbar .navbar-brand {
     font-weight: 700;
-    font-size: 1.45rem;
-    color: var(--scifi-blue-deep) !important;
+    font-size: 1.6rem;
+    color: var(--ind-text) !important;
     text-transform: uppercase;
-    letter-spacing: 3px;
-    animation: glowPulse 3s ease-in-out infinite;
-    font-family: var(--scifi-font);
+    letter-spacing: 2px;
+    font-family: var(--font-heading);
+}
+
+.scifi-navbar .navbar-brand::before {
+    content: '⚙ ';
+    color: var(--ind-accent);
 }
 
 .scifi-navbar .nav-link {
-    font-weight: 600;
-    font-size: 0.92rem;
-    color: var(--scifi-slate-light) !important;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--ind-text-muted) !important;
     text-transform: uppercase;
-    letter-spacing: 1.5px;
-    transition: all 0.3s ease;
-    position: relative;
-    padding-bottom: 0.5rem;
-}
-
-.scifi-navbar .nav-link::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    width: 0;
-    height: 2px;
-    background: var(--scifi-cyan);
-    box-shadow: 0 0 6px var(--scifi-cyan-glow);
-    transition: width 0.3s ease, left 0.3s ease;
-}
-
-.scifi-navbar .nav-link:hover::after {
-    width: 80%;
-    left: 10%;
+    letter-spacing: 1px;
+    padding: 0.4rem 0.8rem;
+    margin: 0 0.2rem;
+    border: 2px solid transparent;
+    transition: all 0.1s ease;
 }
 
 .scifi-navbar .nav-link:hover {
-    color: var(--scifi-cyan) !important;
+    color: var(--ind-text) !important;
+    border-color: var(--ind-border-light);
+    background: #f3f4f6;
 }
 
 /* ===========================================
-   CARDS — Glass Panels
+   CARDS — Control Modules
    =========================================== */
 
 .scifi-card,
 .glass-panel-light,
 .card {
-    background: var(--scifi-glass) !important;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--scifi-glass-border) !important;
-    border-radius: 12px !important;
-    box-shadow: 0 4px 20px rgba(0, 91, 181, 0.08);
-    color: var(--scifi-slate);
-    animation: borderPulse 4s ease-in-out infinite;
-    transition: transform 0.2s ease, box-shadow 0.3s ease;
+    background: var(--ind-surface-alt) !important;
+    border: 2px solid var(--ind-border) !important;
+    border-radius: 0 !important; /* Sharp corners */
+    box-shadow: var(--shadow-hard);
+    color: var(--ind-text);
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+    position: relative;
+}
+
+.scifi-card::before, .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 4px;
+    background: var(--ind-border);
 }
 
 .scifi-card:hover,
 .card:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 28px rgba(0, 91, 181, 0.16);
+    transform: translate(-2px, -2px);
+    box-shadow: var(--shadow-hover);
 }
 
 .scifi-card .card-body,
@@ -148,94 +142,75 @@ body {
 .card label,
 .scifi-card h6,
 .scifi-card label {
-    color: var(--scifi-blue-deep) !important;
+    color: var(--ind-text) !important;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 1.2px;
-    font-size: 0.9rem;
+    letter-spacing: 1px;
+    font-size: 1rem;
     margin-bottom: 0.75rem;
-    font-family: var(--scifi-font);
+    border-bottom: 2px solid var(--ind-border-light);
+    padding-bottom: 4px;
+    display: inline-block;
 }
 
 /* ===========================================
-   FORM INPUTS — Number Fields
+   FORM INPUTS
    =========================================== */
 
 input[type="number"],
 .form-control {
-    font-family: var(--scifi-mono) !important;
-    font-size: 0.9rem;
-    background: rgba(235, 240, 245, 0.7) !important;
-    border: 1px solid rgba(0, 91, 181, 0.4) !important;
-    border-radius: 8px !important;
-    color: var(--scifi-slate) !important;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    font-family: var(--font-mono) !important;
+    font-size: 0.95rem;
+    font-weight: 600;
+    background: #f3f4f6 !important;
+    border: 2px solid var(--ind-border-light) !important;
+    border-radius: 0 !important;
+    color: var(--ind-text) !important;
     padding: 0.4rem 0.6rem;
+    box-shadow: inset 2px 2px 0px rgba(0,0,0,0.05);
 }
 
 input[type="number"]:focus,
 .form-control:focus {
-    border-color: var(--scifi-cyan) !important;
-    box-shadow: 0 0 0 3px rgba(0, 91, 181, 0.15), 0 0 8px rgba(0, 91, 181, 0.2) !important;
+    border-color: var(--ind-accent) !important;
+    background: #ffffff !important;
     outline: none !important;
-    background: rgba(245, 250, 255, 0.9) !important;
+    box-shadow: inset 2px 2px 0px rgba(0,0,0,0.05), 0 0 0 2px rgba(234, 88, 12, 0.2) !important;
 }
 
 /* ===========================================
-   LABELS — Joint & Dimension Captions
+   LABELS & BADGES
    =========================================== */
 
-/* Subtle text labels under input fields */
 .scifi-label {
-    font-family: var(--scifi-mono);
-    font-size: 0.68rem;
-    color: #94a3b8;
-    letter-spacing: 1.5px;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--ind-text-muted);
+    font-weight: 600;
     text-transform: uppercase;
-    margin-top: 0.15rem;
+    margin-top: 0.2rem;
     margin-bottom: 0.5rem;
-    font-weight: 400;
 }
 
-/* Leg name section headers (LEFT-FRONT, RIGHT-BACK, etc.) */
 .scifi-leg-header {
-    font-family: var(--scifi-mono);
-    font-size: 0.72rem;
-    color: var(--scifi-slate-light);
-    letter-spacing: 1.5px;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--ind-text);
+    background: var(--ind-bg);
+    padding: 4px 8px;
+    border-left: 4px solid var(--ind-accent);
     text-transform: uppercase;
-    font-weight: 500;
-    padding-bottom: 0.3rem;
-    border-bottom: 1px solid rgba(0, 91, 181, 0.15);
+    font-weight: 700;
+    margin-bottom: 0.5rem;
 }
 
-/* Tone down any remaining badges */
 .badge {
-    font-family: var(--scifi-mono) !important;
-    font-size: 0.68rem;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    border-radius: 4px;
-    padding: 0.25em 0.5em;
-    font-weight: 500;
-}
-
-.badge.bg-secondary,
-.badge.bg-primary,
-.badge.bg-info {
-    background: transparent !important;
-    color: #94a3b8 !important;
-    border: none;
-    text-shadow: none;
-    padding: 0.15em 0;
-}
-
-/* ===========================================
-   DAQ SLIDERS
-   =========================================== */
-
-div[class*="Slider"] {
-    font-family: var(--scifi-font) !important;
+    font-family: var(--font-mono) !important;
+    font-size: 0.7rem;
+    border-radius: 0;
+    padding: 0.3em 0.6em;
+    font-weight: 700;
+    border: 1px solid var(--ind-border);
 }
 
 /* ===========================================
@@ -243,41 +218,25 @@ div[class*="Slider"] {
    =========================================== */
 
 .graph-container {
-    background: var(--scifi-glass);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid var(--scifi-glass-border);
-    border-radius: 12px;
-    padding: 8px;
-    box-shadow: 0 4px 20px rgba(0, 91, 181, 0.08);
+    background: #111827; /* Dark CAD background */
+    border: 4px solid var(--ind-border);
+    border-radius: 0;
+    padding: 4px;
+    box-shadow: var(--shadow-hard);
+    position: relative;
 }
 
-/* The plotly modebar */
+/* Screw/rivet details on corners */
+.graph-container::after {
+    content: '';
+    position: absolute;
+    top: 8px; left: 8px; width: 6px; height: 6px; background: #374151; border-radius: 50%;
+    box-shadow: calc(100% - 16px) 0 #374151, 0 calc(100% - 16px) #374151, calc(100% - 16px) calc(100% - 16px) #374151;
+    pointer-events: none;
+}
+
 .modebar {
-    opacity: 0.6;
-    transition: opacity 0.3s ease;
-}
-.modebar:hover {
-    opacity: 1;
-}
-
-/* ===========================================
-   SCROLLBAR (sidebar overflow)
-   =========================================== */
-
-::-webkit-scrollbar {
-    width: 6px;
-}
-::-webkit-scrollbar-track {
-    background: rgba(240, 244, 248, 0.5);
-    border-radius: 3px;
-}
-::-webkit-scrollbar-thumb {
-    background: rgba(0, 91, 181, 0.35);
-    border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 91, 181, 0.55);
+    opacity: 0.8;
 }
 
 /* ===========================================
@@ -285,139 +244,103 @@ div[class*="Slider"] {
    =========================================== */
 
 .scifi-landing-img {
-    border: 2px solid var(--scifi-cyan-light);
-    border-radius: 14px;
-    box-shadow: 0 0 24px rgba(76, 154, 255, 0.35);
-    padding: 4px;
-    background: rgba(255, 255, 255, 0.5);
-    backdrop-filter: blur(5px);
-    transition: box-shadow 0.3s ease;
-}
-
-.scifi-landing-img:hover {
-    box-shadow: 0 0 36px rgba(76, 154, 255, 0.5);
+    border: 4px solid var(--ind-border);
+    border-radius: 0;
+    box-shadow: var(--shadow-hard);
+    background: var(--ind-surface);
+    padding: 8px;
 }
 
 .scifi-hero-title {
-    color: var(--scifi-blue-deep);
-    letter-spacing: 4px;
+    color: var(--ind-text);
+    font-weight: 800;
+    letter-spacing: 2px;
     text-transform: uppercase;
-    font-weight: 700;
-    animation: glowPulse 3s ease-in-out infinite;
-    font-family: var(--scifi-font);
-    position: relative;
+    font-family: var(--font-heading);
+    border-bottom: 4px solid var(--ind-accent);
+    display: inline-block;
+    padding-bottom: 5px;
 }
 
 .scifi-hero-subtitle {
-    color: var(--scifi-cyan);
-    font-weight: 600;
-    letter-spacing: 2px;
-    font-family: var(--scifi-mono);
-    font-size: 0.95rem;
-    opacity: 0.85;
+    color: var(--ind-text-muted);
+    font-weight: 700;
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    margin-top: 10px;
+    background: var(--ind-accent-alt);
+    color: #fff;
+    padding: 4px 12px;
+    display: inline-block;
 }
 
 .scifi-hero-hr {
     border: none;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--scifi-cyan-light), transparent);
-    box-shadow: 0 0 8px var(--scifi-cyan-glow);
-    margin: 1.2rem 0;
+    height: 4px;
+    background: var(--ind-border-light);
+    margin: 1.5rem 0;
 }
 
-/* Feature cards on landing */
 .feature-card {
-    text-align: center;
+    background: var(--ind-surface-alt);
+    border: 2px solid var(--ind-border);
     padding: 1.5rem 1rem;
-    text-decoration: none !important;
-    cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.3s ease;
+    box-shadow: var(--shadow-hard);
+    transition: transform 0.1s ease;
 }
 
 .feature-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 32px rgba(0, 91, 181, 0.2);
+    transform: translate(-2px, -2px);
+    box-shadow: var(--shadow-hover);
+    border-color: var(--ind-accent);
 }
 
-.feature-card .feature-icon {
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
-}
-
-.feature-card .feature-title {
-    color: var(--scifi-blue-deep);
-    font-weight: 700;
+.feature-title {
+    color: var(--ind-text);
+    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    font-size: 0.95rem;
-}
-
-.feature-card .feature-desc {
-    color: var(--scifi-slate-light);
-    font-size: 0.82rem;
-    margin-top: 0.3rem;
+    border-bottom: 2px solid var(--ind-border-light);
+    padding-bottom: 4px;
+    margin-bottom: 8px;
 }
 
 /* ===========================================
-   FOOTER — HUD Bar
+   FOOTER
    =========================================== */
 
 .scifi-footer {
-    background: rgba(230, 238, 248, 0.65);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-top: 2px solid var(--scifi-cyan);
-    box-shadow: 0 -4px 15px rgba(0, 91, 181, 0.1);
-    padding: 0.8rem 0;
+    background: var(--ind-surface);
+    border-top: 4px solid var(--ind-border);
+    padding: 1rem 0;
     margin-top: 2rem;
 }
 
 .scifi-footer .nav-link {
-    font-family: var(--scifi-mono);
-    font-size: 0.78rem;
-    color: var(--scifi-slate-light) !important;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    transition: color 0.3s ease;
+    font-family: var(--font-mono);
+    color: var(--ind-text-muted) !important;
+    font-weight: 700;
+    transition: color 0.1s ease;
 }
 
 .scifi-footer .nav-link:hover {
-    color: var(--scifi-cyan) !important;
-}
-
-.scifi-footer .footer-status {
-    font-family: var(--scifi-mono);
-    font-size: 0.72rem;
-    color: var(--scifi-cyan);
-    letter-spacing: 1px;
-    opacity: 0.7;
+    color: var(--ind-accent) !important;
 }
 
 /* ===========================================
-   MARKDOWN / ALERT MESSAGES
+   SCROLLBAR
    =========================================== */
 
-code, pre {
-    font-family: var(--scifi-mono) !important;
-    font-size: 0.82rem;
-    background: rgba(0, 91, 181, 0.06);
-    border-radius: 6px;
-    color: var(--scifi-slate);
+::-webkit-scrollbar {
+    width: 10px;
 }
-
-/* ===========================================
-   RESPONSIVE ADJUSTMENTS
-   =========================================== */
-
-@media (max-width: 992px) {
-    .scifi-navbar .navbar-brand {
-        font-size: 1.2rem;
-        letter-spacing: 2px;
-    }
-    .scifi-navbar .nav-link {
-        font-size: 0.85rem;
-    }
-    .scifi-hero-title {
-        font-size: 1.8rem !important;
-    }
+::-webkit-scrollbar-track {
+    background: var(--ind-bg);
+    border-left: 1px solid var(--ind-border-light);
+}
+::-webkit-scrollbar-thumb {
+    background: var(--ind-border);
+    border: 1px solid var(--ind-bg);
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--ind-accent);
 }
