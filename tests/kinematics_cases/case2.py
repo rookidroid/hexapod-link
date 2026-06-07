@@ -20,44 +20,44 @@ given_dimensions = {
 # ********************************
 
 given_poses = {
-    0: {
+    1: {
         "name": "right-middle",
-        "id": 0,
+        "id": 1,
         "coxia": -46.173564612682185,
         "femur": -0.5639873561713742,
         "tibia": -22.853557731606656,
     },
-    1: {
+    0: {
         "name": "right-front",
-        "id": 1,
+        "id": 0,
         "coxia": -38.57261437211969,
         "femur": -3.2736722565308938,
         "tibia": -24.640160005779748,
     },
-    2: {
+    3: {
         "name": "left-front",
-        "id": 2,
+        "id": 3,
         "coxia": 2.0526054688295687,
         "femur": 35.09407799312794,
         "tibia": -31.188148885325916,
     },
-    3: {
+    4: {
         "name": "left-middle",
-        "id": 3,
+        "id": 4,
         "coxia": -16.947073091191385,
         "femur": 46.44561383735447,
         "tibia": -19.412041056143877,
     },
-    4: {
+    5: {
         "name": "left-back",
-        "id": 4,
+        "id": 5,
         "coxia": -33.39847023693062,
         "femur": 41.05787103974741,
         "tibia": -5.900804146706449,
     },
-    5: {
+    2: {
         "name": "right-back",
-        "id": 5,
+        "id": 2,
         "coxia": -38.67228081907621,
         "femur": 18.790558327957655,
         "tibia": -30.220554892132796,
@@ -69,12 +69,12 @@ given_poses = {
 # ********************************
 
 correct_body_points = [
-    Vector(x=+112.68, y=+45.33, z=+126.66, name="right-middle"),
     Vector(x=+5.57, y=+122.87, z=+116.68, name="right-front"),
+    Vector(x=+112.68, y=+45.33, z=+126.66, name="right-middle"),
+    Vector(x=+90.76, y=-84.12, z=+108.03, name="right-back"),
     Vector(x=-90.76, y=+84.12, z=+95.32, name="left-front"),
     Vector(x=-112.68, y=-45.33, z=+76.69, name="left-middle"),
     Vector(x=-5.57, y=-122.87, z=+86.67, name="left-back"),
-    Vector(x=+90.76, y=-84.12, z=+108.03, name="right-back"),
     Vector(x=+0.00, y=+0.00, z=+101.67, name="center-of-gravity"),
     Vector(x=-42.60, y=+103.49, z=+106.00, name="head"),
 ]
@@ -129,10 +129,10 @@ leg5_points = [
 
 
 correct_leg_points = [
-    leg0_points,
     leg1_points,
+    leg0_points,
+    leg5_points,
     leg2_points,
     leg3_points,
     leg4_points,
-    leg5_points,
 ]

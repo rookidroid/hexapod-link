@@ -68,21 +68,21 @@ input_parameters = KINEMATICS_CALLBACK_INPUTS
 
 @app.callback(output_parameter, input_parameters)
 def update_poses(
-    rmc, rmf, rmt,
     rfc, rff, rft,
+    rmc, rmf, rmt,
+    rbc, rbf, rbt,
     lfc, lff, lft,
     lmc, lmf, lmt,
     lbc, lbf, lbt,
-    rbc, rbf, rbt,
 ):
 
     return json.dumps({
-        0: {"coxia": rmc or 0, "femur": rmf or 0, "tibia": rmt or 0, "name": "right-middle", "id": 0},
-        1: {"coxia": rfc or 0, "femur": rff or 0, "tibia": rft or 0, "name": "right-front", "id": 1},
-        2: {"coxia": lfc or 0, "femur": lff or 0, "tibia": lft or 0, "name": "left-front", "id": 2},
-        3: {"coxia": lmc or 0, "femur": lmf or 0, "tibia": lmt or 0, "name": "left-middle", "id": 3},
-        4: {"coxia": lbc or 0, "femur": lbf or 0, "tibia": lbt or 0, "name": "left-back", "id": 4},
-        5: {"coxia": rbc or 0, "femur": rbf or 0, "tibia": rbt or 0, "name": "right-back", "id": 5},
+        0: {"coxia": rfc or 0, "femur": rff or 0, "tibia": rft or 0, "name": "right-front", "id": 0},
+        1: {"coxia": rmc or 0, "femur": rmf or 0, "tibia": rmt or 0, "name": "right-middle", "id": 1},
+        2: {"coxia": rbc or 0, "femur": rbf or 0, "tibia": rbt or 0, "name": "right-back", "id": 2},
+        3: {"coxia": lfc or 0, "femur": lff or 0, "tibia": lft or 0, "name": "left-front", "id": 3},
+        4: {"coxia": lmc or 0, "femur": lmf or 0, "tibia": lmt or 0, "name": "left-middle", "id": 4},
+        5: {"coxia": lbc or 0, "femur": lbf or 0, "tibia": lbt or 0, "name": "left-back", "id": 5},
     })
 
 # fmt: on

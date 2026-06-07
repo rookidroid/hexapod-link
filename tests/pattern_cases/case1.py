@@ -23,12 +23,12 @@ given_dimensions = {
 # ********************************
 
 correct_body_points = [
-    Vector(x=+123.00, y=+0.00, z=+0.00, name="right-middle"),
     Vector(x=+76.00, y=+92.00, z=+0.00, name="right-front"),
+    Vector(x=+123.00, y=+0.00, z=+0.00, name="right-middle"),
+    Vector(x=+76.00, y=-92.00, z=+0.00, name="right-back"),
     Vector(x=-76.00, y=+92.00, z=+0.00, name="left-front"),
     Vector(x=-123.00, y=+0.00, z=+0.00, name="left-middle"),
     Vector(x=-76.00, y=-92.00, z=+0.00, name="left-back"),
-    Vector(x=+76.00, y=-92.00, z=+0.00, name="right-back"),
     Vector(x=+0.00, y=+0.00, z=+0.00, name="center-of-gravity"),
     Vector(x=+0.00, y=+92.00, z=+0.00, name="head"),
 ]
@@ -82,10 +82,10 @@ leg5_points = [
 
 
 correct_leg_points = [
-    leg0_points,
     leg1_points,
+    leg0_points,
+    leg5_points,
     leg2_points,
     leg3_points,
     leg4_points,
-    leg5_points,
 ]

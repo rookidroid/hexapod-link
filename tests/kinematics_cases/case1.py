@@ -20,12 +20,12 @@ given_dimensions = {
 # ********************************
 
 given_poses = {
-    0: {"coxia": -40, "femur": 19, "tibia": 6, "name": "right-middle", "id": 0},
-    1: {"coxia": 33, "femur": 85, "tibia": -60, "name": "right-front", "id": 1},
-    2: {"coxia": -20, "femur": 90, "tibia": -13, "name": "left-front", "id": 2},
-    3: {"coxia": -12, "femur": -25, "tibia": 3, "name": "left-middle", "id": 3},
-    4: {"coxia": 0, "femur": 94, "tibia": -70, "name": "left-back", "id": 4},
-    5: {"coxia": -5, "femur": 17, "tibia": 2, "name": "right-back", "id": 5},
+    1: {"coxia": -40, "femur": 19, "tibia": 6, "name": "right-middle", "id": 1},
+    0: {"coxia": 33, "femur": 85, "tibia": -60, "name": "right-front", "id": 0},
+    3: {"coxia": -20, "femur": 90, "tibia": -13, "name": "left-front", "id": 3},
+    4: {"coxia": -12, "femur": -25, "tibia": 3, "name": "left-middle", "id": 4},
+    5: {"coxia": 0, "femur": 94, "tibia": -70, "name": "left-back", "id": 5},
+    2: {"coxia": -5, "femur": 17, "tibia": 2, "name": "right-back", "id": 2},
 }
 
 
@@ -34,12 +34,12 @@ given_poses = {
 # ********************************
 
 correct_body_points = [
-    Vector(x=+97.74, y=+69.20, z=+123.97, name="right-middle"),
     Vector(x=-3.68, y=+111.78, z=+103.96, name="right-front"),
+    Vector(x=+97.74, y=+69.20, z=+123.97, name="right-middle"),
+    Vector(x=+120.97, y=-28.74, z=+172.63, name="right-back"),
     Vector(x=-120.97, y=+28.74, z=+146.94, name="left-front"),
     Vector(x=-97.74, y=-69.20, z=+195.60, name="left-middle"),
     Vector(x=+3.68, y=-111.78, z=+215.60, name="left-back"),
-    Vector(x=+120.97, y=-28.74, z=+172.63, name="right-back"),
     Vector(x=+0.00, y=+0.00, z=+159.78, name="center-of-gravity"),
     Vector(x=-62.33, y=+70.26, z=+125.45, name="head"),
 ]
@@ -91,10 +91,10 @@ leg5_points = [
 ]
 
 correct_leg_points = [
-    leg0_points,
     leg1_points,
+    leg0_points,
+    leg5_points,
     leg2_points,
     leg3_points,
     leg4_points,
-    leg5_points,
 ]

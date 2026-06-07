@@ -22,7 +22,7 @@ GLOBAL_PAGE_STYLE = {
 
 if not DARKMODE:
     GLOBAL_PAGE_STYLE = {
-        "background": "#f0f4f8",  # Light grey-blue for high-tech lab feel
+        "background": "#cbd5e1",  # Dimmed Slate-300
         "color": "#1e293b",       # Slate for text
         "padding": "0em",
         "fontFamily": "'Rajdhani', sans-serif"
@@ -108,8 +108,8 @@ if not DARKMODE:
     LEG_OUTLINE_WIDTH = 10
     SUPPORT_POLYGON_MESH_COLOR = "#0ea5e9"  # Energetic blue
     SUPPORT_POLYGON_MESH_OPACITY = 0.2
-    LEGENDS_BG_COLOR = "rgba(255, 255, 255, 0.7)"
+    LEGENDS_BG_COLOR = "rgba(255, 255, 255, 0.5)"
     AXIS_ZERO_LINE_COLOR = "#94a3b8"  # Cool grey for axis
-    PAPER_BG_COLOR = "#f0f4f8"        # High-tech light grey
-    GROUND_COLOR = "rgb(230, 235, 240)"
+    PAPER_BG_COLOR = "#cbd5e1"        # Dim grey
+    GROUND_COLOR = "rgb(180, 190, 200)"
     LEGEND_FONT_COLOR = "#0f172a"

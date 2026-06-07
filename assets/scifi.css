@@ -12,9 +12,9 @@
     --scifi-blue-deep: #0284c7;
     --scifi-slate: #1e293b;
     --scifi-slate-light: #334155;
-    --scifi-bg: #f0f4f8;
-    --scifi-glass: rgba(255, 255, 255, 0.55);
-    --scifi-glass-border: rgba(14, 165, 233, 0.25);
+    --scifi-bg: #a8b4c5; /* Dimmed light mode background */
+    --scifi-glass: rgba(220, 230, 240, 0.45); /* Less white glass */
+    --scifi-glass-border: rgba(14, 165, 233, 0.35);
     --scifi-rose: #f43f5e;
     --scifi-font: 'Rajdhani', sans-serif;
     --scifi-mono: 'Share Tech Mono', 'Courier New', monospace;
@@ -59,7 +59,7 @@ body {
    =========================================== */
 
 .scifi-navbar {
-    background: rgba(255, 255, 255, 0.72) !important;
+    background: rgba(230, 238, 248, 0.75) !important;
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
     border-bottom: 2px solid var(--scifi-cyan);
@@ -165,8 +165,8 @@ input[type="number"],
 .form-control {
     font-family: var(--scifi-mono) !important;
     font-size: 0.9rem;
-    background: rgba(255, 255, 255, 0.7) !important;
-    border: 1px solid rgba(14, 165, 233, 0.3) !important;
+    background: rgba(235, 240, 245, 0.7) !important;
+    border: 1px solid rgba(14, 165, 233, 0.4) !important;
     border-radius: 8px !important;
     color: var(--scifi-slate) !important;
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
@@ -178,7 +178,7 @@ input[type="number"]:focus,
     border-color: var(--scifi-cyan) !important;
     box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15), 0 0 8px rgba(14, 165, 233, 0.2) !important;
     outline: none !important;
-    background: rgba(255, 255, 255, 0.9) !important;
+    background: rgba(245, 250, 255, 0.9) !important;
 }
 
 /* ===========================================
@@ -363,7 +363,7 @@ div[class*="Slider"] {
    =========================================== */
 
 .scifi-footer {
-    background: rgba(255, 255, 255, 0.65);
+    background: rgba(230, 238, 248, 0.65);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     border-top: 2px solid var(--scifi-cyan);

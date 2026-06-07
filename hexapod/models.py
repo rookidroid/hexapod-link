@@ -60,14 +60,14 @@ from hexapod.points import (
 #
 class Hexagon:
     VERTEX_NAMES = (
-        "right-middle",
         "right-front",
+        "right-middle",
+        "right-back",
         "left-front",
         "left-middle",
         "left-back",
-        "right-back",
     )
-    COXIA_AXES = (0, 45, 135, 180, 225, 315)
+    COXIA_AXES = (45, 0, 315, 135, 180, 225)
     __slots__ = ("f", "m", "s", "cog", "head", "vertices", "all_points")
 
     def __init__(self, f, m, s):
@@ -78,12 +78,12 @@ class Hexagon:
         self.cog = Vector(0, 0, 0, name="center-of-gravity")
         self.head = Vector(0, s, 0, name="head")
         self.vertices = [
-            Vector(m, 0, 0, name=Hexagon.VERTEX_NAMES[0]),
-            Vector(f, s, 0, name=Hexagon.VERTEX_NAMES[1]),
-            Vector(-f, s, 0, name=Hexagon.VERTEX_NAMES[2]),
-            Vector(-m, 0, 0, name=Hexagon.VERTEX_NAMES[3]),
-            Vector(-f, -s, 0, name=Hexagon.VERTEX_NAMES[4]),
-            Vector(f, -s, 0, name=Hexagon.VERTEX_NAMES[5]),
+            Vector(f, s, 0, name=Hexagon.VERTEX_NAMES[0]),
+            Vector(m, 0, 0, name=Hexagon.VERTEX_NAMES[1]),
+            Vector(f, -s, 0, name=Hexagon.VERTEX_NAMES[2]),
+            Vector(-f, s, 0, name=Hexagon.VERTEX_NAMES[3]),
+            Vector(-m, 0, 0, name=Hexagon.VERTEX_NAMES[4]),
+            Vector(-f, -s, 0, name=Hexagon.VERTEX_NAMES[5]),
         ]
 
         self.all_points = self.vertices + [self.cog, self.head]
@@ -176,10 +176,10 @@ class VirtualHexapod:
 
     def update_stance(self, hip_stance, leg_stance):
         pose = deepcopy(HEXAPOD_POSE)
-        pose[1]["coxia"] = -hip_stance  # right_front
-        pose[2]["coxia"] = hip_stance  # left_front
-        pose[4]["coxia"] = -hip_stance  # left_back
-        pose[5]["coxia"] = hip_stance  # right_back
+        pose[0]["coxia"] = -hip_stance  # right_front
+        pose[3]["coxia"] = hip_stance  # left_front
+        pose[5]["coxia"] = -hip_stance  # left_back
+        pose[2]["coxia"] = hip_stance  # right_back
 
         for leg in pose.values():
             leg["femur"] = leg_stance
@@ -322,9 +322,12 @@ def find_twist_frame(old_ground_contacts, new_ground_contacts):
 
     # Find at least one point that's the same
     same_point_name = None
-    for key in old_contacts:
-        if key in new_contacts:
-            same_point_name = key
+    LEG_EVAL_ORDER = ("right-middle", "right-front", "left-front", "left-middle", "left-back", "right-back")
+    for prefix in LEG_EVAL_ORDER:
+        old_match = next((k for k in old_contacts if k.startswith(prefix)), None)
+        new_match = next((k for k in new_contacts if k.startswith(prefix)), None)
+        if old_match and new_match and old_match == new_match:
+            same_point_name = old_match
             break
 
     # We don't know how to rotate if we don't

@@ -325,18 +325,8 @@ def gen_standup_path(standby_coordinate, laydown_coordinate, steps=28):
 
 # --- Bridge to Simulator ---
 
-# Mapping between path tool index and simulator leg names
 # Path tool: 0:front_right, 1:center_right, 2:rear_right, 3:front_left, 4:center_left, 5:rear_left
-# Simulator: 0:right-middle, 1:right-front, 2:left-front, 3:left-middle, 4:left-back, 5:right-back
-# Mapping path tool index -> simulator index
-INDEX_MAP = {
-    0: 1,  # front_right -> right-front
-    1: 0,  # center_right -> right-middle
-    2: 5,  # rear_right -> right-back
-    3: 2,  # front_left -> left-front
-    4: 3,  # center_left -> left-middle
-    5: 4   # rear_left -> left-back
-}
+# Simulator: 0:right-front, 1:right-middle, 2:right-back, 3:left-front, 4:left-middle, 5:left-back
 
 def generate_poses(motion_name):
     """
@@ -398,7 +388,7 @@ def generate_poses(motion_name):
         
         pose_dict = {}
         for pt_idx in range(6):
-            sim_idx = INDEX_MAP[pt_idx]
+            sim_idx = pt_idx
             
             j1 = angles[pt_idx, 0]
             j2 = angles[pt_idx, 1]
