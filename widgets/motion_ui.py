@@ -45,12 +45,11 @@ def make_section(header, content, card_style=None):
         style=card_style,
     )
 
-dropdown = dcc.Dropdown(
+dropdown = dbc.Select(
     id=MOTION_DROPDOWN_ID,
     options=MOTION_TYPES,
     value="walk_0",
-    clearable=False,
-    className="mb-3 motion-dropdown",
+    className="mb-3 form-control",
 )
 
 playback_controls = dbc.Row(

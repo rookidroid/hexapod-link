@@ -22,7 +22,7 @@ server = app.server
 div_header = dbc.Navbar(
     dbc.Container(
         [
-            dbc.NavbarBrand("Hexapod Simulator", href=ROOT_PATH),
+            dbc.NavbarBrand("Hexapod Link", href=ROOT_PATH),
             dbc.Nav(
                 [
                     dbc.NavItem(dbc.NavLink("Home", href=ROOT_PATH)),
@@ -80,11 +80,21 @@ app.layout = dbc.Container(
     [
         div_header,
         dcc.Location(id="url", refresh=False),
-        html.Div(id="page-content"),
+        html.Div(
+            id="page-content",
+            className="flex-grow-1",
+            style={"overflowY": "auto", "display": "flex", "flexDirection": "column"}
+        ),
         div_footer,
     ],
     fluid=True,
-    style=GLOBAL_PAGE_STYLE,
+    style={
+        **GLOBAL_PAGE_STYLE,
+        "height": "100vh",
+        "display": "flex",
+        "flexDirection": "column",
+        "overflow": "hidden"
+    },
 )
 
 

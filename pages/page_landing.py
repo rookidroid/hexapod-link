@@ -13,7 +13,7 @@ img = html.Img(src=URL_IMG_LANDING, className="img-fluid scifi-landing-img")
 hero = html.Div(
     [
         html.H1(
-            "HEXAPOD SIMULATOR",
+            "HEXAPOD LINK",
             className="display-5 scifi-hero-title",
         ),
         html.P(

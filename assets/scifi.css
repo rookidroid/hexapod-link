@@ -1,5 +1,5 @@
 /* =============================================
-   HEXAPOD SIMULATOR — LIGHT INDUSTRIAL THEME
+   HEXAPOD LINK — LIGHT INDUSTRIAL THEME
    ============================================= */
 
 @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap');
@@ -312,7 +312,7 @@ input[type="number"]:focus,
     background: var(--ind-surface);
     border-top: 4px solid var(--ind-border);
     padding: 1rem 0;
-    margin-top: 2rem;
+    margin-top: 1rem;
 }
 
 .scifi-footer .nav-link {

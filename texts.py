@@ -1,4 +1,4 @@
-APP_TITLE = "Hexapod Simulator"
+APP_TITLE = "Hexapod Link"
 
 URL_REPO = "https://github.com/rookidroid/hexapod-simulator"
 URL_IMG_LANDING = "https://mithi.github.io/robotics-blog/v2-hexapod-1.gif"

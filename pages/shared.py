@@ -42,27 +42,32 @@ def make_standard_page_layout(graph_id, sidebar_sections):
     sidebar = dbc.Col(
         dbc.Card(
             dbc.CardBody(sidebar_sections),
-            className="h-100 scifi-card",
-            style={"maxHeight": "calc(100vh - 140px)", "overflowY": "auto"},
+            className="scifi-card flex-grow-1",
+            style={"overflowY": "auto", "minHeight": 0},
         ),
         width=12,
         lg=4,
-        className="mb-3",
+        className="mb-3 mb-lg-0 d-flex flex-column",
+        style={"minHeight": 0}
     )
     graph = dbc.Col(
         html.Div(
             dcc.Graph(
                 id=graph_id,
                 figure=BASE_FIGURE,
-                style={"height": "calc(100vh - 140px)"},
+                responsive=True,
+                style={"height": "100%", "width": "100%"},
             ),
-            className="graph-container",
+            className="graph-container flex-grow-1",
+            style={"minHeight": 0},
         ),
         width=12,
         lg=8,
+        className="d-flex flex-column",
+        style={"minHeight": 0}
     )
 
-    layout = dbc.Row([sidebar, graph])
+    layout = dbc.Row([sidebar, graph], className="flex-grow-1 m-0 h-100", style={"minHeight": 0})
     return layout
 
 
