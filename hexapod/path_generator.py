@@ -160,24 +160,35 @@ def gen_fastwalk_path(standby_coordinate, g_steps=20, y_radius=50, z_radius=40, 
     return path + np.tile(standby_coordinate, (g_steps, 1, 1))
 
 def gen_turn_path(standby_coordinate, g_steps=28, g_radius=35, direction="left"):
+    # semicircle_generator strokes along +y, so rotating a leg's stroke by that
+    # leg's azimuth from the cog aims it tangent to the turn circle. The azimuth
+    # is read off the standby stance rather than hardcoded: path_tool used to
+    # spell these 45 / 0 / 315 / 225 / 180 / 135, which is right only for a body
+    # whose corner legs sit on the diagonals (front == side). Both real robots
+    # have side == front * tan(60deg), putting the corners at 60deg, and the
+    # 15deg error sheared the support triangle and dragged each planted foot
+    # ~22mm in and out per stance. Same stale-45deg assumption that
+    # Hexagon.coxia_axes carried; see hexapod/models.py.
+    #
+    # A residual remains by design: the stroke is a straight chord, so a planted
+    # foot's radius from the cog swells a few mm towards both ends of the
+    # sweep. That dilates the support triangle without distorting its shape --
+    # it stays similar to a part in 1e6 -- so the turn stays unbiased and only
+    # the scuffing is real. Making it exact needs an arc primitive path_tool
+    # does not have; tests/test_motion.py pins the similarity that is left.
     halfsteps = int(g_steps / 2)
     path = np.zeros((g_steps, 6, 3))
     semi_circle = semicircle_generator(g_radius, g_steps)
     mir_path = np.roll(semi_circle, halfsteps, axis=0)
-    if direction == "left":
-        path[:, 0, :] = path_rotate_z(semi_circle, 45)
-        path[:, 1, :] = path_rotate_z(mir_path, 0)
-        path[:, 2, :] = path_rotate_z(semi_circle, 315)
-        path[:, 5, :] = path_rotate_z(mir_path, 225)
-        path[:, 4, :] = path_rotate_z(semi_circle, 180)
-        path[:, 3, :] = path_rotate_z(mir_path, 135)
-    elif direction == "right":
-        path[:, 0, :] = path_rotate_z(semi_circle, 45 + 180)
-        path[:, 1, :] = path_rotate_z(mir_path, 0 + 180)
-        path[:, 2, :] = path_rotate_z(semi_circle, 315 + 180)
-        path[:, 5, :] = path_rotate_z(mir_path, 225 + 180)
-        path[:, 4, :] = path_rotate_z(semi_circle, 180 + 180)
-        path[:, 3, :] = path_rotate_z(mir_path, 135 + 180)
+    azimuths = np.degrees(
+        np.arctan2(standby_coordinate[:, 1], standby_coordinate[:, 0])
+    )
+    # An unrecognised direction leaves the path at zero, i.e. standing by.
+    if direction in ("left", "right"):
+        turn_offset = 0 if direction == "left" else 180
+        for leg_id in range(6):
+            stroke = semi_circle if leg_id in (0, 2, 4) else mir_path
+            path[:, leg_id, :] = path_rotate_z(stroke, azimuths[leg_id] + turn_offset)
     return path + np.tile(standby_coordinate, (g_steps, 1, 1))
 
 def gen_climb_path(standby_coordinate, g_steps=28, y_radius=20, z_radius=80, x_radius=30, z_shift=-30, reverse=False):
