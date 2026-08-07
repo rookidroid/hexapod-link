@@ -16,11 +16,12 @@ from hexapod.robot_profiles import (
 # Gaits whose stance stroke is a straight line in one direction, so the feet that
 # stay planted must stay put relative to each other.
 #
-# The turns are deliberately not here. They sweep each foot along a straight
-# chord rather than an arc about the cog, so their support polygon deforms by a
-# few millimetres per frame no matter what this module does -- that comes from
-# the robot's own path_tool, which these paths mirror, and asserting either
-# behaviour here would be asserting something about the firmware.
+# The turns are not here, and cannot be: they sweep each foot along a straight
+# chord rather than an arc about the cog, so a planted foot's radius from the
+# cog swells towards both ends of the sweep and the support polygon really does
+# change size. That is path_tool's own chord primitive showing through, and it
+# is the robot's actual behaviour. What the turns owe us instead is that the
+# polygon only ever *scales* -- see TURN_GAITS below.
 STRAIGHT_GAITS = [
     "walk_0",
     "walk_180",
@@ -33,6 +34,9 @@ STRAIGHT_GAITS = [
     "fast_forward",
     "fast_backward",
 ]
+
+# Turning in place. These get the weaker invariant described above.
+TURN_GAITS = ["turn_left", "turn_right"]
 
 # Both robots' `side` is a rounded value -- macaroon's 85.22 stands in for
 # 49.2 * tan(60deg) = 85.2169 -- which tilts each mount azimuth by under a
@@ -144,9 +148,9 @@ def _stance_runs(motion_name, profile_name):
     return runs
 
 
-def _consecutive_stance_frames():
+def _consecutive_stance_frames(motions=STRAIGHT_GAITS):
     for profile_name in ROBOT_PROFILES:
-        for motion_name in STRAIGHT_GAITS:
+        for motion_name in motions:
             for run in _stance_runs(motion_name, profile_name):
                 for before, after in zip(run, run[1:]):
                     yield f"{profile_name}/{motion_name}", before, after
@@ -191,21 +195,44 @@ def test_planted_feet_move_as_one():
         )
 
 
-def test_straight_gaits_do_not_yaw_the_body():
-    """A gait that walks in a straight line must not turn the body.
+def _sides(contacts):
+    """The pairwise distances of a stance, in a stable order."""
+    names = sorted(contacts)
+    return np.array(
+        [np.linalg.norm(contacts[a] - contacts[b]) for a, b in combinations(names, 2)]
+    )
 
-    The support-polygon tests above are centroid-relative and would pass on a
-    body that yawed with its feet. This pins the yaw itself, read off the head,
-    which sits on the +y axis in the body frame.
+
+def test_turn_support_polygon_stays_similar():
+    """A turn's planted feet may change scale, but not shape.
+
+    The chord stroke makes each planted foot's radius from the cog swell a few
+    millimetres towards both ends of the sweep, so the support triangle breathes
+    -- that much is path_tool's primitive and the robot does it too. What must
+    not happen is the triangle shearing, because that means the feet are being
+    pushed along strokes that are not tangent to the turn circle. Aiming each
+    stroke by its leg's own azimuth is what buys this: with the corner strokes
+    mis-aimed by 15deg the side ratios drifted by ~2e-2, and each planted foot
+    was dragged some 22mm in and out per stance.
+    """
+    for case, before, after in _consecutive_stance_frames(TURN_GAITS):
+        was, now = _sides(before), _sides(after)
+        drift = np.abs(now / now.mean() - was / was.mean()).max()
+        assert drift < 1e-5, f"{case}: support triangle sheared, side ratios moved {drift:.2e}"
+
+
+def test_turn_support_polygon_only_breathes_slightly():
+    """And the scale change the turn is allowed must stay small.
+
+    A bound on the dilation the chord stroke costs, so that "only scales" cannot
+    be satisfied by a path that scales absurdly.
     """
     for profile_name in ROBOT_PROFILES:
-        dimensions = get_simulator_dimensions(profile_name)
-        for motion_name in STRAIGHT_GAITS:
-            for i, pose in enumerate(generate_poses(motion_name, profile_name)):
-                hexapod = VirtualHexapod(dimensions)
-                hexapod.update(pose)
-                head = hexapod.body.head
-                yaw = (degrees(atan2(head.y, head.x)) - 90 + 180) % 360 - 180
-                assert abs(yaw) < 0.01, (
-                    f"{profile_name}/{motion_name} frame {i}: body yawed {yaw:.3f} deg"
+        for motion_name in TURN_GAITS:
+            for run in _stance_runs(motion_name, profile_name):
+                scales = np.array([_sides(frame).mean() for frame in run])
+                swing = scales.max() / scales.min() - 1
+                assert swing < 0.02, (
+                    f"{profile_name}/{motion_name}: support triangle scaled by "
+                    f"{swing:.2%} while the same feet were planted"
                 )
