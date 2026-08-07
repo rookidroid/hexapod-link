@@ -32,7 +32,7 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.14"
 
       # pywebview's Linux backend is GTK/WebKit2 through PyGObject, which needs
       # the system headers to build and the typelibs to import. PyInstaller
@@ -106,5 +106,5 @@ jobs:
           path: dist/HexapodLink
           # These are build outputs off every push; the default 90 days is far
           # longer than they stay interesting.
-          retention-days: 14
+          retention-days: 1
           if-no-files-found: error
