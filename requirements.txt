@@ -14,7 +14,7 @@ plotly>=5.18.0
 
 # Flask stack (Dash's underlying server)
 Flask>=2.3.0
-Flask-Compress>=1.14
+Flask-Compress>=1.24
 Brotli>=1.1.0
 click>=8.1.0
 itsdangerous>=2.1.0
