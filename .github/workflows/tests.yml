@@ -25,7 +25,7 @@ jobs:
         python-version: ["3.13", "3.14"]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v7
         with:
@@ -53,7 +53,7 @@ jobs:
     # and widgets are only reachable through the app. A merge once left an
     # unterminated docstring in a file nothing imported, so compile the lot.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v7
         with:
