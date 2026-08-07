@@ -1,6 +1,5 @@
 import dash_bootstrap_components as dbc
 from dash import dcc, html
-from style_settings import NUMBER_INPUT_STYLE
 
 # --- Element IDs ---
 MOTION_DROPDOWN_ID = "motion-type-dropdown"

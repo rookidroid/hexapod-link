@@ -43,7 +43,6 @@ from hexapod.robot_profiles import (
 
 # Servo tick range, mirrors SERVOMIN/SERVOMAX in the firmware's config.h
 SERVO_MIN_TICKS = 102
-SERVO_MID_TICKS = 307
 SERVO_MAX_TICKS = 512
 _TICKS_PER_DEGREE = (SERVO_MAX_TICKS - SERVO_MIN_TICKS) / 180.0
 
@@ -288,10 +287,6 @@ class RobotLink:
         self._send_session(RT_RELAX)
         with self._lock:
             self._streaming = False
-
-    def set_ip(self, ip):
-        with self._lock:
-            self._ip = ip
 
     def set_max_step(self, max_step):
         with self._lock:

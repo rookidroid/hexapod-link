@@ -246,6 +246,30 @@ def test_standup_never_drags_a_planted_foot():
 def test_straight_gaits_do_not_yaw_the_body():
     """A gait that walks in a straight line must not turn the body.
 
+    The support-polygon tests above are centroid-relative and would pass on a
+    body that yawed with its feet. This pins the yaw itself, read off the head,
+    which sits on the +y axis in the body frame.
+    """
+    for profile_name in ROBOT_PROFILES:
+        dimensions = get_simulator_dimensions(profile_name)
+        for motion_name in STRAIGHT_GAITS:
+            for i, pose in enumerate(generate_poses(motion_name, profile_name)):
+                hexapod = VirtualHexapod(dimensions)
+                hexapod.update(pose)
+                head = hexapod.body.head
+                yaw = (degrees(atan2(head.y, head.x)) - 90 + 180) % 360 - 180
+                assert abs(yaw) < 0.01, (
+                    f"{profile_name}/{motion_name} frame {i}: body yawed {yaw:.3f} deg"
+                )
+
+
+def _sides(contacts):
+    """The pairwise distances of a stance, in a stable order."""
+    names = sorted(contacts)
+    return np.array(
+        [np.linalg.norm(contacts[a] - contacts[b]) for a, b in combinations(names, 2)]
+    )
+
 
 def test_turn_support_polygon_stays_similar():
     """A turn's planted feet may change scale, but not shape.

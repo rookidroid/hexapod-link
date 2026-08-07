@@ -52,10 +52,6 @@ WHICH_POSE_CONTROL_UI = 0
 SLIDER_ANGLE_RESOLUTION = 1.5
 INPUT_DIMENSIONS_RESOLUTION = 1
 
-UI_GRAPH_HEIGHT = "600px"
-UI_GRAPH_WIDTH = "63%"
-UI_SIDEBAR_WIDTH = "37%"
-
 # ***************************
 # Physical robot link
 # ***************************

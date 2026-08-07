@@ -33,17 +33,3 @@ def make_section_type2(div1, div2):
         ],
         className="g-2",
     )
-
-
-def make_section_type6(div1, div2, div3, div4, div5, div6):
-    return dbc.Row(
-        [
-            dbc.Col(div1, width=2),
-            dbc.Col(div2, width=2),
-            dbc.Col(div3, width=2),
-            dbc.Col(div4, width=2),
-            dbc.Col(div5, width=2),
-            dbc.Col(div6, width=2),
-        ],
-        className="g-2",
-    )

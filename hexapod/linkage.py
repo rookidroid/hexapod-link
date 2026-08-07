@@ -108,17 +108,11 @@ class Linkage:
         self.name = name
         self.change_pose(alpha, beta, gamma)
 
-    def coxia_angle(self):
-        return self.alpha
-
     def body_contact(self):
         return self.all_points[0]
 
     def coxia_point(self):
         return self.all_points[1]
-
-    def femur_point(self):
-        return self.all_points[2]
 
     def foot_tip(self):
         return self.all_points[3]

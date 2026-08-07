@@ -2,10 +2,16 @@
 #
 #   pyinstaller hexapod.spec
 #
-# Produces dist/HexapodLink/HexapodLink.exe (a one-folder build). Set ONEFILE
+# Produces dist/HexapodLink/HexapodLink[.exe] (a one-folder build). Set ONEFILE
 # below for a single self-extracting executable instead; that is tidier to hand
 # out but adds several seconds to every launch, because the whole bundle is
 # unpacked to a temporary directory each time it starts.
+#
+# Builds on Windows and Linux. The difference between them is which GUI backend
+# pywebview resolves at runtime, which decides both what has to be forced into
+# the bundle and what has to be kept out of it -- see WINDOWS below.
+
+import sys
 
 from PyInstaller.utils.hooks import collect_data_files, copy_metadata
 
@@ -13,10 +19,15 @@ ONEFILE = False
 
 APP_NAME = "HexapodLink"
 
+WINDOWS = sys.platform == "win32"
+
 # assets/favicon.ico is really a PNG with an .ico extension, which browsers
 # accept but the Windows resource compiler does not. assets/app.ico is a real
 # multi-resolution ICO generated from it.
-ICON = "assets/app.ico"
+#
+# Only Windows embeds an icon in the executable; on Linux the icon belongs to
+# the .desktop entry, and handing PyInstaller an .ico there just warns.
+ICON = "assets/app.ico" if WINDOWS else None
 
 # The app's own static files: stylesheets, the bundled fonts and the favicon.
 # app.py locates these at runtime through sys._MEIPASS.
@@ -35,11 +46,16 @@ for package in ("dash", "dash_daq", "dash_bootstrap_components", "plotly"):
 hiddenimports = [
     # waitress resolves its server class through a string.
     "waitress",
-    # pywebview picks a GUI backend at runtime; on Windows that is EdgeChromium
-    # via pythonnet.
-    "webview.platforms.winforms",
-    "clr_loader",
 ]
+
+# pywebview picks a GUI backend at runtime, so nothing imports these by name.
+if WINDOWS:
+    # EdgeChromium through winforms, via pythonnet.
+    hiddenimports += ["webview.platforms.winforms", "clr_loader"]
+else:
+    # GTK/WebKit2 through PyGObject. `gi` is a system package with typelibs
+    # alongside it, so the runner needs gir1.2-webkit2 installed as well.
+    hiddenimports += ["webview.platforms.gtk", "gi"]
 
 # Nothing in the app imports these, but PyInstaller follows optional-import
 # branches inside its dependencies and will happily bundle whatever it finds
@@ -48,6 +64,15 @@ hiddenimports = [
 #
 # Build from a minimal environment as well (see the header of this file); the
 # excludes are a backstop, not a substitute.
+#
+# That environment also has to be based on a python.org (or system) Python, not
+# on a conda one. Conda's extension modules resolve their DLLs out of
+# <env>\Library\bin, a layout the bundle does not reproduce, so a build made
+# from a conda-based venv collects libssl/libcrypto that its own _ssl.pyd then
+# refuses: "DLL load failed while importing _ssl: The specified procedure could
+# not be found", at the first import of ssl. The size is right and the build
+# reports success -- only running it shows the problem, which is what the smoke
+# test step in .github/workflows/build-desktop.yml is there to do.
 excludes = [
     # plotly 6 talks to dataframes through narwhals, which probes every
     # dataframe library it knows about. None of them are used here: the figures
@@ -64,12 +89,12 @@ excludes = [
     "pyspark",
     "vaex",
     # pywebview supports several GUI backends and imports whichever are
-    # available. On Windows it uses winforms/EdgeChromium via pythonnet.
+    # available. Only the Qt ones are unwanted on both platforms; `gi` is the
+    # backend itself on Linux and is excluded below on Windows only.
     "PySide6",
     "PySide2",
     "PyQt5",
     "PyQt6",
-    "gi",
     # Dash imports IPython for its Jupyter integration, which drags in the
     # whole interactive stack.
     "IPython",
@@ -92,6 +117,10 @@ excludes = [
     "astroid",
     "isort",
 ]
+
+if WINDOWS:
+    # Nothing on Windows uses PyGObject, and a stray copy would be bundled.
+    excludes.append("gi")
 
 a = Analysis(
     ["desktop.py"],

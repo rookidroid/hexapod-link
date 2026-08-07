@@ -1,0 +1,110 @@
+name: Build desktop app
+
+on:
+  push:
+    branches: [master]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: Windows
+            artifact: HexapodLink-windows
+          - os: ubuntu-latest
+            name: Linux
+            artifact: HexapodLink-linux
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # pywebview's Linux backend is GTK/WebKit2 through PyGObject, which needs
+      # the system headers to build and the typelibs to import. PyInstaller
+      # imports `gi` during analysis, so these are build-time requirements, not
+      # just runtime ones.
+      - name: Install GTK/WebKit build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          # 24.04 ships WebKit 4.1; on 22.04 these are the -4.0 packages, which
+          # pywebview also accepts.
+          sudo apt-get install -y --no-install-recommends \
+            libgirepository1.0-dev \
+            libcairo2-dev \
+            pkg-config \
+            libwebkit2gtk-4.1-0 \
+            gir1.2-webkit2-4.1
+
+      # A fresh runner is already the minimal environment the spec asks for --
+      # PyInstaller bundles whatever it finds installed, and building from a rich
+      # environment (a conda env with MKL, or anything that has pulled in polars,
+      # pyarrow or PySide6) takes the output from ~130 MB to ~1 GB. Installing
+      # only requirements-desktop.txt is what keeps that true here.
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-desktop.txt
+
+      - name: Build
+        run: pyinstaller hexapod.spec --noconfirm --clean
+
+      # The binary starting is the only thing that proves the bundle is complete:
+      # a missing Dash data file or an unresolved hidden import shows up as a
+      # blank window at runtime, not as a build error. --no-window serves without
+      # opening a GUI, so this needs no display on either platform.
+      - name: Smoke test the bundle
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            BINARY="dist/HexapodLink/HexapodLink.exe"
+          else
+            BINARY="dist/HexapodLink/HexapodLink"
+          fi
+
+          "$BINARY" --no-window --port 8050 > smoke.log 2>&1 &
+          PID=$!
+
+          for _ in $(seq 1 60); do
+            if curl -fsS --max-time 2 http://127.0.0.1:8050/ > /dev/null 2>&1; then
+              echo "app served a page"
+              kill $PID 2>/dev/null || true
+              exit 0
+            fi
+            # If the process died, there is nothing left to wait for.
+            kill -0 $PID 2>/dev/null || break
+            sleep 1
+          done
+
+          echo "the built app never served a page:"
+          cat smoke.log
+          kill $PID 2>/dev/null || true
+          exit 1
+
+      - name: Report bundle size
+        shell: bash
+        run: du -sh dist/HexapodLink
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/HexapodLink
+          # These are build outputs off every push; the default 90 days is far
+          # longer than they stay interesting.
+          retention-days: 14
+          if-no-files-found: error

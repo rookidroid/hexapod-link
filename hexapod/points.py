@@ -39,9 +39,6 @@ class Vector:
         self.y += y
         self.z += z
 
-    def move_up(self, z):
-        self.z += z
-
     @property
     def vec(self):
         return self.x, self.y, self.z
@@ -61,23 +58,6 @@ class Vector:
         equal_val = np.allclose(self.vec, other.vec, atol=tol)
         equal_name = self.name == other.name
         return equal_val and equal_name
-
-
-# *********************************************
-# https://stackoverflow.com/questions/2049582/how-to-determine-if-a-point-is-in-a-2d-triangle
-# https://www.geeksforgeeks.org/check-whether-a-given-point-lies-inside-a-triangle-or-not/
-# It works like this:
-# - Walk clockwise or counterclockwise around the triangle
-# and project the point onto the segment we are crossing
-# by using the dot product.
-# - Check that the vector created is on the same side
-# for each of the triangle's segments
-def is_point_inside_triangle(p, a, b, c):
-    ab = (p.x - b.x) * (a.y - b.y) - (a.x - b.x) * (p.y - b.y)
-    bc = (p.x - c.x) * (b.y - c.y) - (b.x - c.x) * (p.y - c.y)
-    ca = (p.x - a.x) * (c.y - a.y) - (c.x - a.x) * (p.y - a.y)
-    # must be all positive or all negative
-    return (ab < 0.0) == (bc < 0.0) == (ca < 0.0)
 
 
 def is_triangle(a, b, c):

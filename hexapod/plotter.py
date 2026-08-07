@@ -7,9 +7,6 @@
 
 
 class HexapodPlotter:
-    def __init__(self):
-        pass
-
     @staticmethod
     def update(fig, hexapod):
         HexapodPlotter._draw_hexapod(fig, hexapod)
