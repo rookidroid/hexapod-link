@@ -1,10 +1,12 @@
 from itertools import combinations
+from math import atan2, degrees
 
 import numpy as np
 
 from hexapod.const import BASE_DIMENSIONS
-from hexapod.models import VirtualHexapod
+from hexapod.models import VirtualHexapod, find_twist_frame
 from hexapod.path_generator import generate_poses
+from hexapod.points import Vector
 from hexapod.robot_profiles import (
     ROBOT_PROFILES,
     get_physical_config,
@@ -62,6 +64,68 @@ def test_coxia_axes_of_a_square_body():
     assert np.allclose(hexapod.body.coxia_axes, (45, 0, 315, 135, 180, 225))
 
 
+def _feet(**positions):
+    """Named ground contacts at the given (x, y), on the ground."""
+    return [Vector(x, y, 0, name=name) for name, (x, y) in positions.items()]
+
+
+def _twist_angle(old_feet, new_feet):
+    """The yaw find_twist_frame would take back out, in degrees."""
+    frame = find_twist_frame(old_feet, new_feet)
+    return degrees(atan2(frame[1][0], frame[0][0]))
+
+
+def test_twist_ignores_a_translation():
+    """Feet carried in a straight line are the body sliding, not turning."""
+    old = _feet(a=(100, 0), b=(-50, 87), c=(-50, -87))
+    for shift in ((0, -40), (25, 0), (-13, 7)):
+        new = _feet(
+            a=(100 + shift[0], 0 + shift[1]),
+            b=(-50 + shift[0], 87 + shift[1]),
+            c=(-50 + shift[0], -87 + shift[1]),
+        )
+        assert abs(_twist_angle(old, new)) < 1e-6, f"shift {shift}"
+
+
+def test_twist_recovers_a_rotation():
+    """Feet carried around their own centre are the body turning."""
+    old = _feet(a=(100, 0), b=(-50, 87), c=(-50, -87))
+    for angle in (-30, -5, 5, 30):
+        radians = np.radians(angle)
+        rotation = np.array([
+            [np.cos(radians), -np.sin(radians)],
+            [np.sin(radians), np.cos(radians)],
+        ])
+        turned = {
+            name: tuple(rotation @ np.array([point.x, point.y]))
+            for name, point in zip("abc", old)
+        }
+        # Undoing the turn is what the frame is for, so it comes back negated.
+        assert abs(_twist_angle(old, _feet(**turned)) + angle) < 1e-6, f"{angle} deg"
+
+
+def test_twist_separates_a_rotation_from_a_translation():
+    """A turn on top of a slide must yield the turn alone."""
+    old = _feet(a=(100, 0), b=(-50, 87), c=(-50, -87))
+    radians = np.radians(12)
+    rotation = np.array([
+        [np.cos(radians), -np.sin(radians)],
+        [np.sin(radians), np.cos(radians)],
+    ])
+    both = {
+        name: tuple(rotation @ np.array([point.x, point.y]) + np.array([30, -75]))
+        for name, point in zip("abc", old)
+    }
+    assert abs(_twist_angle(old, _feet(**both)) + 12) < 1e-6
+
+
+def test_twist_infers_nothing_from_a_single_foot():
+    """One shared foot cannot tell a turn from a slide, so neither is assumed."""
+    old = _feet(a=(100, 0), b=(-50, 87), c=(-50, -87))
+    new = _feet(a=(0, 100), d=(1, 2), e=(3, 4))
+    assert abs(_twist_angle(old, new)) < 1e-6
+
+
 def _stance_runs(motion_name, profile_name):
     """A motion's frames, grouped into runs that share a set of ground contacts."""
     dimensions = get_simulator_dimensions(profile_name)
@@ -69,7 +133,7 @@ def _stance_runs(motion_name, profile_name):
 
     for pose in generate_poses(motion_name, profile_name):
         hexapod = VirtualHexapod(dimensions)
-        hexapod.update(pose, twist_body=False)
+        hexapod.update(pose)
         contacts = {p.name: np.array([p.x, p.y]) for p in hexapod.ground_contacts}
 
         if runs and set(runs[-1][-1]) == set(contacts):
@@ -107,10 +171,16 @@ def test_support_polygon_keeps_its_shape():
 def test_planted_feet_move_as_one():
     """Planted feet must displace by the same vector, frame to frame.
 
-    The model pins the body at the origin, so a gait's world-frame feet slide
-    backwards instead of the body advancing forwards. For a gait that walks in a
-    straight line that slide has to be a pure translation of the whole support
-    polygon.
+    Stronger than the shape test above, which a rotating polygon would also
+    satisfy. The model pins the body at the cog, so a gait's world-frame feet
+    slide backwards instead of the body advancing forwards; for a gait that walks
+    in a straight line that slide has to be a pure translation, with no turn
+    mixed in.
+
+    This is what catches a twist that reads a translation as a rotation:
+    find_twist_frame measuring off a single planted foot yawed these gaits by up
+    to 10.9 degrees, snapping back each time the stance tripod swapped, and that
+    put 6 to 17mm between the feet's displacements here.
     """
     for case, before, after in _consecutive_stance_frames():
         deltas = np.array([after[name] - point for name, point in before.items()])
@@ -119,3 +189,23 @@ def test_planted_feet_move_as_one():
             f"{case}: planted feet displaced by differing amounts, "
             f"spread={spread}, deltas={deltas}"
         )
+
+
+def test_straight_gaits_do_not_yaw_the_body():
+    """A gait that walks in a straight line must not turn the body.
+
+    The support-polygon tests above are centroid-relative and would pass on a
+    body that yawed with its feet. This pins the yaw itself, read off the head,
+    which sits on the +y axis in the body frame.
+    """
+    for profile_name in ROBOT_PROFILES:
+        dimensions = get_simulator_dimensions(profile_name)
+        for motion_name in STRAIGHT_GAITS:
+            for i, pose in enumerate(generate_poses(motion_name, profile_name)):
+                hexapod = VirtualHexapod(dimensions)
+                hexapod.update(pose)
+                head = hexapod.body.head
+                yaw = (degrees(atan2(head.y, head.x)) - 90 + 180) % 360 - 180
+                assert abs(yaw) < 0.01, (
+                    f"{profile_name}/{motion_name} frame {i}: body yawed {yaw:.3f} deg"
+                )

@@ -16,7 +16,7 @@ from widgets.motion_ui import (
     MOTION_FRAME_DISPLAY_ID,
 )
 from pages import shared
-from hexapod.path_generator import generate_poses, body_twists
+from hexapod.path_generator import generate_poses
 from hexapod.robot_profiles import get_simulator_dimensions
 from widgets.robot_link_ui import ROBOT_PROFILE_SELECT_ID, ROBOT_MOTION_SELECT_ID
 
@@ -76,20 +76,13 @@ def update_motion_and_dimensions(motion_name, profile_name):
     frames = generate_poses(motion_name, profile_name)
     max_frames = max(len(frames) - 1, 0)
     marks = {0: "0", max_frames: str(max_frames)}
-    
-    # Body-attitude motions rotate the body over planted feet, so their twist is
-    # real and should be shown. Stepping gaits must not twist: each frame is
-    # rendered on a fresh hexapod, so their twist would be measured against the
-    # neutral stance rather than the previous frame and the body would yaw back
-    # and forth, jumping whenever the stance tripod swaps.
-    twist_body = body_twists(motion_name)
 
     figures = []
     base_fig = BASE_FIGURE
     for pose in frames:
         hexapod = VirtualHexapod(dimensions)
         try:
-            hexapod.update(pose, twist_body=twist_body)
+            hexapod.update(pose)
         except Exception as e:
             print(f"Pose unstable for frame, skipping update: {e}")
             # Fall back to base posture if unstable

@@ -14,8 +14,6 @@ __all__ = [
     "generate_poses",
     "get_simulator_dimensions",
     "inverse_kinematics",
-    "body_twists",
-    "BODY_ATTITUDE_MOTIONS",
 ]
 
 # --- Path Library Functions (from path_tool/path_lib.py) ---
@@ -313,24 +311,6 @@ def gen_standup_path(standby_coordinate, laydown_coordinate, steps=28):
 
 
 # --- Bridge to Simulator ---
-
-# Motions whose whole point is to change the body's attitude while the feet stay
-# planted. For these, the body rotation VirtualHexapod.update() computes against
-# the neutral stance is exactly right, because the feet never relocate from that
-# reference.
-#
-# The stepping gaits are different: their feet lift and land somewhere new, so
-# the same computation yields a spurious yaw that jumps every time the stance
-# tripod swaps. They also translate the robot, which the model cannot represent
-# at all, so their body is held fixed and the legs carry the motion.
-
-BODY_ATTITUDE_MOTIONS = frozenset({"rotate_x", "rotate_y", "rotate_z", "twist"})
-
-
-def body_twists(motion_name):
-    """Whether this motion's body rotation should be modelled."""
-    return motion_name in BODY_ATTITUDE_MOTIONS
-
 
 # Leg indices are shared with the path tool and the firmware, so the paths above
 # are indexed directly; hexapod/naming.py holds that correspondence.

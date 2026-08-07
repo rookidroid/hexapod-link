@@ -134,23 +134,11 @@ class VirtualHexapod:
         self._init_legs()
         self._init_local_frame()
 
-    def update(self, poses, assume_ground_targets=True, twist_body=True):
-        """Pose the hexapod and settle it onto the ground.
-
-        `twist_body` controls whether the body is rotated about the ground
-        normal to keep a planted foot planted.
-
-        Keep it on when poses are edited incrementally, and for motions that
-        change the body's attitude over planted feet -- there the rotation is
-        real. Turn it off for stepping gaits rendered frame by frame on a fresh
-        hexapod: the twist is then measured against the neutral stance rather
-        than the previous frame, so relocating the feet produces a spurious yaw
-        that jumps whenever the stance legs swap.
-        """
+    def update(self, poses, assume_ground_targets=True):
+        """Pose the hexapod and settle it onto the ground."""
         might_raise_poses_range_error(poses)
 
         self.body_rotation_frame = None
-        might_twist = twist_body and find_if_might_twist(self, poses)
         old_contacts = deepcopy(self.ground_contacts)
 
         # Update leg poses
@@ -175,12 +163,10 @@ class VirtualHexapod:
         self.rotate_and_shift(frame, height)
         self._update_local_frame(frame)
 
-        # Twist around the new normal if you have to
+        # Twist around the new normal. find_twist_frame returns the identity
+        # when the planted feet did not turn, so this needs no guard.
         self.ground_contacts = [leg.ground_contact() for leg in legs]
-
-        if might_twist:
-            twist_frame = find_twist_frame(old_contacts, self.ground_contacts)
-            self.rotate_and_shift(twist_frame)
+        self.rotate_and_shift(find_twist_frame(old_contacts, self.ground_contacts))
 
         might_print_hexapod(self, poses)
 
@@ -299,88 +285,52 @@ def might_raise_poses_range_error(poses):
             _raise_range_error(pose["name"], joint_name, angle, max_angle)
 
 
-def get_hip_angle(leg_id, poses):
-    if leg_id in poses:
-        return poses[leg_id]["coxia"]
-
-    if str(leg_id) in poses:
-        return poses[str(leg_id)]["coxia"]
-
-    # ❗Error will silently pass, is this ok?
-    return 0.0
-
-
-def find_if_might_twist(hexapod, poses):
-    # The hexapod will only definitely NOT twist
-    # if only two of the legs that's currently on the ground
-    # has twisted its hips/coxia
-    # i.e. only 2 legs with ground contact points have changed their alpha angles
-    # i.e. we don't care if the legs which are not on the ground twisted its hips
-    def _find_leg_id(leg_point):
-        right_or_left, front_mid_or_back, _ = leg_point.name.split("-")
-        leg_placement = right_or_left + "-" + front_mid_or_back
-        return Hexagon.VERTEX_NAMES.index(leg_placement)
-
-    did_change_count = 0
-
-    for leg_point in hexapod.ground_contacts:
-        leg_id = _find_leg_id(leg_point)
-        old_hip_angle = hexapod.legs[leg_id].coxia_angle()
-        new_hip_angle = get_hip_angle(leg_id, poses)
-        if not isclose(old_hip_angle, new_hip_angle):
-            did_change_count += 1
-            if did_change_count >= 3:
-                return True
-
-    return False
-
-
 def find_twist_frame(old_ground_contacts, new_ground_contacts):
-    # This is the frame used to twist the model about the z axis
+    """The frame that undoes the body's rotation about the ground normal.
 
-    def _make_contact_dict(contact_list):
-        return {leg_point.name: leg_point for leg_point in contact_list}
+    Feet on the ground before and after a pose change did not slide, so whatever
+    apparent motion they show is really the body having moved underneath them.
+    This recovers the turning part of that motion so the caller can take it back
+    out, leaving the planted feet where they were.
 
-    def _twist(v1, v2):
-        # https://www.euclideanspace.com/maths/algebra/vectors/angleBetween/
-        theta = atan2(v2.y, v2.x) - atan2(v1.y, v1.x)
-        return rotz(degrees(theta))
+    Only the turning part. A foot that ends up somewhere new has either been
+    carried around the body's centre or carried straight past it, and those two
+    have to be told apart: a walking gait drives its planted feet in a straight
+    line, and reading that line as a turn is what used to make the body yaw and
+    then snap back every time the stance tripod swapped. So the rotation is
+    measured about the centroid of the planted feet, which moves with any
+    translation and therefore cancels it.
 
-    # Make dictionary mapping contact point name and leg_contact_point
-    old_contacts = _make_contact_dict(old_ground_contacts)
-    new_contacts = _make_contact_dict(new_ground_contacts)
+    A single shared foot cannot distinguish the two -- one point is carried the
+    same way whether the body turned about it or slid past it -- so nothing is
+    inferred from one, and the frame comes back as the identity.
+    """
+    old_contacts = {point.name: point for point in old_ground_contacts}
+    new_contacts = {point.name: point for point in new_ground_contacts}
+    shared = [name for name in old_contacts if name in new_contacts]
 
-    # Find at least one point that's the same
-    same_point_name = None
-    LEG_EVAL_ORDER = ("right-middle", "right-front", "left-front", "left-middle", "left-back", "right-back")
-    for prefix in LEG_EVAL_ORDER:
-        old_match = next((k for k in old_contacts if k.startswith(prefix)), None)
-        new_match = next((k for k in new_contacts if k.startswith(prefix)), None)
-        if old_match and new_match and old_match == new_match:
-            same_point_name = old_match
-            break
-
-    # We don't know how to rotate if we don't
-    # know at least one point that's on the ground
-    # before and after the movement,
-    # so we assume that the hexapod didn't move
-    if same_point_name is None:
+    if len(shared) < 2:
         return np.eye(4)
 
-    old = old_contacts[same_point_name]
-    new = new_contacts[same_point_name]
+    old_xy = np.array([[old_contacts[n].x, old_contacts[n].y] for n in shared])
+    new_xy = np.array([[new_contacts[n].x, new_contacts[n].y] for n in shared])
 
-    # Get the projection of these points in the ground
-    old_vector = Vector(old.x, old.y, 0)
-    new_vector = Vector(new.x, new.y, 0)
+    # Referred to their own centroids, so only the turn is left to measure.
+    old_xy = old_xy - old_xy.mean(axis=0)
+    new_xy = new_xy - new_xy.mean(axis=0)
 
-    twist_frame = _twist(new_vector, old_vector)
+    # The angle that best carries the old spread onto the new one, over every
+    # shared foot at once (the 2d case of Kabsch's rigid-fit).
+    along = float(np.sum(old_xy * new_xy))
+    across = float(
+        np.sum(old_xy[:, 0] * new_xy[:, 1] - old_xy[:, 1] * new_xy[:, 0])
+    )
 
-    # ❗IMPORTANT: We are assuming that because the point
-    # is on the ground before and after
-    # They should be at the same point after movement
-    # I can't think of a case that contradicts this as of this moment
-    return twist_frame
+    # Feet all sitting on their centroid: no spread to take a bearing from.
+    if isclose(along, 0, abs_tol=1e-9) and isclose(across, 0, abs_tol=1e-9):
+        return np.eye(4)
+
+    return rotz(-degrees(atan2(across, along)))
 
 
 def might_print_hexapod(hexapod, poses):
