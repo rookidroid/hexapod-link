@@ -3,6 +3,7 @@ import dash_bootstrap_components as dbc
 from dash import dcc
 import dash_daq
 from hexapod.const import NAMES_JOINT, NAMES_LEG
+from hexapod.naming import joint_short_label
 from settings import (
     ALPHA_MAX_ANGLE,
     BETA_MAX_ANGLE,
@@ -48,12 +49,13 @@ def make_all_joint_widgets(joint_input_function):
 
 
 def make_daq_slider(widget_id, max_angle):
-    _, _, _, angle = widget_id.split("-")
+    # widget id is "widget-<side>-<placement>-<joint>"
+    _, _, _, joint_name = widget_id.split("-")
 
     handle_style = {
         "showCurrentValue": True,
         "color": SLIDER_HANDLE_COLOR,
-        "label": angle,
+        "label": joint_short_label(joint_name),
     }
 
     return dash_daq.Slider(  # pylint: disable=not-callable

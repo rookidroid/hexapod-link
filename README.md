@@ -117,6 +117,29 @@ over WiFi in real time, from a single joint up to a full gait.
    to it. The robot performs its stand-up sequence when a client connects.
 3. Start the app, open any page, and use the **ROBOT LINK** panel in the sidebar.
 
+### Leg and joint numbering
+
+Legs and joints are named the way the robot's firmware names them, so a leg
+picked out in the 3D plot is the leg the calibration page calls by that name.
+Legs are numbered per side, front to back; joints are numbered outward from the
+body.
+
+| Leg index | 0 | 1 | 2 | 3 | 4 | 5 |
+|---|---|---|---|---|---|---|
+| Shown as | Right Leg 1 | Right Leg 2 | Right Leg 3 | Left Leg 1 | Left Leg 2 | Left Leg 3 |
+| In code | `right-front` | `right-middle` | `right-back` | `left-front` | `left-middle` | `left-back` |
+
+| Joint | 1 | 2 | 3 |
+|---|---|---|---|
+| In code | `coxia` / `alpha` | `femur` / `beta` | `tibia` / `gamma` |
+
+Code keeps the descriptive identifiers — they say which leg is meant without a
+diagram, and the pose dicts, widget ids and point names key off them. Anything a
+person reads is built from the label tables in
+[./hexapod/naming.py](./hexapod/naming.py), which is the only place the two
+vocabularies meet. The joint *angles* still follow the simulator's own sign
+convention; `hexapod/robot_link.py` converts them to servo angles when streaming.
+
 ### Supported robots
 
 Two robots are supported, matching the `mochi` and `macaroon` branches of the

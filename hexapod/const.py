@@ -4,6 +4,8 @@ from hexapod.models import VirtualHexapod, Hexagon, Linkage
 from hexapod.templates.figure_template import HEXAPOD_FIGURE
 from hexapod.templates.pose_template import HEXAPOD_POSE
 
+# These identify a leg or joint in code. What the user is shown is built from
+# hexapod/naming.py instead, which numbers both the way the robot firmware does.
 NAMES_LEG = Hexagon.VERTEX_NAMES
 NAMES_JOINT = Linkage.POINT_NAMES
 

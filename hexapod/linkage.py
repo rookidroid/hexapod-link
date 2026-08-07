@@ -58,6 +58,7 @@
 #
 from copy import deepcopy
 import numpy as np
+from hexapod.naming import JOINT_NAMES
 from hexapod.points import (
     Vector,
     frame_yrotate_xtranslate,
@@ -66,7 +67,9 @@ from hexapod.points import (
 
 
 class Linkage:
-    POINT_NAMES = ["coxia", "femur", "tibia"]
+    # Ordered body-outward, so index i is the firmware's Joint i+1;
+    # see hexapod/naming.py
+    POINT_NAMES = list(JOINT_NAMES)
 
     __slots__ = (
         "a",

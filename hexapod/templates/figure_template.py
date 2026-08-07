@@ -18,6 +18,10 @@ from style_settings import (
     HEAD_COLOR,
 )
 
+# The six leg traces below are drawn in leg-index order and named the way the
+# robot firmware names them, so a leg picked out in the plot is the same leg the
+# calibration page calls by that name. See hexapod/naming.py.
+
 data = [
     {
         "name": "body mesh",
@@ -62,7 +66,7 @@ data = [
     },
     {
         "line": {"color": LEG_COLOR, "width": LEG_OUTLINE_WIDTH},
-        "name": "leg 1",
+        "name": "Right Leg 1",
         "showlegend": False,
         "type": "scatter3d",
         "uid": "f217db57-fe6e-4b40-90f8-4e1c20ef595e",
@@ -72,7 +76,7 @@ data = [
     },
     {
         "line": {"color": LEG_COLOR, "width": LEG_OUTLINE_WIDTH},
-        "name": "leg 2",
+        "name": "Right Leg 2",
         "showlegend": False,
         "type": "scatter3d",
         "uid": "d5690122-cd54-460d-ab3e-1f910eb88f0f",
@@ -82,7 +86,7 @@ data = [
     },
     {
         "line": {"color": LEG_COLOR, "width": LEG_OUTLINE_WIDTH},
-        "name": "leg 3",
+        "name": "Right Leg 3",
         "showlegend": False,
         "type": "scatter3d",
         "uid": "9f13f416-f2b7-4eb7-993c-1e26e2e7a908",
@@ -92,7 +96,7 @@ data = [
     },
     {
         "line": {"color": LEG_COLOR, "width": LEG_OUTLINE_WIDTH},
-        "name": "leg 4",
+        "name": "Left Leg 1",
         "showlegend": False,
         "type": "scatter3d",
         "uid": "0d426c49-19a4-4051-b938-81b30c962dff",
@@ -107,7 +111,7 @@ data = [
     },
     {
         "line": {"color": LEG_COLOR, "width": LEG_OUTLINE_WIDTH},
-        "name": "leg 5",
+        "name": "Left Leg 2",
         "showlegend": False,
         "type": "scatter3d",
         "uid": "5ba25594-2fb5-407e-a16f-118f12769e28",
@@ -117,7 +121,7 @@ data = [
     },
     {
         "line": {"color": LEG_COLOR, "width": LEG_OUTLINE_WIDTH},
-        "name": "leg 6",
+        "name": "Left Leg 3",
         "showlegend": False,
         "type": "scatter3d",
         "uid": "fa4b5f98-7d68-4eb9-bd38-a6f8dabef8a4",

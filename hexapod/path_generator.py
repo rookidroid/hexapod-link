@@ -332,8 +332,8 @@ def body_twists(motion_name):
     return motion_name in BODY_ATTITUDE_MOTIONS
 
 
-# Path tool: 0:front_right, 1:center_right, 2:rear_right, 3:front_left, 4:center_left, 5:rear_left
-# Simulator: 0:right-front, 1:right-middle, 2:right-back, 3:left-front, 4:left-middle, 5:left-back
+# Leg indices are shared with the path tool and the firmware, so the paths above
+# are indexed directly; hexapod/naming.py holds that correspondence.
 
 def generate_poses(motion_name, profile_name=DEFAULT_PROFILE):
     """
@@ -406,12 +406,10 @@ def generate_poses(motion_name, profile_name=DEFAULT_PROFILE):
         angles = inverse_kinematics(path[step], config)
         
         pose_dict = {}
-        for pt_idx in range(6):
-            sim_idx = pt_idx
-            
-            j1 = angles[pt_idx, 0]
-            j2 = angles[pt_idx, 1]
-            j3 = angles[pt_idx, 2]
+        for leg_id in range(6):
+            j1 = angles[leg_id, 0]
+            j2 = angles[leg_id, 1]
+            j3 = angles[leg_id, 2]
 
             # Map the path tool's servo angles to the simulator's joint angles.
             # This is the inverse of the relation in hexapod/robot_link.py, and
@@ -422,14 +420,14 @@ def generate_poses(motion_name, profile_name=DEFAULT_PROFILE):
             #                                 tool's local frame)
             #   j2 = 90 - sign * beta
             #   j3 = 90 + sign * gamma       sign = +1 right legs, -1 left legs
-            sign = 1 if pt_idx < 3 else -1
+            sign = 1 if leg_id < 3 else -1
             coxia = j1 - 90
             femur = sign * (90 - j2)
             tibia = sign * (j3 - 90)
 
-            pose_dict[sim_idx] = {
-                "id": sim_idx,
-                "name": NAMES_LEG[sim_idx],
+            pose_dict[leg_id] = {
+                "id": leg_id,
+                "name": NAMES_LEG[leg_id],
                 "coxia": coxia,
                 "femur": femur,
                 "tibia": tibia,
