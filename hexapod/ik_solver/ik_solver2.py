@@ -237,7 +237,7 @@ class IKSolver:
     def compute_alpha_and_twist_frame(self, i):
 
         alpha, twist_frame = find_twist_frame(self.hexapod, self.unit_coxia_vector)
-        alpha = compute_twist_wrt_to_world(alpha, self.hexapod.body.COXIA_AXES[i])
+        alpha = compute_twist_wrt_to_world(alpha, self.hexapod.body.coxia_axes[i])
 
         limit, msg = angle_above_limit(
             alpha, ALPHA_MAX_ANGLE, self.leg_name, joint_label("alpha")

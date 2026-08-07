@@ -1,3 +1,4 @@
+import random
 from copy import deepcopy
 from hexapod.const import BASE_DIMENSIONS
 from hexapod.models import VirtualHexapod
@@ -24,7 +25,15 @@ def assert_ik_points(case, assume_ground_targets):
 
     poses, _ = ik_solver2.inverse_kinematics_update(hexapod, case.given_ik_parameters)
 
+    # ground_contact_solver2 shuffles its candidate leg trios on purpose, so it
+    # returns whichever admissible ground plane it happens to try first. Some of
+    # these poses have two planes that both pass its 1mm checks, which makes the
+    # two updates below disagree by a fraction of a millimetre for reasons that
+    # have nothing to do with what this test is about. Seed each one so both
+    # walk the same candidate order.
+    random.seed(0)
     hexapod_ik.update(poses, assume_ground_targets)
+    random.seed(0)
     hexapod_k.update(case.correct_poses, assume_ground_targets)
 
     assert_two_hexapods_equal(hexapod_ik, hexapod_k, case.description)

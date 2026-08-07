@@ -46,16 +46,16 @@ leg0_points = [
 
 leg1_points = [
     Vector(x=+33.27, y=+115.41, z=+65.62, name="right-front-body-contact"),
-    Vector(x=+102.73, y=+160.84, z=+65.62, name="right-front-coxia"),
-    Vector(x=+130.66, y=+179.11, z=+168.34, name="right-front-femur"),
-    Vector(x=+176.44, y=+209.04, z=+0.00, name="right-front-tibia"),
+    Vector(x=+91.52, y=+174.53, z=+65.62, name="right-front-coxia"),
+    Vector(x=+114.95, y=+198.30, z=+168.34, name="right-front-femur"),
+    Vector(x=+153.34, y=+237.26, z=+0.00, name="right-front-tibia"),
 ]
 
 leg2_points = [
     Vector(x=-91.26, y=+78.09, z=+65.62, name="left-front-body-contact"),
-    Vector(x=-136.69, y=+147.55, z=+65.62, name="left-front-coxia"),
-    Vector(x=-154.96, y=+175.48, z=+168.34, name="left-front-femur"),
-    Vector(x=-184.90, y=+221.26, z=+0.00, name="left-front-tibia"),
+    Vector(x=-120.94, y=+155.60, z=+65.62, name="left-front-coxia"),
+    Vector(x=-132.87, y=+186.77, z=+168.34, name="left-front-femur"),
+    Vector(x=-152.42, y=+237.85, z=+0.00, name="left-front-tibia"),
 ]
 
 leg3_points = [
@@ -67,16 +67,16 @@ leg3_points = [
 
 leg4_points = [
     Vector(x=-33.27, y=-115.41, z=+65.62, name="left-back-body-contact"),
-    Vector(x=-102.73, y=-160.84, z=+65.62, name="left-back-coxia"),
-    Vector(x=-130.66, y=-179.11, z=+168.34, name="left-back-femur"),
-    Vector(x=-176.44, y=-209.04, z=+0.00, name="left-back-tibia"),
+    Vector(x=-91.52, y=-174.53, z=+65.62, name="left-back-coxia"),
+    Vector(x=-114.95, y=-198.30, z=+168.34, name="left-back-femur"),
+    Vector(x=-153.34, y=-237.26, z=+0.00, name="left-back-tibia"),
 ]
 
 leg5_points = [
     Vector(x=+91.26, y=-78.09, z=+65.62, name="right-back-body-contact"),
-    Vector(x=+136.69, y=-147.55, z=+65.62, name="right-back-coxia"),
-    Vector(x=+154.96, y=-175.48, z=+168.34, name="right-back-femur"),
-    Vector(x=+184.90, y=-221.26, z=+0.00, name="right-back-tibia"),
+    Vector(x=+120.94, y=-155.60, z=+65.62, name="right-back-coxia"),
+    Vector(x=+132.87, y=-186.77, z=+168.34, name="right-back-femur"),
+    Vector(x=+152.42, y=-237.85, z=+0.00, name="right-back-tibia"),
 ]
 
 correct_leg_points = [

@@ -69,14 +69,14 @@ given_poses = {
 # ********************************
 
 correct_body_points = [
-    Vector(x=+5.57, y=+122.87, z=+116.68, name="right-front"),
-    Vector(x=+112.68, y=+45.33, z=+126.66, name="right-middle"),
-    Vector(x=+90.76, y=-84.12, z=+108.03, name="right-back"),
-    Vector(x=-90.76, y=+84.12, z=+95.32, name="left-front"),
-    Vector(x=-112.68, y=-45.33, z=+76.69, name="left-middle"),
-    Vector(x=-5.57, y=-122.87, z=+86.67, name="left-back"),
-    Vector(x=+0.00, y=+0.00, z=+101.67, name="center-of-gravity"),
-    Vector(x=-42.60, y=+103.49, z=+106.00, name="head"),
+    Vector(x=+1.47, y=+123.28, z=+118.25, name="right-front"),
+    Vector(x=+110.77, y=+49.39, z=+131.67, name="right-middle"),
+    Vector(x=+93.22, y=-81.05, z=+115.51, name="right-back"),
+    Vector(x=-93.22, y=+81.05, z=+96.18, name="left-front"),
+    Vector(x=-110.77, y=-49.39, z=+80.03, name="left-middle"),
+    Vector(x=-1.47, y=-123.28, z=+93.44, name="left-back"),
+    Vector(x=+0.00, y=+0.00, z=+105.85, name="center-of-gravity"),
+    Vector(x=-45.87, y=+102.17, z=+107.22, name="head"),
 ]
 
 
@@ -85,46 +85,46 @@ correct_body_points = [
 # ********************************
 
 leg0_points = [
-    Vector(x=+112.68, y=+45.33, z=+126.66, name="right-middle-body-contact"),
-    Vector(x=+171.42, y=+18.46, z=+133.92, name="right-middle-coxia"),
-    Vector(x=+304.49, y=-42.16, z=+148.91, name="right-middle-femur"),
-    Vector(x=+272.70, y=+0.00, z=-0.00, name="right-middle-tibia"),
+    Vector(x=+110.77, y=+49.39, z=+131.67, name="right-middle-body-contact"),
+    Vector(x=+170.18, y=+24.54, z=+140.47, name="right-middle-coxia"),
+    Vector(x=+304.82, y=-31.51, z=+158.95, name="right-middle-femur"),
+    Vector(x=+274.25, y=+6.44, z=+8.65, name="right-middle-tibia"),
 ]
 
 
 leg1_points = [
-    Vector(x=+5.57, y=+122.87, z=+116.68, name="right-front-body-contact"),
-    Vector(x=+61.49, y=+153.21, z=+129.97, name="right-front-coxia"),
-    Vector(x=+189.21, y=+222.64, z=+151.78, name="right-front-femur"),
-    Vector(x=+149.60, y=+203.72, z=-0.00, name="right-front-tibia"),
+    Vector(x=+1.47, y=+123.28, z=+118.25, name="right-front-body-contact"),
+    Vector(x=+41.90, y=+172.61, z=+130.75, name="right-front-coxia"),
+    Vector(x=+134.73, y=+284.82, z=+150.77, name="right-front-femur"),
+    Vector(x=+114.57, y=+242.11, z=+0.00, name="right-front-tibia"),
 ]
 
 leg2_points = [
-    Vector(x=-90.76, y=+84.12, z=+95.32, name="left-front-body-contact"),
-    Vector(x=-150.83, y=+107.65, z=+87.44, name="left-front-coxia"),
-    Vector(x=-276.55, y=+141.74, z=+155.58, name="left-front-femur"),
-    Vector(x=-259.37, y=+163.25, z=+0.00, name="left-front-tibia"),
+    Vector(x=-93.22, y=+81.05, z=+96.18, name="left-front-body-contact"),
+    Vector(x=-143.56, y=+121.80, z=+90.66, name="left-front-coxia"),
+    Vector(x=-252.35, y=+189.07, z=+163.10, name="left-front-femur"),
+    Vector(x=-231.52, y=+210.98, z=+8.02, name="left-front-tibia"),
 ]
 
 leg3_points = [
-    Vector(x=-112.68, y=-45.33, z=+76.69, name="left-middle-body-contact"),
-    Vector(x=-176.39, y=-50.56, z=+64.89, name="left-middle-coxia"),
-    Vector(x=-293.99, y=-70.60, z=+150.78, name="left-middle-femur"),
-    Vector(x=-340.16, y=-60.64, z=-0.00, name="left-middle-tibia"),
+    Vector(x=-110.77, y=-49.39, z=+80.03, name="left-middle-body-contact"),
+    Vector(x=-174.07, y=-56.87, z=+67.31, name="left-middle-coxia"),
+    Vector(x=-292.43, y=-78.78, z=+151.69, name="left-middle-femur"),
+    Vector(x=-336.33, y=-73.51, z=+0.00, name="left-middle-tibia"),
 ]
 
 leg4_points = [
-    Vector(x=-5.57, y=-122.87, z=+86.67, name="left-back-body-contact"),
-    Vector(x=-58.45, y=-158.23, z=+73.33, name="left-back-coxia"),
-    Vector(x=-165.26, y=-229.31, z=+145.09, name="left-back-femur"),
-    Vector(x=-217.06, y=-264.36, z=+0.00, name="left-back-tibia"),
+    Vector(x=-1.47, y=-123.28, z=+93.44, name="left-back-body-contact"),
+    Vector(x=-37.27, y=-176.19, z=+81.46, name="left-back-coxia"),
+    Vector(x=-116.20, y=-275.71, z=+155.46, name="left-back-femur"),
+    Vector(x=-142.41, y=-337.34, z=+12.36, name="left-back-tibia"),
 ]
 
 leg5_points = [
-    Vector(x=+90.76, y=-84.12, z=+108.03, name="right-back-body-contact"),
-    Vector(x=+121.84, y=-141.20, z=+106.97, name="right-back-coxia"),
-    Vector(x=+180.23, y=-268.69, z=+151.07, name="right-back-femur"),
-    Vector(x=+191.91, y=-223.89, z=+0.00, name="right-back-tibia"),
+    Vector(x=+93.22, y=-81.05, z=+115.51, name="right-back-body-contact"),
+    Vector(x=+105.72, y=-144.72, z=+111.62, name="right-back-coxia"),
+    Vector(x=+123.71, y=-285.59, z=+149.58, name="right-back-femur"),
+    Vector(x=+146.35, y=-240.02, z=+0.00, name="right-back-tibia"),
 ]
 
 

@@ -10,6 +10,7 @@ from widgets.dimensions_ui import (
 )
 from widgets.robot_link_ui import (
     ROBOT_LINK_WIDGETS_SECTION,
+    ROBOT_MOTION_WIDGETS_SECTION,
     ROBOT_PROFILE_SELECT_ID,
     ROBOT_IP_INPUT_ID,
     ROBOT_CONNECT_BTN_ID,
@@ -18,9 +19,16 @@ from widgets.robot_link_ui import (
     ROBOT_RELAX_BTN_ID,
     ROBOT_STATUS_ID,
     ROBOT_POLL_INTERVAL_ID,
+    ROBOT_MOTION_SELECT_ID,
+    ROBOT_MOTION_MODE_ID,
+    ROBOT_MOTION_LOOP_ID,
+    ROBOT_MOTION_RUN_BTN_ID,
+    ROBOT_MOTION_STOP_BTN_ID,
+    ROBOT_MOTION_MESSAGE_ID,
 )
 from hexapod.const import BASE_FIGURE
-from hexapod.robot_link import ROBOT_LINK
+from hexapod.path_generator import generate_poses
+from hexapod.robot_link import ROBOT_LINK, MOTION_COMMANDS
 from hexapod.robot_profiles import get_profile, get_simulator_dimensions
 
 
@@ -96,27 +104,108 @@ def make_standard_page_layout(graph_id, sidebar_sections):
 def make_standard_page_sidebar(
     message_section_id, params_hidden_section_id, params_widgets_section
 ):
+    """Sidebar holding only what is specific to one page.
+
+    Robot dimensions and everything that talks to the hardware are deliberately
+    absent: they live in GLOBAL_CONTROLS_PANEL, mounted once for the whole app.
+    """
     params_hidden_section = html.Div(
         id=params_hidden_section_id, style={"display": "none"}
     )
     message_section = html.Div(id=message_section_id)
 
     return [
-        DIMENSIONS_WIDGETS_SECTION,
         params_widgets_section,
-        ROBOT_LINK_WIDGETS_SECTION,
         message_section,
-        DIMENSIONS_HIDDEN_SECTION,
         params_hidden_section,
     ]
 
 
 # ......................
+# Global controls panel
+#
+# Dimensions and the robot link describe one robot, not one page, so they are
+# mounted once outside the routed page content. Keeping them here means their
+# values survive navigation instead of being rebuilt at defaults on every page
+# change, and there is only ever one connect button, one profile, one stream
+# switch.
+#
+# It is a drawer rather than a column so that no page has to give up layout
+# space for it and the landing page can reach it too.
+#
+# Deliberately not a dbc.Offcanvas: that unmounts its children while closed, so
+# every callback wired to these widgets -- including the one that publishes the
+# dimensions the pages plot from -- would stop firing whenever the drawer was
+# shut. This one is always mounted and only slid out of view by CSS.
+# ......................
+
+GLOBAL_PANEL_ID = "global-controls-panel"
+GLOBAL_PANEL_TOGGLE_ID = "global-controls-toggle"
+GLOBAL_PANEL_CLOSE_ID = "global-controls-close"
+
+# The navbar button is also the app's status readout: ONLINE means the link to
+# the hexapod is up, OFFLINE means it is not. The state modifier drives the LED
+# and the accent bar in scifi.css.
+_TOGGLE_BASE_CLASS = "scifi-status-btn"
+
+
+def _toggle_label(state):
+    return f"ROBOT: {state}"
+
+
+def _toggle_class(state):
+    return f"{_TOGGLE_BASE_CLASS} {state}"
+
+
+GLOBAL_PANEL_TOGGLE_LABEL = _toggle_label("OFFLINE")
+GLOBAL_PANEL_TOGGLE_CLASS = _toggle_class("is-offline")
+
+_PANEL_CLASS = "global-drawer"
+_PANEL_CLASS_OPEN = "global-drawer global-drawer-open"
+
+_panel_header = html.Div(
+    [
+        html.H6("ROBOT", className="mb-0"),
+        dbc.Button(
+            "✕",
+            id=GLOBAL_PANEL_CLOSE_ID,
+            color="link",
+            className="p-0 fw-bold text-decoration-none",
+        ),
+    ],
+    className="d-flex justify-content-between align-items-center mb-3",
+)
+
+GLOBAL_CONTROLS_PANEL = html.Div(
+    [
+        _panel_header,
+        DIMENSIONS_WIDGETS_SECTION,
+        ROBOT_LINK_WIDGETS_SECTION,
+        ROBOT_MOTION_WIDGETS_SECTION,
+        DIMENSIONS_HIDDEN_SECTION,
+    ],
+    id=GLOBAL_PANEL_ID,
+    className=_PANEL_CLASS,
+)
+
+
+@app.callback(
+    Output(GLOBAL_PANEL_ID, "className"),
+    Input(GLOBAL_PANEL_TOGGLE_ID, "n_clicks"),
+    Input(GLOBAL_PANEL_CLOSE_ID, "n_clicks"),
+    State(GLOBAL_PANEL_ID, "className"),
+    prevent_initial_call=True,
+)
+def toggle_global_panel(_toggle_clicks, _close_clicks, class_name):
+    if class_name == _PANEL_CLASS_OPEN:
+        return _PANEL_CLASS
+    return _PANEL_CLASS_OPEN
+
+
+# ......................
 # Physical robot link callbacks
 #
-# Registered once here because the robot link panel is part of the shared
-# sidebar. suppress_callback_exceptions is on, so these are inert on any page
-# that does not render the panel.
+# Registered once here, against the single set of widgets in the global panel.
 # ......................
 
 
@@ -206,21 +295,107 @@ def relax_robot(_n_clicks):
 @app.callback(
     Output(ROBOT_STATUS_ID, "children"),
     Output(ROBOT_STATUS_ID, "className"),
+    Output(GLOBAL_PANEL_TOGGLE_ID, "children"),
+    Output(GLOBAL_PANEL_TOGGLE_ID, "className"),
     Input(ROBOT_POLL_INTERVAL_ID, "n_intervals"),
 )
 def update_robot_status(_n_intervals):
+    """Refresh the detail line in the panel and the navbar status readout.
+
+    The navbar carries the summary -- whether the robot is reachable -- so link
+    state is legible from any page without opening the drawer; the detail line
+    inside the drawer carries the address, mode and packet count.
+    """
     status = ROBOT_LINK.status()
     base_class = "small font-monospace text-center "
 
     if status["last_error"]:
-        return f"⚠ {status['last_error']}", base_class + "text-danger"
+        return (
+            f"⚠ {status['last_error']}",
+            base_class + "text-danger",
+            _toggle_label("FAULT"),
+            _toggle_class("is-fault"),
+        )
 
     if not status["connected"]:
-        return "Disconnected", base_class + "text-muted"
+        return (
+            "Disconnected",
+            base_class + "text-muted",
+            _toggle_label("OFFLINE"),
+            _toggle_class("is-offline"),
+        )
 
     mode = "STREAMING" if status["streaming"] else "IDLE (holding)"
     text = f"● {status['ip']} — {mode} — {status['packets_sent']} pkts"
-    return text, base_class + ("text-success" if status["streaming"] else "text-info")
+
+    if status["streaming"]:
+        return (
+            text,
+            base_class + "text-success",
+            _toggle_label("ONLINE"),
+            _toggle_class("is-streaming"),
+        )
+    return (
+        text,
+        base_class + "text-info",
+        _toggle_label("ONLINE"),
+        _toggle_class("is-online"),
+    )
+
+
+# ......................
+# Run on robot
+#
+# Commands the hardware from the global panel, so a gait can be started or
+# stopped without first navigating to the motion page.
+# ......................
+
+
+@app.callback(
+    Output(ROBOT_MOTION_MESSAGE_ID, "children"),
+    Input(ROBOT_MOTION_RUN_BTN_ID, "n_clicks"),
+    State(ROBOT_MOTION_SELECT_ID, "value"),
+    State(ROBOT_MOTION_MODE_ID, "value"),
+    State(ROBOT_MOTION_LOOP_ID, "value"),
+    State(ROBOT_PROFILE_SELECT_ID, "value"),
+    prevent_initial_call=True,
+)
+def run_motion_on_robot(_n_clicks, motion_name, mode, loop_values, profile_name):
+    if not ROBOT_LINK.connected:
+        return "Not connected — connect in the ROBOT LINK panel first."
+
+    loop = bool(loop_values) and "loop" in loop_values
+
+    if mode == "native":
+        if motion_name not in MOTION_COMMANDS:
+            # "standup" is the firmware's boot sequence, not a motion LUT it
+            # can be commanded into.
+            return (
+                f"'{motion_name}' has no built-in equivalent on the robot. "
+                "Use 'Stream frames from simulator' instead."
+            )
+        if ROBOT_LINK.send_motion_command(motion_name):
+            return f"Robot running its own '{motion_name}' gait."
+        return "Failed to send motion command."
+
+    frames = generate_poses(motion_name, profile_name)
+    if not ROBOT_LINK.play_sequence(frames, loop=loop):
+        return "Nothing to stream for this motion."
+    return f"Streaming '{motion_name}' — {len(frames)} frames{' (looping)' if loop else ''}."
+
+
+@app.callback(
+    Output(ROBOT_MOTION_MESSAGE_ID, "children", allow_duplicate=True),
+    Input(ROBOT_MOTION_STOP_BTN_ID, "n_clicks"),
+    prevent_initial_call=True,
+)
+def stop_motion_on_robot(_n_clicks):
+    if not ROBOT_LINK.connected:
+        return "Not connected."
+
+    ROBOT_LINK.stop_sequence()
+    ROBOT_LINK.send_motion_command("standby")
+    return "Robot returning to standby."
 
 
 # ......................
