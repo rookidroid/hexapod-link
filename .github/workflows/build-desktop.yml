@@ -64,6 +64,20 @@ jobs:
       - name: Build
         run: pyinstaller hexapod.spec --noconfirm --clean
 
+      # Stamp the bundle the way Windows stamps anything extracted from a
+      # downloaded .zip -- which is how everyone gets this artifact. A managed
+      # assembly carrying that stamp will not load, so without the runtime hook
+      # that clears it the app has no window at all; see rthook_clear_motw.py.
+      # The smoke test below then runs a marked bundle, and the step after it
+      # checks that the marks are gone.
+      - name: Mark the bundle with the Mark of the Web
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Get-ChildItem dist/HexapodLink -Recurse -Filter *.dll | ForEach-Object {
+            Set-Content -Path $_.FullName -Stream Zone.Identifier -Value "[ZoneTransfer]`r`nZoneId=3"
+          }
+
       # The binary starting is the only thing that proves the bundle is complete:
       # a missing Dash data file or an unresolved hidden import shows up as a
       # blank window at runtime, not as a build error. --no-window serves without
@@ -95,6 +109,24 @@ jobs:
           cat smoke.log
           kill $PID 2>/dev/null || true
           exit 1
+
+      # Having started once, the app should have unblocked every DLL in the
+      # bundle. Checking the marks are gone is a proxy for the window opening,
+      # which needs a desktop session the runner cannot give us.
+      - name: Check the bundle unblocked itself
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $marked = Get-ChildItem dist/HexapodLink -Recurse -Filter *.dll |
+            Where-Object { Get-Item $_.FullName -Stream Zone.Identifier -ErrorAction SilentlyContinue }
+
+          if ($marked) {
+            Write-Output "still carrying the Mark of the Web:"
+            $marked | ForEach-Object { Write-Output "  $($_.FullName)" }
+            exit 1
+          }
+
+          Write-Output "all bundled DLLs unblocked"
 
       - name: Report bundle size
         shell: bash

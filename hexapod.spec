@@ -122,6 +122,12 @@ if WINDOWS:
     # Nothing on Windows uses PyGObject, and a stray copy would be bundled.
     excludes.append("gi")
 
+# Unblock the bundled managed assemblies before anything tries to load them --
+# without this, a bundle extracted from a downloaded .zip opens no window at
+# all. See rthook_clear_motw.py. A no-op for a bundle that was never
+# downloaded, and Windows-only: the Linux backend involves no .NET.
+runtime_hooks = ["rthook_clear_motw.py"] if WINDOWS else []
+
 a = Analysis(
     ["desktop.py"],
     pathex=[],
@@ -130,7 +136,7 @@ a = Analysis(
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
-    runtime_hooks=[],
+    runtime_hooks=runtime_hooks,
     excludes=excludes,
     noarchive=False,
     optimize=0,
