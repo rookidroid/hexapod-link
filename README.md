@@ -1,46 +1,32 @@
-[![](https://img.shields.io/badge/Buy%20me%20-coffee!-orange.svg?logo=buy-me-a-coffee&color=795548)](https://ko-fi.com/minimithi)
-[![Build Status](https://travis-ci.com/mithi/hexapod-robot-simulator.svg?branch=master)](https://travis-ci.com/github/mithi/hexapod-robot-simulator)
-[![codecov](https://codecov.io/gh/mithi/hexapod-robot-simulator/branch/master/graph/badge.svg)](https://codecov.io/gh/mithi/hexapod-robot-simulator)
-[![Code Climate](https://codeclimate.com/github/mithi/hexapod-robot-simulator/badges/gpa.svg)](https://codeclimate.com/github/mithi/hexapod-robot-simulator)
-[![](https://img.shields.io/codeclimate/tech-debt/mithi/hexapod-robot-simulator)](https://codeclimate.com/github/mithi/hexapod-robot-simulator/trends/technical_debt)
-[![HitCount](https://hits.dwyl.com/mithi/hexapod-robot-simulator.svg)](https://hits.dwyl.com/mithi/hexapod-robot-simulator)
+[![Tests](https://github.com/rookidroid/hexapod-simulator/actions/workflows/tests.yml/badge.svg)](https://github.com/rookidroid/hexapod-simulator/actions/workflows/tests.yml)
+[![Build desktop app](https://github.com/rookidroid/hexapod-simulator/actions/workflows/build-desktop.yml/badge.svg)](https://github.com/rookidroid/hexapod-simulator/actions/workflows/build-desktop.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![PRs welcome!](https://img.shields.io/badge/contributions-welcome-orange.svg?style=flat)](https://github.com/mithi/hexapod-robot-simulator/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)
-[![first-timers-only](https://img.shields.io/badge/first--timers--only-friendly-blueviolet.svg?style=flat)](https://www.firsttimersonly.com/)
 
-# Mithi's Hexapod Robot Simulator
+# Hexapod Link
 
-- A bare minimum browser-based hexapod robot simulator built from first principles 🕷️
-- If you like this project, consider [buying me a few ☕ cups of coffee](https://ko-fi.com/minimithi). 💕
+A browser-based (and desktop) hexapod robot simulator built from first
+principles, with forward/inverse kinematics, gait animation, and real-time
+WiFi control of a physical [rookidroid](https://rookidroid.com/) hexapod. 🕷️
+
+This is a fork of [mithi/hexapod-robot-simulator](https://github.com/mithi/hexapod-robot-simulator),
+rebranded as **Hexapod Link** and extended with a desktop app, real-robot
+streaming control, and a rebuilt CI/test suite.
 
 |  |  |  |  |
 |---------|---------|---------|---------|
 |![Twisting turning and tilting](https://mithi.github.io/robotics-blog/robot-only-x1.gif)|<img src="https://mithi.github.io/robotics-blog/v2-hexapod-1.gif" width="550"/>|<img src="https://mithi.github.io/robotics-blog/v2-hexapod-2.gif" width="500"/>|![Adjusting camera view](https://mithi.github.io/robotics-blog/robot-only-x3.gif)|
 
-# Announcement
-
-You might be interested in checking out my [rewrite in Javascript](http://github.com/mithi/hexapod), live at: https://hexapod.netlify.app/ , which is like 10000000x faster. If you'd like to build you're own user interface with Node, you can download the algorithm alone as a package in the npm registry: [Hexapod Kinematics Library](https://github.com/mithi/hexapod-kinematics-library). There is also [a "fork" modified where you can use the app to control a physical hexapod robot](https://github.com/mithi/hexapod-irl) as you can see in the gif below.
-
-<p align="center">
-    <img src="https://user-images.githubusercontent.com/1670421/103467765-451a2180-4d8d-11eb-8f94-1a23201595b9.gif" alt="drawing" />
-</p>
-
 # Features
 
 | STATUS | FEATURE   | DESCRIPTION  |
 |---|-----------|--------------|
-| 🎉 | Forward Kinematics | Given the angles of each joint, what does the robot look like?|
+| 🎉 | Forward Kinematics | Given the angles of each joint, what does the robot look like? |
 | 🎉 | Inverse Kinematics | What are the angles of each joint to make the robot look the way I want? Is it even possible? Why or why not? |
-| 🎉 | Uniform Movements |  If all of the legs behaved the same way, how will the hexapod robot as a whole behave? |
-| 🎉 | Customizability | Set the dimensions and shape of the robot's body and legs. (6 parameters) |
-| 🎉 | Usability | Control the camera view, pan, tilt, zoom, whatever. |
-| 🎉 | Simplicity | Minimal dependencies. Depends solely on Numpy for calculations. Uses only Plotly Dash for plotting, Dash can be safely replaced if a better 3d plotting library is available. |
+| 🎉 | Leg Patterns & Motion | Preview predefined gaits and leg-pattern animations frame by frame. |
+| 🎉 | Customizability | Set the dimensions and shape of the robot's body and legs. |
 | 🎉 | Real-time Robot Control | Drive a physical ESP32 hexapod over WiFi, from single joints to whole-body gaits. Supports both the `mochi` and `macaroon` robots. |
-| ❗ | Stability Check (WIP) | If we pose the robot in a particular way, will it fall over? |
-| ❗ | Fast | Okay, it's not as fast as I wanted, but when run locally, it's okay |
-| ❗ | Bug-free | Fine, right now there's still room for improvement |
-| ❗ | Well-tested | Yeah, I need to compile test cases first |
+| 🎉 | Desktop App | Runs as a native window (Windows/Linux) via PyInstaller + pywebview, no browser required. |
+| 🎉 | Simplicity | Minimal dependencies. Numpy for calculations, Plotly Dash for the 3D view and UI. |
 
 ## Preview
 
@@ -50,21 +36,21 @@ You might be interested in checking out my [rewrite in Javascript](http://github
 
 ## Requirements
 
-- [x] Python 3.8.1
-- [x] Plotly Dash 1.18.1
-- [x] Plotly Dash Daq 0.5.0
-- [x] Numpy 1.19.5
-- [x] See also [./requirements.txt](./requirements.txt)
+- [x] Python 3.13+ (CI runs 3.13 and 3.14)
+- [x] See [`requirements.txt`](./requirements.txt) for runtime dependencies (Dash, Plotly, Numpy, Flask)
+- [x] See [`requirements-dev.txt`](./requirements-dev.txt) for linting/test tools
+- [x] See [`requirements-desktop.txt`](./requirements-desktop.txt) for the desktop app (adds waitress, pywebview, PyInstaller)
 
 ## Run
 
 ```bash
+$ pip install -r requirements.txt
 $ python index.py
 Running on http://127.0.0.1:8050/
 ```
 
-- Modify default settings with [./settings.py](./settings.py)
-- Dark Mode is the default - modify page styles with [./style_settings.py](./style_settings.py)
+- Modify default settings with [`settings.py`](./settings.py) — joint limits, robot link ports/rates, UI resolution, etc.
+- Modify page styles/theme with [`style_settings.py`](./style_settings.py) (light mode is the default; set `DARKMODE = True` to switch).
 
 ## Desktop app
 
@@ -94,13 +80,17 @@ $ .venv-build/Scripts/pyinstaller hexapod.spec
 ```
 
 The result is `dist/HexapodLink/HexapodLink.exe`, about 130 MB in total. Set
-`ONEFILE = True` in [./hexapod.spec](./hexapod.spec) for a single
+`ONEFILE = True` in [`hexapod.spec`](./hexapod.spec) for a single
 self-extracting executable instead; it is tidier to hand out but adds several
 seconds to every launch.
 
 On Windows the window renders through the Edge WebView2 runtime, which is
 present on stock Windows 10/11 installs. A machine that lacks it needs the
 [Evergreen Bootstrapper](https://developer.microsoft.com/microsoft-edge/webview2/).
+
+The `build-desktop` GitHub Actions workflow builds and smoke-tests this
+bundle for Windows and Linux on every push; grab the artifacts from a run if
+you just want a prebuilt binary instead of building locally.
 
 ## Controlling a real hexapod
 
@@ -136,7 +126,7 @@ body.
 Code keeps the descriptive identifiers — they say which leg is meant without a
 diagram, and the pose dicts, widget ids and point names key off them. Anything a
 person reads is built from the label tables in
-[./hexapod/naming.py](./hexapod/naming.py), which is the only place the two
+[`hexapod/naming.py`](./hexapod/naming.py), which is the only place the two
 vocabularies meet. The joint *angles* still follow the simulator's own sign
 convention; `hexapod/robot_link.py` converts them to servo angles when streaming.
 
@@ -153,13 +143,14 @@ step delay.
 
 Selecting a profile also sets the simulator's body and leg dimensions to match,
 so the on-screen hexapod agrees with the hardware. Profiles are defined in
-[./hexapod/robot_profiles.py](./hexapod/robot_profiles.py); add a robot there.
+[`hexapod/robot_profiles.py`](./hexapod/robot_profiles.py); add a robot there.
 
 ### Using it
 
 - **Kinematics page** — move any of the 18 joint inputs and the servo follows.
 - **Inverse Kinematics page** — translate and rotate the body; the solved pose is
   streamed once it is reachable.
+- **Leg Patterns page** — preview individual leg-pattern trajectories.
 - **Motion page** — either trigger the robot's own built-in gait (recommended;
   the ESP32 plays it from flash so smoothness does not depend on WiFi), or
   stream the simulator's frames for paths the firmware does not have.
@@ -176,6 +167,30 @@ fast any servo may slew, and **RELAX** cuts drive so the servos go limp.
   more travel than the hardware has. Widen these only after checking clearances.
 - If the stream stops, the robot eases back to standby on its own after 1 s.
 
+## Testing
+
+```bash
+$ pip install -r requirements-dev.txt
+$ pytest
+```
+
+The suite (~1200 lines across [`tests/`](./tests)) covers forward/inverse
+kinematics, leg patterns, path/motion generation, leg-naming conversions, the
+robot-link streaming protocol, and robot profile geometry — all without
+needing a display, a browser, or a physical robot.
+
+## CI/CD
+
+- [`tests.yml`](./.github/workflows/tests.yml) — runs `pytest` on Ubuntu and
+  Windows across Python 3.13/3.14, and byte-compiles + imports every module to
+  catch dead code the tests don't reach.
+- [`build-desktop.yml`](./.github/workflows/build-desktop.yml) — builds the
+  PyInstaller desktop bundle for Windows and Linux, smoke-tests that the built
+  binary actually serves a page, and (Windows) verifies the Mark of the Web is
+  cleared from bundled DLLs.
+- [Dependabot](./.github/dependabot.yml) — weekly update checks for both pip
+  dependencies and GitHub Actions versions.
+
 ## Screenshots
 
 | ![Kinematics](https://mithi.github.io/robotics-blog/v2-kinematics-screenshot.png)|
@@ -183,23 +198,27 @@ fast any servo may slew, and **RELAX** cuts drive so the servos go limp.
 | ![IK](https://mithi.github.io/robotics-blog/v2-ik-screenshot.png)|
 
 ## More Information
-Check the [Wiki](https://github.com/mithi/hexapod-robot-simulator/wiki/Notes) for more additional information
+The original project's [Wiki](https://github.com/mithi/hexapod-robot-simulator/wiki/Notes)
+has additional background on the kinematics math this simulator is built on.
 
 ## 🤗 Contributors
 
+Original project ([mithi/hexapod-robot-simulator](https://github.com/mithi/hexapod-robot-simulator)):
 - [@mithi](https://github.com/mithi/)
 - [@philippeitis](https://github.com/philippeitis/)
 - [@mikong](https://github.com/mikong/)
 - [@guilyx](https://github.com/guilyx)
 - [@markkulube](https://github.com/markkulube)
 
-![](https://img.shields.io/github/last-commit/mithi/hexapod-robot-simulator)
-![](https://img.shields.io/github/commit-activity/y/mithi/hexapod-robot-simulator)
-![](https://img.shields.io/github/languages/code-size/mithi/hexapod-robot-simulator?color=yellow)
-![](https://img.shields.io/github/repo-size/mithi/hexapod-robot-simulator?color=violet)
-![](https://tokei.rs/b1/github/mithi/hexapod-robot-simulator?category=blanks)
-![](https://tokei.rs/b1/github/mithi/hexapod-robot-simulator?category=lines)
-![](https://tokei.rs/b1/github/mithi/hexapod-robot-simulator?category=files)
-![](https://tokei.rs/b1/github/mithi/hexapod-robot-simulator?category=comments)
-![](https://tokei.rs/b1/github/mithi/hexapod-robot-simulator?category=code)
-![](https://img.shields.io/github/languages/top/mithi/hexapod-robot-simulator)
+This fork ([rookidroid/hexapod-simulator](https://github.com/rookidroid/hexapod-simulator)):
+- [@rookidroid](https://github.com/rookidroid/)
+
+## License
+
+MIT — see [`LICENSE`](./LICENSE). Copyright (c) 2020 Mithi Sevilla, (c) 2026 rookidroid.com.
+
+![](https://img.shields.io/github/last-commit/rookidroid/hexapod-simulator)
+![](https://img.shields.io/github/commit-activity/y/rookidroid/hexapod-simulator)
+![](https://img.shields.io/github/languages/code-size/rookidroid/hexapod-simulator?color=yellow)
+![](https://img.shields.io/github/repo-size/rookidroid/hexapod-simulator?color=violet)
+![](https://img.shields.io/github/languages/top/rookidroid/hexapod-simulator)
