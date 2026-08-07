@@ -6,15 +6,27 @@ from hexapod.const import (
     BASE_POSE,
     BASE_IK_PARAMS,
     BASE_DIMENSIONS,
+    NAMES_JOINT,
     NAMES_LEG,
 )
+from hexapod.naming import joint_label, leg_label
 
 NEW_POSES = deepcopy(BASE_POSE)
-POSES_MSG_HEADER = """
-+----------------+------------+------------+------------+
-| leg name       | coxia      | femur      | tibia      |
-+----------------+------------+------------+------------+"""
-POSES_MSG_LAST_ROW = "\n+----------------+------------+------------+------------+"
+
+# Legs and joints are named the way the robot firmware names them, so a row of
+# this table can be read straight onto the robot's calibration page.
+_LEG_COLUMN_WIDTH = 13
+_JOINT_COLUMN_WIDTH = 15
+_POSES_MSG_RULE = "\n+{}+{}+".format(
+    "-" * (_LEG_COLUMN_WIDTH + 2),
+    "+".join(["-" * (_JOINT_COLUMN_WIDTH + 2)] * len(NAMES_JOINT)),
+)
+_POSES_MSG_COLUMNS = "\n| {} | {} |".format(
+    f"{'leg':{_LEG_COLUMN_WIDTH}}",
+    " | ".join(f"{joint_label(name):{_JOINT_COLUMN_WIDTH}}" for name in NAMES_JOINT),
+)
+POSES_MSG_HEADER = _POSES_MSG_RULE + _POSES_MSG_COLUMNS + _POSES_MSG_RULE
+POSES_MSG_LAST_ROW = _POSES_MSG_RULE
 
 
 def make_pose(alpha, beta, gamma, poses=NEW_POSES):
@@ -66,12 +78,11 @@ def make_poses_message(poses):
     message = POSES_MSG_HEADER
 
     for pose in poses.values():
-        name = pose["name"]
-        coxia = pose["coxia"]
-        femur = pose["femur"]
-        tibia = pose["tibia"]
-        row = f"\n| {name:14} | {coxia:<+10.2f} | {femur:<+10.2f} | {tibia:<+10.2f} |"
-        message += row
+        label = leg_label(pose["id"])
+        angles = " | ".join(
+            f"{pose[name]:<+{_JOINT_COLUMN_WIDTH}.2f}" for name in NAMES_JOINT
+        )
+        message += f"\n| {label:{_LEG_COLUMN_WIDTH}} | {angles} |"
 
     return make_monospace(message + POSES_MSG_LAST_ROW)
 

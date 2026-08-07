@@ -1,0 +1,21 @@
+# Linting, formatting and tests. Not needed to run or ship the app.
+
+-r requirements.txt
+
+# Tests
+pytest>=7.4.0
+
+# Linting and formatting
+flake8>=6.1.0
+pylint>=3.0.0
+isort>=5.12.0
+pycodestyle>=2.11.0
+pyflakes>=3.1.0
+mccabe>=0.7.0
+astroid>=3.0.0
+lazy-object-proxy>=1.9.0
+wrapt>=1.15.0
+toml>=0.10.0
+
+# WSGI server for a traditional (non-desktop) deployment. Unix only.
+gunicorn>=21.0.0; sys_platform != "win32"

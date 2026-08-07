@@ -16,6 +16,7 @@ from hexapod.ik_solver.helpers import (
     might_print_ik,
     might_print_points,
 )
+from hexapod.naming import joint_label
 from hexapod.points import (
     Vector,
     length,
@@ -239,7 +240,7 @@ class IKSolver:
         alpha = compute_twist_wrt_to_world(alpha, self.hexapod.body.COXIA_AXES[i])
 
         limit, msg = angle_above_limit(
-            alpha, ALPHA_MAX_ANGLE, self.leg_name, "(alpha/coxia)"
+            alpha, ALPHA_MAX_ANGLE, self.leg_name, joint_label("alpha")
         )
         if limit:
             raise Exception(msg)

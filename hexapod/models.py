@@ -7,6 +7,7 @@ import json
 import numpy as np
 from settings import PRINT_MODEL_ON_UPDATE, ALPHA_MAX_ANGLE, BETA_MAX_ANGLE, GAMMA_MAX_ANGLE
 from hexapod.linkage import Linkage
+from hexapod.naming import LEG_NAMES, joint_label, leg_label
 import hexapod.ground_contact_solver.ground_contact_solver as gc
 import hexapod.ground_contact_solver.ground_contact_solver2 as gc2
 
@@ -59,14 +60,8 @@ from hexapod.points import (
 #         x4         x5
 #
 class Hexagon:
-    VERTEX_NAMES = (
-        "right-front",
-        "right-middle",
-        "right-back",
-        "left-front",
-        "left-middle",
-        "left-back",
-    )
+    # Ordered to match the firmware's leg indices; see hexapod/naming.py
+    VERTEX_NAMES = LEG_NAMES
     COXIA_AXES = (45, 0, 315, 135, 180, 225)
     __slots__ = ("f", "m", "s", "cog", "head", "vertices", "all_points")
 
@@ -265,7 +260,7 @@ def might_raise_poses_range_error(poses):
         return -max_angle <= angle <= max_angle
 
     def _raise_range_error(leg_name, joint_name, angle, max_angle):
-        identifier = f"{leg_name} leg's {joint_name} angle is {angle}"
+        identifier = f"{leg_label(leg_name)} {joint_label(joint_name)} angle is {angle}"
         msg = f"{identifier}. Must be within [-{max_angle}, {max_angle}]"
         raise Exception(msg)
 

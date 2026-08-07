@@ -19,8 +19,8 @@
 #
 # which maps j=90 to 307, matching SERVOMID in the firmware's config.h.
 #
-# Leg order is the same on both sides (right front/middle/back, then left
-# front/middle/back), so no reordering is needed.
+# Only the angle convention differs. Leg indices and joint indices are shared
+# with the firmware -- see hexapod/naming.py -- so nothing is reordered here.
 
 import socket
 import struct

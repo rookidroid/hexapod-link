@@ -1,0 +1,17 @@
+# Everything needed to run and build the standalone desktop app.
+#
+#   python desktop.py            run the native window
+#   pyinstaller hexapod.spec     build dist/HexapodLink.exe
+
+-r requirements.txt
+
+# Native window. On Windows this renders through the Edge WebView2 runtime,
+# which ships with Windows 10/11; on Linux it uses GTK/WebKit, on macOS WKWebView.
+pywebview>=5.0
+
+# Production WSGI server. Replaces the Flask dev server that index.py uses,
+# which prints warnings and is not meant to be left running.
+waitress>=3.0
+
+# Build tooling only; not imported at runtime.
+pyinstaller>=6.3

@@ -6,11 +6,16 @@
 #     'femur': BETA,
 #     'tibia': GAMMA}
 #   }
+#
+# LEG_ID is the leg index shared with the robot firmware, and the joints are
+# listed body-outward as Joint 1, 2 and 3. See hexapod/naming.py.
+from hexapod.naming import JOINT_NAMES, LEG_NAMES
+
 HEXAPOD_POSE = {
-    0: {"coxia": 0, "femur": 0, "tibia": 0, "name": "right-front", "id": 0},
-    1: {"coxia": 0, "femur": 0, "tibia": 0, "name": "right-middle", "id": 1},
-    2: {"coxia": 0, "femur": 0, "tibia": 0, "name": "right-back", "id": 2},
-    3: {"coxia": 0, "femur": 0, "tibia": 0, "name": "left-front", "id": 3},
-    4: {"coxia": 0, "femur": 0, "tibia": 0, "name": "left-middle", "id": 4},
-    5: {"coxia": 0, "femur": 0, "tibia": 0, "name": "left-back", "id": 5},
+    leg_id: dict(
+        {joint: 0 for joint in JOINT_NAMES},
+        name=name,
+        id=leg_id,
+    )
+    for leg_id, name in enumerate(LEG_NAMES)
 }

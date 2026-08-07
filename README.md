@@ -66,6 +66,42 @@ Running on http://127.0.0.1:8050/
 - Modify default settings with [./settings.py](./settings.py)
 - Dark Mode is the default - modify page styles with [./style_settings.py](./style_settings.py)
 
+## Desktop app
+
+The same app can run as a native window instead of in a browser: a waitress
+server bound to loopback, wrapped in a [pywebview](https://pywebview.flowrl.com/)
+window. No browser chrome, no dev-server warnings, and it works offline.
+
+```bash
+$ pip install -r requirements-desktop.txt
+$ python desktop.py
+```
+
+Useful flags: `--port` to pin the port, `--debug` for the webview developer
+tools, and `--no-window` to start the server only.
+
+### Building a standalone executable
+
+Build from a **minimal environment**. PyInstaller follows optional-import
+branches inside dependencies and bundles whatever it finds installed; built
+from a rich development environment this comes out around 1 GB instead of
+130 MB, mostly polars, pyarrow and Intel MKL that the app never touches.
+
+```bash
+$ python -m venv .venv-build
+$ .venv-build/Scripts/pip install -r requirements-desktop.txt
+$ .venv-build/Scripts/pyinstaller hexapod.spec
+```
+
+The result is `dist/HexapodLink/HexapodLink.exe`, about 130 MB in total. Set
+`ONEFILE = True` in [./hexapod.spec](./hexapod.spec) for a single
+self-extracting executable instead; it is tidier to hand out but adds several
+seconds to every launch.
+
+On Windows the window renders through the Edge WebView2 runtime, which is
+present on stock Windows 10/11 installs. A machine that lacks it needs the
+[Evergreen Bootstrapper](https://developer.microsoft.com/microsoft-edge/webview2/).
+
 ## Controlling a real hexapod
 
 The simulator can drive a physical [rookidroid hexapod](https://rookidroid.com/)
@@ -80,6 +116,29 @@ over WiFi in real time, from a single joint up to a full gait.
    running this app — the ESP32 is the access point, so there is no other route
    to it. The robot performs its stand-up sequence when a client connects.
 3. Start the app, open any page, and use the **ROBOT LINK** panel in the sidebar.
+
+### Leg and joint numbering
+
+Legs and joints are named the way the robot's firmware names them, so a leg
+picked out in the 3D plot is the leg the calibration page calls by that name.
+Legs are numbered per side, front to back; joints are numbered outward from the
+body.
+
+| Leg index | 0 | 1 | 2 | 3 | 4 | 5 |
+|---|---|---|---|---|---|---|
+| Shown as | Right Leg 1 | Right Leg 2 | Right Leg 3 | Left Leg 1 | Left Leg 2 | Left Leg 3 |
+| In code | `right-front` | `right-middle` | `right-back` | `left-front` | `left-middle` | `left-back` |
+
+| Joint | 1 | 2 | 3 |
+|---|---|---|---|
+| In code | `coxia` / `alpha` | `femur` / `beta` | `tibia` / `gamma` |
+
+Code keeps the descriptive identifiers — they say which leg is meant without a
+diagram, and the pose dicts, widget ids and point names key off them. Anything a
+person reads is built from the label tables in
+[./hexapod/naming.py](./hexapod/naming.py), which is the only place the two
+vocabularies meet. The joint *angles* still follow the simulator's own sign
+convention; `hexapod/robot_link.py` converts them to servo angles when streaming.
 
 ### Supported robots
 
