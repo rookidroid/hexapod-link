@@ -27,8 +27,8 @@ def cant_reach_alert_msg(leg_name, problem):
     msg = "Cannot reach target ground point.\n"
     if problem == "femur":
         msg += f"Femur length of {label} is too long."
-    if problem == "tibia":
-        msg += f"Femur length of {label} is too long."
+    elif problem == "tibia":
+        msg += f"Tibia length of {label} is too long."
     else:
         # blocking
         msg = f"{label} cannot reach it because the ground is blocking the path."
