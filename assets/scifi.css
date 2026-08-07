@@ -341,25 +341,113 @@ input[type="number"]:focus,
 }
 
 /* ===========================================
-   FOOTER
+   GLOBAL DRAWER — app-wide robot controls
+
+   Slid out of view rather than hidden with `display: none`, so its widgets
+   stay mounted (Dash callbacks keep firing) and its sliders still measure a
+   real width before the drawer is ever opened.
    =========================================== */
 
-.scifi-footer {
-    background: var(--ind-surface);
-    border-top: 4px solid var(--ind-border);
-    padding: 0.25rem 0;
-    margin-top: 1rem;
+.global-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 420px;
+    max-width: 92vw;
+    z-index: 1045;
+    padding: 1rem;
+    overflow-y: auto;
+    background: var(--ind-bg);
+    border-left: 4px solid var(--ind-accent);
+    box-shadow: -4px 0 16px rgba(0,0,0,0.18);
+    transform: translateX(105%);
+    visibility: hidden;
+    transition: transform 0.2s ease, visibility 0.2s ease;
 }
 
-.scifi-footer .nav-link {
-    font-family: var(--font-mono);
-    color: var(--ind-text-muted) !important;
+.global-drawer-open {
+    transform: translateX(0);
+    visibility: visible;
+}
+
+.global-drawer h6 {
+    font-family: var(--font-heading);
     font-weight: 700;
-    transition: color 0.1s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
-.scifi-footer .nav-link:hover {
-    color: var(--ind-accent) !important;
+/* ===========================================
+   STATUS BUTTON — link readout and drawer handle
+
+   Same plate-and-hard-shadow treatment as the cards. The state modifier
+   (.is-offline / .is-online / .is-streaming / .is-fault) colours the LED and
+   the left accent bar; the label itself stays legible in every state.
+   =========================================== */
+
+.scifi-status-btn {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--ind-text);
+    background: var(--ind-surface-alt);
+    border: 2px solid var(--ind-border);
+    border-radius: 0;
+    box-shadow: var(--shadow-hard);
+    padding: 0.35rem 0.9rem 0.35rem 0.75rem;
+    border-left-width: 6px;
+    border-left-color: var(--ind-text-muted);
+    transition: transform 0.1s ease, box-shadow 0.1s ease,
+                border-left-color 0.1s ease;
+}
+
+.scifi-status-btn::after {
+    content: '●';
+    margin-left: 0.5rem;
+    color: var(--ind-text-muted);
+}
+
+.scifi-status-btn:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: var(--shadow-hover);
+}
+
+.scifi-status-btn:active {
+    transform: translate(0, 0);
+    box-shadow: none;
+}
+
+.scifi-status-btn.is-online {
+    border-left-color: #16a34a;
+}
+
+.scifi-status-btn.is-online::after {
+    color: #16a34a;
+}
+
+.scifi-status-btn.is-streaming {
+    border-left-color: var(--ind-accent);
+}
+
+.scifi-status-btn.is-streaming::after {
+    color: var(--ind-accent);
+    animation: status-led-pulse 1s steps(1, end) infinite;
+}
+
+.scifi-status-btn.is-fault {
+    border-left-color: #dc2626;
+}
+
+.scifi-status-btn.is-fault::after {
+    color: #dc2626;
+}
+
+@keyframes status-led-pulse {
+    50% { opacity: 0.25; }
 }
 
 /* ===========================================

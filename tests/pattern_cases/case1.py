@@ -47,16 +47,16 @@ leg0_points = [
 
 leg1_points = [
     Vector(x=+76.00, y=+92.00, z=+0.00, name="right-front-body-contact"),
-    Vector(x=+79.04, y=+149.92, z=+0.00, name="right-front-coxia"),
-    Vector(x=+82.80, y=+221.81, z=+161.70, name="right-front-femur"),
-    Vector(x=+86.93, y=+300.60, z=+32.95, name="right-front-tibia"),
+    Vector(x=+73.53, y=+149.95, z=+0.00, name="right-front-coxia"),
+    Vector(x=+70.47, y=+221.87, z=+161.70, name="right-front-femur"),
+    Vector(x=+67.11, y=+300.70, z=+32.95, name="right-front-tibia"),
 ]
 
 leg2_points = [
     Vector(x=-76.00, y=+92.00, z=+0.00, name="left-front-body-contact"),
-    Vector(x=-133.92, y=+95.04, z=+0.00, name="left-front-coxia"),
-    Vector(x=-205.81, y=+98.80, z=+161.70, name="left-front-femur"),
-    Vector(x=-284.60, y=+102.93, z=+32.95, name="left-front-tibia"),
+    Vector(x=-133.37, y=+100.51, z=+0.00, name="left-front-coxia"),
+    Vector(x=-204.58, y=+111.08, z=+161.70, name="left-front-femur"),
+    Vector(x=-282.63, y=+122.66, z=+32.95, name="left-front-tibia"),
 ]
 
 leg3_points = [
@@ -68,16 +68,16 @@ leg3_points = [
 
 leg4_points = [
     Vector(x=-76.00, y=-92.00, z=+0.00, name="left-back-body-contact"),
-    Vector(x=-79.04, y=-149.92, z=+0.00, name="left-back-coxia"),
-    Vector(x=-82.80, y=-221.81, z=+161.70, name="left-back-femur"),
-    Vector(x=-86.93, y=-300.60, z=+32.95, name="left-back-tibia"),
+    Vector(x=-73.53, y=-149.95, z=+0.00, name="left-back-coxia"),
+    Vector(x=-70.47, y=-221.87, z=+161.70, name="left-back-femur"),
+    Vector(x=-67.11, y=-300.70, z=+32.95, name="left-back-tibia"),
 ]
 
 leg5_points = [
     Vector(x=+76.00, y=-92.00, z=+0.00, name="right-back-body-contact"),
-    Vector(x=+133.92, y=-95.04, z=+0.00, name="right-back-coxia"),
-    Vector(x=+205.81, y=-98.80, z=+161.70, name="right-back-femur"),
-    Vector(x=+284.60, y=-102.93, z=+32.95, name="right-back-tibia"),
+    Vector(x=+133.37, y=-100.51, z=+0.00, name="right-back-coxia"),
+    Vector(x=+204.58, y=-111.08, z=+161.70, name="right-back-femur"),
+    Vector(x=+282.63, y=-122.66, z=+32.95, name="right-back-tibia"),
 ]
 
 

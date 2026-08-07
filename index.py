@@ -12,6 +12,12 @@ from settings import DEBUG_MODE
 from style_settings import GLOBAL_PAGE_STYLE
 from app import app
 from pages import page_inverse, page_kinematics, page_patterns, page_landing, page_motion
+from pages.shared import (
+    GLOBAL_CONTROLS_PANEL,
+    GLOBAL_PANEL_TOGGLE_ID,
+    GLOBAL_PANEL_TOGGLE_CLASS,
+    GLOBAL_PANEL_TOGGLE_LABEL,
+)
 
 server = app.server
 
@@ -34,22 +40,19 @@ div_header = dbc.Navbar(
                 ],
                 navbar=True,
             ),
+            # Doubles as the app's status readout and as the handle for the
+            # global robot panel. ONLINE means the link to the hexapod is up.
+            html.Button(
+                GLOBAL_PANEL_TOGGLE_LABEL,
+                id=GLOBAL_PANEL_TOGGLE_ID,
+                className=GLOBAL_PANEL_TOGGLE_CLASS,
+                title="Robot dimensions, link and motion controls",
+            ),
         ],
         fluid=True,
     ),
     className="mb-3 scifi-navbar",
     sticky="top",
-)
-
-div_footer = html.Footer(
-    dbc.Container(
-        html.Div(
-            html.Span("SYS.STATUS: ONLINE ●", className="footer-status font-monospace text-muted fw-bold"),
-            className="d-flex justify-content-end"
-        ),
-        fluid=True,
-    ),
-    className="scifi-footer",
 )
 
 # ....................
@@ -59,12 +62,12 @@ app.layout = dbc.Container(
     [
         div_header,
         dcc.Location(id="url", refresh=False),
+        GLOBAL_CONTROLS_PANEL,
         html.Div(
             id="page-content",
             className="flex-grow-1",
             style={"overflowY": "auto", "display": "flex", "flexDirection": "column"}
         ),
-        div_footer,
     ],
     fluid=True,
     style={
@@ -72,7 +75,9 @@ app.layout = dbc.Container(
         "height": "100vh",
         "display": "flex",
         "flexDirection": "column",
-        "overflow": "hidden"
+        "overflow": "hidden",
+        # Breathing room under the content now that there is no footer bar.
+        "paddingBottom": "1rem",
     },
 )
 

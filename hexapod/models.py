@@ -62,8 +62,16 @@ from hexapod.points import (
 class Hexagon:
     # Ordered to match the firmware's leg indices; see hexapod/naming.py
     VERTEX_NAMES = LEG_NAMES
-    COXIA_AXES = (45, 0, 315, 135, 180, 225)
-    __slots__ = ("f", "m", "s", "cog", "head", "vertices", "all_points")
+    __slots__ = (
+        "f",
+        "m",
+        "s",
+        "cog",
+        "head",
+        "vertices",
+        "all_points",
+        "coxia_axes",
+    )
 
     def __init__(self, f, m, s):
         self.f = f
@@ -82,6 +90,21 @@ class Hexagon:
         ]
 
         self.all_points = self.vertices + [self.cog, self.head]
+
+        # Azimuth of each leg's coxia (joint 1) rotation axis, in the body frame.
+        #
+        # A leg bolts onto its hexagon corner and points radially away from the
+        # cog, so the axis direction is the direction of the vertex itself --
+        # it follows from f, m and s rather than being a constant. It must,
+        # because the path generator solves IK around the physical robot's
+        # `legMountAngle` (hexapod/robot_profiles.py), and for both robots that
+        # angle is exactly atan2(legMountY, legMountX). Pinning these to the
+        # 45/0/315/135/180/225 that a square body happens to give would rotate
+        # each corner leg about its own mount point, which shears the support
+        # polygon apart as a gait plays instead of translating it rigidly.
+        self.coxia_axes = tuple(
+            degrees(atan2(vertex.y, vertex.x)) % 360 for vertex in self.vertices
+        )
 
 
 # ..........................................
@@ -217,7 +240,7 @@ class VirtualHexapod:
                 self.coxia,
                 self.femur,
                 self.tibia,
-                coxia_axis=Hexagon.COXIA_AXES[i],
+                coxia_axis=self.body.coxia_axes[i],
                 new_origin=self.body.vertices[i],
                 name=Hexagon.VERTEX_NAMES[i],
                 id_number=i,
