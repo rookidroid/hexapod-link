@@ -1,0 +1,159 @@
+"""Desktop entry point.
+
+Runs the same Dash app that index.py serves, but wrapped as a native window:
+a waitress WSGI server on a loopback-only port plus a pywebview window pointed
+at it. No browser, no dev server.
+
+    python desktop.py              # native window
+    python desktop.py --no-window  # serve only, open the URL yourself
+
+Importing index has the side effect of building app.layout and registering
+every page callback, so it has to happen before the server starts.
+"""
+
+import argparse
+import socket
+import sys
+import threading
+import time
+
+import waitress
+import webview
+
+import index
+from hexapod.robot_link import ROBOT_LINK
+from texts import APP_TITLE
+
+HOST = "127.0.0.1"
+
+# How long to wait for waitress to start accepting connections before giving
+# up. Generous: the first import of plotly/dash is slow on a cold filesystem.
+STARTUP_TIMEOUT = 30.0
+
+WINDOW_WIDTH = 1440
+WINDOW_HEIGHT = 900
+WINDOW_MIN_SIZE = (1024, 700)
+
+
+def find_free_port():
+    """Ask the OS for an unused loopback port."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        probe.bind((HOST, 0))
+        return probe.getsockname()[1]
+
+
+def serve(port):
+    """Run the WSGI server. Blocks, so callers put it on its own thread."""
+    # threads=8 is well above what a single window needs, but Dash fires
+    # several callbacks concurrently on a page load and a starved pool shows up
+    # as a visibly slow UI.
+    waitress.serve(
+        index.server,
+        host=HOST,
+        port=port,
+        threads=8,
+        # Nothing external ever sees this server, so drop the Server header.
+        ident=None,
+    )
+
+
+def wait_until_serving(port, timeout=STARTUP_TIMEOUT):
+    """Block until the server accepts a connection, or the timeout expires."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            with socket.create_connection((HOST, port), timeout=0.5):
+                return True
+        except OSError:
+            time.sleep(0.05)
+    return False
+
+
+def start_server(port=None):
+    """Start the WSGI server on a daemon thread and return its URL.
+
+    Binding to 127.0.0.1 rather than 0.0.0.0 keeps the app off the network and
+    avoids the Windows Firewall prompt on first launch. It does not affect the
+    robot link, which is a separate outbound UDP socket.
+    """
+    port = port or find_free_port()
+
+    thread = threading.Thread(
+        target=serve, args=(port,), name="hexapod-wsgi", daemon=True
+    )
+    thread.start()
+
+    if not wait_until_serving(port):
+        # The thread is a daemon, so there is nothing to clean up; if waitress
+        # failed to bind, the traceback has already gone to stderr.
+        raise RuntimeError(
+            f"server did not come up on {HOST}:{port} within {STARTUP_TIMEOUT:.0f}s"
+        )
+
+    return f"http://{HOST}:{port}"
+
+
+def shutdown_robot_link():
+    """Return the robot to LUT control before the process goes away.
+
+    The streaming thread is a daemon and would simply die with the process,
+    leaving the robot holding the last streamed pose until the firmware's
+    1000 ms real-time timeout fires. disconnect() sends RT_EXIT explicitly and
+    is a no-op when nothing is connected.
+    """
+    try:
+        ROBOT_LINK.disconnect()
+    except Exception as error:  # never block the window from closing
+        print(f"robot link shutdown failed: {error}", file=sys.stderr)
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Run the hexapod app as a desktop window.")
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=None,
+        help="serve on this port instead of an OS-assigned one",
+    )
+    parser.add_argument(
+        "--no-window",
+        action="store_true",
+        help="start the server only and print its URL, without opening a window",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="open the webview's developer tools",
+    )
+    args = parser.parse_args()
+
+    url = start_server(args.port)
+
+    if args.no_window:
+        print(f"serving on {url} (ctrl-c to stop)")
+        try:
+            threading.Event().wait()
+        except KeyboardInterrupt:
+            pass
+        finally:
+            shutdown_robot_link()
+        return
+
+    window = webview.create_window(
+        APP_TITLE,
+        url,
+        width=WINDOW_WIDTH,
+        height=WINDOW_HEIGHT,
+        min_size=WINDOW_MIN_SIZE,
+        text_select=True,
+    )
+    # 'closing' fires while the window and the server thread are both still
+    # alive, so the RT_EXIT packet actually makes it out. Returning None lets
+    # the close proceed.
+    window.events.closing += shutdown_robot_link
+
+    webview.start(debug=args.debug)
+
+
+if __name__ == "__main__":
+    main()

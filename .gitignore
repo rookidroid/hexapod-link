@@ -4,3 +4,8 @@
 venv
 .env
 *.pyc
+
+# PyInstaller
+build/
+dist/
+.venv-build/

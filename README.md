@@ -66,6 +66,42 @@ Running on http://127.0.0.1:8050/
 - Modify default settings with [./settings.py](./settings.py)
 - Dark Mode is the default - modify page styles with [./style_settings.py](./style_settings.py)
 
+## Desktop app
+
+The same app can run as a native window instead of in a browser: a waitress
+server bound to loopback, wrapped in a [pywebview](https://pywebview.flowrl.com/)
+window. No browser chrome, no dev-server warnings, and it works offline.
+
+```bash
+$ pip install -r requirements-desktop.txt
+$ python desktop.py
+```
+
+Useful flags: `--port` to pin the port, `--debug` for the webview developer
+tools, and `--no-window` to start the server only.
+
+### Building a standalone executable
+
+Build from a **minimal environment**. PyInstaller follows optional-import
+branches inside dependencies and bundles whatever it finds installed; built
+from a rich development environment this comes out around 1 GB instead of
+130 MB, mostly polars, pyarrow and Intel MKL that the app never touches.
+
+```bash
+$ python -m venv .venv-build
+$ .venv-build/Scripts/pip install -r requirements-desktop.txt
+$ .venv-build/Scripts/pyinstaller hexapod.spec
+```
+
+The result is `dist/HexapodLink/HexapodLink.exe`, about 130 MB in total. Set
+`ONEFILE = True` in [./hexapod.spec](./hexapod.spec) for a single
+self-extracting executable instead; it is tidier to hand out but adds several
+seconds to every launch.
+
+On Windows the window renders through the Edge WebView2 runtime, which is
+present on stock Windows 10/11 installs. A machine that lacks it needs the
+[Evergreen Bootstrapper](https://developer.microsoft.com/microsoft-edge/webview2/).
+
 ## Controlling a real hexapod
 
 The simulator can drive a physical [rookidroid hexapod](https://rookidroid.com/)

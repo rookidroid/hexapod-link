@@ -1,4 +1,9 @@
-# Core Dash packages (modern unified version)
+# Runtime dependencies for the app itself, browser or desktop.
+#
+#   requirements-desktop.txt  adds the native window and the build tooling
+#   requirements-dev.txt      adds linters and the test runner
+
+# Core Dash packages
 dash>=2.14.0
 dash-daq>=0.5.0
 dash-bootstrap-components>=1.5.0
@@ -7,12 +12,9 @@ dash-bootstrap-components>=1.5.0
 numpy>=1.24.0
 plotly>=5.18.0
 
-# Web server
+# Flask stack (Dash's underlying server)
 Flask>=2.3.0
 Flask-Compress>=1.14
-gunicorn>=21.0.0
-
-# Utilities
 Brotli>=1.1.0
 click>=8.1.0
 itsdangerous>=2.1.0
@@ -20,15 +22,3 @@ Jinja2>=3.1.0
 MarkupSafe>=2.1.0
 Werkzeug>=2.3.0
 retrying>=1.3.0
-
-# Development tools
-astroid>=3.0.0
-flake8>=6.1.0
-isort>=5.12.0
-lazy-object-proxy>=1.9.0
-mccabe>=0.7.0
-pycodestyle>=2.11.0
-pyflakes>=3.1.0
-pylint>=3.0.0
-toml>=0.10.0
-wrapt>=1.15.0

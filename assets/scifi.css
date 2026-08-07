@@ -2,7 +2,43 @@
    HEXAPOD LINK — LIGHT INDUSTRIAL THEME
    ============================================= */
 
-@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap');
+/* Fonts are bundled locally (assets/fonts) rather than pulled from Google
+   Fonts, so the desktop build renders correctly with no network. Both
+   families are SIL Open Font License 1.1. Latin subset only.
+   Paths are relative to this file, which keeps them correct under any
+   Dash requests_pathname_prefix. */
+
+@font-face {
+    font-family: 'Rajdhani';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('fonts/rajdhani-500-latin.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Rajdhani';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('fonts/rajdhani-600-latin.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Rajdhani';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('fonts/rajdhani-700-latin.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Share Tech Mono';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('fonts/share-tech-mono-400-latin.woff2') format('woff2');
+}
 
 /* ---- CSS Variables ---- */
 :root {
