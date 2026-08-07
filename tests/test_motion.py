@@ -195,12 +195,56 @@ def test_planted_feet_move_as_one():
         )
 
 
-def _sides(contacts):
-    """The pairwise distances of a stance, in a stable order."""
-    names = sorted(contacts)
-    return np.array(
-        [np.linalg.norm(contacts[a] - contacts[b]) for a, b in combinations(names, 2)]
-    )
+def _ground_contacts(motion_name, profile_name, frame):
+    """Where a single frame of a motion puts the feet that are on the ground."""
+    hexapod = VirtualHexapod(get_simulator_dimensions(profile_name))
+    hexapod.update(generate_poses(motion_name, profile_name)[frame])
+    return {p.name: np.array([p.x, p.y, p.z]) for p in hexapod.ground_contacts}
+
+
+def test_standup_ends_in_the_standby_stance():
+    """Standing up must finish exactly where standing by starts.
+
+    gen_standup_path walks each leg inward along a lift-and-place arc aimed by
+    that leg's azimuth. Hardcoding the corner azimuths at 45deg -- right only
+    for a body with front == side -- landed every corner foot 9.4mm (mochi) to
+    13.5mm (macaroon) away from its standby spot, about 5deg of coxia. Nothing
+    scuffs on the way, since the arc lifts each foot clear before moving it; the
+    cost is that the boot sequence ends in a stance the robot never asked for,
+    and the corner legs then snap those 12 servo ticks across to standby the
+    moment anything else is commanded.
+    """
+    for profile_name in ROBOT_PROFILES:
+        landed = _ground_contacts("standup", profile_name, -1)
+        standing_by = _ground_contacts("standby", profile_name, 0)
+        assert set(landed) == set(standing_by), (
+            f"{profile_name}: standup ends on {sorted(landed)}, "
+            f"standby stands on {sorted(standing_by)}"
+        )
+        for name, point in standing_by.items():
+            off = np.linalg.norm(landed[name] - point)
+            assert off < TOL_MM, (
+                f"{profile_name}: {name} landed {off:.3f}mm off its standby spot"
+            )
+
+
+def test_standup_never_drags_a_planted_foot():
+    """And it must get there without scuffing.
+
+    The arc lifts a foot clear of the ground before moving it and the tripods
+    take turns, so a foot that is down stays put -- not merely rigid with its
+    neighbours, as in the gaits above, but motionless. This is why the misaimed
+    corner azimuths were a landing error rather than a drag, and it has to hold
+    however the offsets are aimed.
+    """
+    for case, before, after in _consecutive_stance_frames(["standup"]):
+        for name, point in before.items():
+            moved = np.linalg.norm(after[name] - point)
+            assert moved < TOL_MM, f"{case}: {name} dragged {moved:.3f}mm while planted"
+
+
+def test_straight_gaits_do_not_yaw_the_body():
+    """A gait that walks in a straight line must not turn the body.
 
 
 def test_turn_support_polygon_stays_similar():
