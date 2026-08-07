@@ -23,7 +23,7 @@ pycairo>=1.23; sys_platform == "linux"
 
 # Production WSGI server. Replaces the Flask dev server that index.py uses,
 # which prints warnings and is not meant to be left running.
-waitress>=3.0
+waitress>=3.0.2
 
 # Build tooling only; not imported at runtime.
 pyinstaller>=6.3
