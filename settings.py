@@ -55,3 +55,35 @@ INPUT_DIMENSIONS_RESOLUTION = 1
 UI_GRAPH_HEIGHT = "600px"
 UI_GRAPH_WIDTH = "63%"
 UI_SIDEBAR_WIDTH = "37%"
+
+# ***************************
+# Physical robot link
+# ***************************
+
+# The ESP32 runs as a WiFi access point, so the machine running this app has to
+# join the selected robot's network before it can be reached. Per-robot details
+# (SSID, IP, geometry, gait parameters, joint limits) live in
+# hexapod/robot_profiles.py.
+ROBOT_UDP_PORT = 1234
+
+# Rate at which the current pose is republished to the robot. This has to be at
+# least the fastest robot's gait frame rate (mochi runs 1000/12 = 83 fps) or
+# streamed gaits play back slower than they do natively. The firmware applies
+# poses every REALTIME_PERIOD_MS (20 ms) and the servos refresh at 50 Hz, so
+# sending faster than that only ensures the gait advances in correct wall-clock
+# time; it does not make the servos move more finely.
+ROBOT_STREAM_HZ = 100
+
+# Idle keep-alive rate. Well under the firmware's REALTIME_TIMEOUT_MS (1000 ms)
+# but far below the streaming rate, since holding a pose needs no bandwidth.
+ROBOT_PING_HZ = 10
+
+# Per-joint slew limit in servo ticks per firmware control cycle (20 ms).
+# 1 tick is about 0.44 degrees, so 8 ticks/cycle is roughly 175 deg/s.
+# Lower this to make the robot follow the simulator more gently.
+ROBOT_DEFAULT_MAX_STEP = 8
+
+# Slew limit used during gait streaming. Gait frames are small deltas meant to
+# be played back to back, so the limit is relaxed; with the manual-posing value
+# the robot would lag behind the gait instead of walking it.
+ROBOT_SEQUENCE_MAX_STEP = 40

@@ -4,6 +4,7 @@ from app import app
 from settings import WHICH_POSE_CONTROL_UI
 from hexapod.models import VirtualHexapod
 from hexapod.const import BASE_PLOTTER
+from hexapod.robot_link import ROBOT_LINK
 from widgets.pose_control.components import KINEMATICS_CALLBACK_INPUTS
 from pages import helpers, shared
 
@@ -44,6 +45,10 @@ def update_kinematics_page(dimensions_json, poses_json, relayout_data, figure):
     dimensions = helpers.load_params(dimensions_json, "dims")
     poses = helpers.load_params(poses_json, "pose")
     hexapod = VirtualHexapod(dimensions)
+
+    # Joint angles are the input here, so they are valid to send even when the
+    # simulator cannot resolve a stable body orientation for them below.
+    ROBOT_LINK.send_pose(poses)
 
     try:
         hexapod.update(poses, assume_ground_targets=False)

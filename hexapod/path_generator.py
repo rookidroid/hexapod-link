@@ -1,34 +1,22 @@
 import numpy as np
 
-# Physical robot configuration from path_tool's config.json
-PHYSICAL_CONFIG = {
-    "legNames": [
-        "front_right", "center_right", "rear_right",
-        "front_left", "center_left", "rear_left"
-    ],
-    "legMountX": [40.9, 81.8, 40.9, -40.9, -81.8, -40.9],
-    "legMountY": [70.84, 0, -70.84, 70.84, 0, -70.84],
-    "legMountAngle": [60, 0, -60, -240, -180, -120],
-    "legScale": [
-        [1, 1, 1], [1, 1, 1], [1, 1, 1],
-        [1, -1, -1], [1, -1, -1], [1, -1, -1]
-    ],
-    "legRootToJoint1": 0,
-    "legJoint1ToJoint2": 36.0,
-    "legJoint2ToJoint3": 43.6,
-    "legJoint3ToTip": 85.22
-}
+from hexapod.robot_profiles import (
+    DEFAULT_PROFILE,
+    get_physical_config,
+    get_profile,
+    get_simulator_dimensions,
+)
 
-def get_simulator_dimensions():
-    """Maps the physical robot's dimensions to the simulator's format."""
-    return {
-        "front": 40.9,
-        "side": 70.84,
-        "middle": 81.8,
-        "coxia": PHYSICAL_CONFIG["legJoint1ToJoint2"],
-        "femur": PHYSICAL_CONFIG["legJoint2ToJoint3"],
-        "tibia": PHYSICAL_CONFIG["legJoint3ToTip"],
-    }
+# Geometry and gait parameters differ between the two robots, so they live in
+# hexapod/robot_profiles.py. `get_simulator_dimensions` is re-exported here for
+# callers that used to import it from this module.
+__all__ = [
+    "generate_poses",
+    "get_simulator_dimensions",
+    "inverse_kinematics",
+    "body_twists",
+    "BODY_ATTITUDE_MOTIONS",
+]
 
 # --- Path Library Functions (from path_tool/path_lib.py) ---
 
@@ -323,60 +311,91 @@ def gen_standup_path(standby_coordinate, laydown_coordinate, steps=28):
         lut_standup[idx + lift_up_size + adjust_leg_size, 2, :] = lut_standup[idx + lift_up_size + adjust_leg_size, 2, :] + r_leg3_offset[idx, :]
     return lut_standup
 
+
 # --- Bridge to Simulator ---
+
+# Motions whose whole point is to change the body's attitude while the feet stay
+# planted. For these, the body rotation VirtualHexapod.update() computes against
+# the neutral stance is exactly right, because the feet never relocate from that
+# reference.
+#
+# The stepping gaits are different: their feet lift and land somewhere new, so
+# the same computation yields a spurious yaw that jumps every time the stance
+# tripod swaps. They also translate the robot, which the model cannot represent
+# at all, so their body is held fixed and the legs carry the motion.
+
+BODY_ATTITUDE_MOTIONS = frozenset({"rotate_x", "rotate_y", "rotate_z", "twist"})
+
+
+def body_twists(motion_name):
+    """Whether this motion's body rotation should be modelled."""
+    return motion_name in BODY_ATTITUDE_MOTIONS
+
 
 # Path tool: 0:front_right, 1:center_right, 2:rear_right, 3:front_left, 4:center_left, 5:rear_left
 # Simulator: 0:right-front, 1:right-middle, 2:right-back, 3:left-front, 4:left-middle, 5:left-back
 
-def generate_poses(motion_name):
+def generate_poses(motion_name, profile_name=DEFAULT_PROFILE):
     """
     Generates a list of poses for a given motion name, compatible with VirtualHexapod.update().
+
+    `profile_name` selects which physical robot the path is generated for; the
+    two robots differ in leg geometry and in stride and turn radii, so a path
+    baked for one is wrong for the other.
+
     Returns: list of dicts, where each dict is a pose for all 6 legs at a specific frame.
     """
-    standby = gen_posture(60, 75, PHYSICAL_CONFIG)
-    laydown = gen_posture(25, 25, PHYSICAL_CONFIG)
+    config = get_physical_config(profile_name)
+    gait = get_profile(profile_name)["gait"]
+
+    standby = gen_posture(*gait["standby_posture"], config)
+    laydown = gen_posture(*gait["laydown_posture"], config)
+
+    walk_radius = gait["walk_radius"]
+    turn_radius = gait["turn_radius"]
+    fastwalk = gait["fastwalk"]
 
     # Generate Cartesian path
     if motion_name == "standby":
         path = np.array([standby])
     elif motion_name == "walk_0":
-        path = gen_walk_path(standby, direction=0)
+        path = gen_walk_path(standby, g_radius=walk_radius, direction=0)
     elif motion_name == "walk_180":
-        path = gen_walk_path(standby, direction=180)
+        path = gen_walk_path(standby, g_radius=walk_radius, direction=180)
     elif motion_name == "walk_r45":
-        path = gen_walk_path(standby, direction=315)
+        path = gen_walk_path(standby, g_radius=walk_radius, direction=315)
     elif motion_name == "walk_r90":
-        path = gen_walk_path(standby, direction=270)
+        path = gen_walk_path(standby, g_radius=walk_radius, direction=270)
     elif motion_name == "walk_r135":
-        path = gen_walk_path(standby, direction=225)
+        path = gen_walk_path(standby, g_radius=walk_radius, direction=225)
     elif motion_name == "walk_l45":
-        path = gen_walk_path(standby, direction=45)
+        path = gen_walk_path(standby, g_radius=walk_radius, direction=45)
     elif motion_name == "walk_l90":
-        path = gen_walk_path(standby, direction=90)
+        path = gen_walk_path(standby, g_radius=walk_radius, direction=90)
     elif motion_name == "walk_l135":
-        path = gen_walk_path(standby, direction=135)
+        path = gen_walk_path(standby, g_radius=walk_radius, direction=135)
     elif motion_name == "fast_forward":
-        path = gen_fastwalk_path(standby, g_steps=28, y_radius=40, z_radius=30)
+        path = gen_fastwalk_path(standby, **fastwalk)
     elif motion_name == "fast_backward":
-        path = gen_fastwalk_path(standby, g_steps=28, y_radius=40, z_radius=30, reverse=True)
+        path = gen_fastwalk_path(standby, **fastwalk, reverse=True)
     elif motion_name == "turn_left":
-        path = gen_turn_path(standby, direction="left")
+        path = gen_turn_path(standby, g_radius=turn_radius, direction="left")
     elif motion_name == "turn_right":
-        path = gen_turn_path(standby, direction="right")
+        path = gen_turn_path(standby, g_radius=turn_radius, direction="right")
     elif motion_name == "climb_forward":
         path = gen_climb_path(standby, reverse=False)
     elif motion_name == "climb_backward":
         path = gen_climb_path(standby, reverse=True)
     elif motion_name == "rotate_x":
-        path = gen_rotatex_path(standby, g_steps=28, swing_angle=10, y_radius=10)
+        path = gen_rotatex_path(standby, **gait["rotate_x"])
     elif motion_name == "rotate_y":
-        path = gen_rotatey_path(standby, g_steps=28, swing_angle=10, x_radius=10)
+        path = gen_rotatey_path(standby, **gait["rotate_y"])
     elif motion_name == "rotate_z":
-        path = gen_rotatez_path(standby, g_steps=28, z_lift=7)
+        path = gen_rotatez_path(standby, **gait["rotate_z"])
     elif motion_name == "twist":
-        path = gen_twist_path(standby, g_steps=28)
+        path = gen_twist_path(standby, **gait["twist"])
     elif motion_name == "standup":
-        path = gen_standup_path(standby, laydown, steps=28)
+        path = gen_standup_path(standby, laydown, steps=gait["standup_steps"])
     else:
         path = np.array([standby])
 
@@ -384,7 +403,7 @@ def generate_poses(motion_name):
     from hexapod.const import NAMES_LEG
     for step in range(path.shape[0]):
         # Convert Cartesian to joint angles (j1, j2, j3)
-        angles = inverse_kinematics(path[step], PHYSICAL_CONFIG)
+        angles = inverse_kinematics(path[step], config)
         
         pose_dict = {}
         for pt_idx in range(6):
@@ -393,24 +412,21 @@ def generate_poses(motion_name):
             j1 = angles[pt_idx, 0]
             j2 = angles[pt_idx, 1]
             j3 = angles[pt_idx, 2]
-            
-            # Map path tool's angles to simulator's angles (coxia/femur/tibia)
-            # Path tool measures j1 from 90 degree offset
-            coxia = j1 - 90
-            # For left legs, j1 is mirrored
-            if pt_idx >= 3:
-                coxia = -(j1 - 90)
 
-            # j2 and j3 mapping
-            # simulator neutral: straight line (beta=0), straight down (gamma=0)
-            # path tool neutral: ? path tool calculates angles from geometry
-            if pt_idx < 3: # Right legs
-                femur = -(90 - j2)
-                tibia = -(j3 - 90)
-            else:          # Left legs
-                femur = 90 - j2
-                tibia = j3 - 90
-                
+            # Map the path tool's servo angles to the simulator's joint angles.
+            # This is the inverse of the relation in hexapod/robot_link.py, and
+            # is verified there against the firmware's own standby LUT:
+            #
+            #   j1 = 90 + alpha              (both sides; the mirroring is
+            #                                 already folded into the path
+            #                                 tool's local frame)
+            #   j2 = 90 - sign * beta
+            #   j3 = 90 + sign * gamma       sign = +1 right legs, -1 left legs
+            sign = 1 if pt_idx < 3 else -1
+            coxia = j1 - 90
+            femur = sign * (90 - j2)
+            tibia = sign * (j3 - 90)
+
             pose_dict[sim_idx] = {
                 "id": sim_idx,
                 "name": NAMES_LEG[sim_idx],

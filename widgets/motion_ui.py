@@ -9,6 +9,10 @@ MOTION_SPEED_SLIDER_ID = "motion-speed-slider"
 MOTION_FRAME_SLIDER_ID = "motion-frame-slider"
 MOTION_LOOP_CHECKBOX_ID = "motion-loop-checkbox"
 MOTION_FRAME_DISPLAY_ID = "motion-frame-display"
+MOTION_ROBOT_MODE_ID = "motion-robot-mode"
+MOTION_ROBOT_RUN_BTN_ID = "motion-robot-run-btn"
+MOTION_ROBOT_STOP_BTN_ID = "motion-robot-stop-btn"
+MOTION_ROBOT_MESSAGE_ID = "motion-robot-message"
 
 # --- Data ---
 MOTION_TYPES = [
@@ -115,10 +119,56 @@ frame_scrubber = html.Div(
     ]
 )
 
+robot_mode = dbc.RadioItems(
+    id=MOTION_ROBOT_MODE_ID,
+    options=[
+        {"label": " Robot's own gait (recommended)", "value": "native"},
+        {"label": " Stream frames from simulator", "value": "stream"},
+    ],
+    value="native",
+    className="mb-3",
+)
+
+robot_buttons = dbc.Row(
+    [
+        dbc.Col(
+            dbc.Button(
+                "▶ Run on Robot",
+                id=MOTION_ROBOT_RUN_BTN_ID,
+                color="success",
+                className="w-100 fw-bold",
+            ),
+            width=7,
+        ),
+        dbc.Col(
+            dbc.Button(
+                "■ Standby",
+                id=MOTION_ROBOT_STOP_BTN_ID,
+                color="secondary",
+                className="w-100 fw-bold",
+            ),
+            width=5,
+        ),
+    ],
+    className="g-2",
+)
+
+robot_motion_controls = html.Div(
+    [
+        robot_mode,
+        robot_buttons,
+        html.Div(
+            id=MOTION_ROBOT_MESSAGE_ID,
+            className="small text-muted font-monospace text-center mt-2",
+        ),
+    ]
+)
+
 # --- Put it together ---
 MOTION_WIDGETS_SECTION = html.Div(
     [
         make_section("SELECT MOTION", dropdown, card_style={"overflow": "visible", "zIndex": 2}),
         make_section("PLAYBACK", html.Div([playback_controls, speed_slider, frame_scrubber]), card_style={"zIndex": 1}),
+        make_section("RUN ON ROBOT", robot_motion_controls, card_style={"zIndex": 1}),
     ]
 )

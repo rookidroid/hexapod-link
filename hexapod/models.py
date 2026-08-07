@@ -116,11 +116,23 @@ class VirtualHexapod:
         self._init_legs()
         self._init_local_frame()
 
-    def update(self, poses, assume_ground_targets=True):
+    def update(self, poses, assume_ground_targets=True, twist_body=True):
+        """Pose the hexapod and settle it onto the ground.
+
+        `twist_body` controls whether the body is rotated about the ground
+        normal to keep a planted foot planted.
+
+        Keep it on when poses are edited incrementally, and for motions that
+        change the body's attitude over planted feet -- there the rotation is
+        real. Turn it off for stepping gaits rendered frame by frame on a fresh
+        hexapod: the twist is then measured against the neutral stance rather
+        than the previous frame, so relocating the feet produces a spurious yaw
+        that jumps whenever the stance legs swap.
+        """
         might_raise_poses_range_error(poses)
 
         self.body_rotation_frame = None
-        might_twist = find_if_might_twist(self, poses)
+        might_twist = twist_body and find_if_might_twist(self, poses)
         old_contacts = deepcopy(self.ground_contacts)
 
         # Update leg poses

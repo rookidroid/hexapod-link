@@ -36,6 +36,7 @@ You might be interested in checking out my [rewrite in Javascript](http://github
 | 🎉 | Customizability | Set the dimensions and shape of the robot's body and legs. (6 parameters) |
 | 🎉 | Usability | Control the camera view, pan, tilt, zoom, whatever. |
 | 🎉 | Simplicity | Minimal dependencies. Depends solely on Numpy for calculations. Uses only Plotly Dash for plotting, Dash can be safely replaced if a better 3d plotting library is available. |
+| 🎉 | Real-time Robot Control | Drive a physical ESP32 hexapod over WiFi, from single joints to whole-body gaits. Supports both the `mochi` and `macaroon` robots. |
 | ❗ | Stability Check (WIP) | If we pose the robot in a particular way, will it fall over? |
 | ❗ | Fast | Okay, it's not as fast as I wanted, but when run locally, it's okay |
 | ❗ | Bug-free | Fine, right now there's still room for improvement |
@@ -64,6 +65,57 @@ Running on http://127.0.0.1:8050/
 
 - Modify default settings with [./settings.py](./settings.py)
 - Dark Mode is the default - modify page styles with [./style_settings.py](./style_settings.py)
+
+## Controlling a real hexapod
+
+The simulator can drive a physical [rookidroid hexapod](https://rookidroid.com/)
+over WiFi in real time, from a single joint up to a full gait.
+
+### Setup
+
+1. Flash the ESP32 firmware from the `hexapod` repo (`software/hexapod_esp32`).
+   Real-time control needs the pose-streaming protocol, which is documented in
+   that firmware's README.
+2. Power on the robot and **join its WiFi access point** from the machine
+   running this app — the ESP32 is the access point, so there is no other route
+   to it. The robot performs its stand-up sequence when a client connects.
+3. Start the app, open any page, and use the **ROBOT LINK** panel in the sidebar.
+
+### Supported robots
+
+Two robots are supported, matching the `mochi` and `macaroon` branches of the
+firmware repo. They differ in leg geometry, stride and turn radii, and servo
+step delay.
+
+| Profile | WiFi SSID | Coxia / Femur / Tibia | Gait rate |
+|---------|-----------|----------------------|-----------|
+| Mochi | `hexapod` | 36 / 43.6 / 85.22 mm | 83 fps |
+| Macaroon | `hexapod_macaroon` | 62 / 76 / 132 mm | 40 fps |
+
+Selecting a profile also sets the simulator's body and leg dimensions to match,
+so the on-screen hexapod agrees with the hardware. Profiles are defined in
+[./hexapod/robot_profiles.py](./hexapod/robot_profiles.py); add a robot there.
+
+### Using it
+
+- **Kinematics page** — move any of the 18 joint inputs and the servo follows.
+- **Inverse Kinematics page** — translate and rotate the body; the solved pose is
+  streamed once it is reachable.
+- **Motion page** — either trigger the robot's own built-in gait (recommended;
+  the ESP32 plays it from flash so smoothness does not depend on WiFi), or
+  stream the simulator's frames for paths the firmware does not have.
+
+Turn on **Stream pose to robot** to start sending. **Max joint speed** limits how
+fast any servo may slew, and **RELAX** cuts drive so the servos go limp.
+
+### Safety
+
+- **Put the robot on a stand before streaming.** A pose that is stable in the
+  simulator is not necessarily stable on the floor.
+- Joint angles are clamped to each profile's mechanical limits before being sent
+  (see `joint_limits` in `robot_profiles.py`), because the simulator allows far
+  more travel than the hardware has. Widen these only after checking clearances.
+- If the stream stops, the robot eases back to standby on its own after 1 s.
 
 ## Screenshots
 

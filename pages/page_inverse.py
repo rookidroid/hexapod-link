@@ -4,6 +4,7 @@ from app import app
 from settings import RECOMPUTE_HEXAPOD
 from hexapod.models import VirtualHexapod
 from hexapod.const import BASE_PLOTTER
+from hexapod.robot_link import ROBOT_LINK
 from hexapod.ik_solver.ik_solver2 import inverse_kinematics_update
 from hexapod.ik_solver.recompute_hexapod import recompute_hexapod
 from widgets.ik_ui import IK_WIDGETS_SECTION, IK_CALLBACK_INPUTS
@@ -45,6 +46,9 @@ def update_inverse_page(dimensions_json, ik_parameters_json, relayout_data, figu
         poses, hexapod = inverse_kinematics_update(hexapod, ik_parameters)
     except Exception as alert:
         return figure, helpers.make_alert_message(alert)
+
+    # Only sent once the IK solver has produced a reachable pose.
+    ROBOT_LINK.send_pose(poses)
 
     if RECOMPUTE_HEXAPOD:
         try:

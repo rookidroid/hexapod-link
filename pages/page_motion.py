@@ -16,9 +16,15 @@ from widgets.motion_ui import (
     MOTION_FRAME_SLIDER_ID,
     MOTION_LOOP_CHECKBOX_ID,
     MOTION_FRAME_DISPLAY_ID,
+    MOTION_ROBOT_MODE_ID,
+    MOTION_ROBOT_RUN_BTN_ID,
+    MOTION_ROBOT_STOP_BTN_ID,
+    MOTION_ROBOT_MESSAGE_ID,
 )
 from pages import helpers, shared
-from hexapod.path_generator import generate_poses
+from hexapod.path_generator import generate_poses, body_twists
+from hexapod.robot_link import ROBOT_LINK, MOTION_COMMANDS
+from widgets.robot_link_ui import ROBOT_PROFILE_SELECT_ID
 
 # --- Page Layout Elements ---
 INTERVAL_ID = "motion-interval"
@@ -61,22 +67,30 @@ layout = shared.make_standard_page_layout(GRAPH_ID, sidebar)
     Output(INTERVAL_ID, "disabled"),
     Input(MOTION_DROPDOWN_ID, "value"),
     shared.DIMS_JSON_CALLBACK_INPUT,
+    Input(ROBOT_PROFILE_SELECT_ID, "value"),
 )
-def update_motion_and_dimensions(motion_name, dimensions_json):
+def update_motion_and_dimensions(motion_name, dimensions_json, profile_name):
     if not motion_name:
         raise PreventUpdate
-        
+
     dimensions = helpers.load_params(dimensions_json, "dims")
-    frames = generate_poses(motion_name)
+    frames = generate_poses(motion_name, profile_name)
     max_frames = max(len(frames) - 1, 0)
     marks = {0: "0", max_frames: str(max_frames)}
     
+    # Body-attitude motions rotate the body over planted feet, so their twist is
+    # real and should be shown. Stepping gaits must not twist: each frame is
+    # rendered on a fresh hexapod, so their twist would be measured against the
+    # neutral stance rather than the previous frame and the body would yaw back
+    # and forth, jumping whenever the stance tripod swaps.
+    twist_body = body_twists(motion_name)
+
     figures = []
     base_fig = BASE_FIGURE
     for pose in frames:
         hexapod = VirtualHexapod(dimensions)
         try:
-            hexapod.update(pose)
+            hexapod.update(pose, twist_body=twist_body)
         except Exception as e:
             print(f"Pose unstable for frame, skipping update: {e}")
             # Fall back to base posture if unstable
@@ -202,7 +216,55 @@ app.clientside_callback(
     State(GRAPH_ID, "figure"),
 )
 
-# 5. Client-side: Control interval speed
+# 5. Server-side: Drive the physical robot
+@app.callback(
+    Output(MOTION_ROBOT_MESSAGE_ID, "children"),
+    Input(MOTION_ROBOT_RUN_BTN_ID, "n_clicks"),
+    State(MOTION_DROPDOWN_ID, "value"),
+    State(MOTION_ROBOT_MODE_ID, "value"),
+    State(MOTION_LOOP_CHECKBOX_ID, "value"),
+    State(ROBOT_PROFILE_SELECT_ID, "value"),
+    prevent_initial_call=True,
+)
+def run_motion_on_robot(_n_clicks, motion_name, mode, loop_values, profile_name):
+    if not ROBOT_LINK.connected:
+        return "Not connected — connect in the ROBOT LINK panel first."
+
+    loop = bool(loop_values) and "loop" in loop_values
+
+    if mode == "native":
+        if motion_name not in MOTION_COMMANDS:
+            # "standup" is the firmware's boot sequence, not a motion LUT it
+            # can be commanded into.
+            return (
+                f"'{motion_name}' has no built-in equivalent on the robot. "
+                "Use 'Stream frames from simulator' instead."
+            )
+        if ROBOT_LINK.send_motion_command(motion_name):
+            return f"Robot running its own '{motion_name}' gait."
+        return "Failed to send motion command."
+
+    frames = generate_poses(motion_name, profile_name)
+    if not ROBOT_LINK.play_sequence(frames, loop=loop):
+        return "Nothing to stream for this motion."
+    return f"Streaming '{motion_name}' — {len(frames)} frames{' (looping)' if loop else ''}."
+
+
+@app.callback(
+    Output(MOTION_ROBOT_MESSAGE_ID, "children", allow_duplicate=True),
+    Input(MOTION_ROBOT_STOP_BTN_ID, "n_clicks"),
+    prevent_initial_call=True,
+)
+def stop_motion_on_robot(_n_clicks):
+    if not ROBOT_LINK.connected:
+        return "Not connected."
+
+    ROBOT_LINK.stop_sequence()
+    ROBOT_LINK.send_motion_command("standby")
+    return "Robot returning to standby."
+
+
+# 6. Client-side: Control interval speed
 app.clientside_callback(
     """
     function(speed) {
