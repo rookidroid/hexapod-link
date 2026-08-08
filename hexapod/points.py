@@ -2,7 +2,7 @@
 # and functions for manipulating vectors
 # and finding properties and relationships of vectors
 # computing reference frames
-from math import sqrt, radians, sin, cos, degrees, acos, isnan
+from math import sqrt, radians, sin, cos, degrees, acos
 import numpy as np
 
 from settings import DEBUG_MODE
@@ -82,21 +82,37 @@ def might_print_angle_between_error(a, b):
         )
 
 
+def acos_degrees(ratio):
+    """acos in degrees, tolerant of a ratio that drifts a hair out of [-1, 1].
+
+    Every ratio passed here is a cosine recovered from a dot product or from the
+    law of cosines, so 1.0000000000000002 means "these are parallel", not "this
+    is impossible". math.acos raises on it, and since nothing caught that, two
+    vectors happening to line up exactly would sink an otherwise ordinary pose
+    with a bare "math domain error". Clamping reads such a ratio as the 0 or 180
+    degrees it was rounding away from.
+    """
+    return degrees(acos(min(1.0, max(-1.0, ratio))))
+
+
 def angle_between(a, b):
     # returns the shortest angle between two vectors
-    cos_theta = dot(a, b) / sqrt(dot(a, a) * dot(b, b))
-    theta = degrees(acos(cos_theta))
+    denominator = sqrt(dot(a, a) * dot(b, b))
 
-    if isnan(theta):
+    # A zero-length vector has no direction to measure against.
+    if denominator == 0.0:
         might_print_angle_between_error(a, b)
         return 0.0
 
-    return theta
+    return acos_degrees(dot(a, b) / denominator)
 
 
 def angle_opposite_of_last_side(a, b, c):
-    ratio = (a * a + b * b - c * c) / (2 * a * b)
-    return degrees(acos(ratio))
+    # The angle between sides a and b of a triangle, opposite side c.
+    if a == 0 or b == 0:
+        return 0.0
+
+    return acos_degrees((a * a + b * b - c * c) / (2 * a * b))
 
 
 # Check if angle from vector a to b about normal n is positive

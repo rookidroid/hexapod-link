@@ -12,7 +12,7 @@ from hexapod.points import (
 from settings import ASSERTION_ENABLED, PRINT_IK
 
 
-def recompute_hexapod(dimensions, ik_parameters, poses):
+def recompute_hexapod(dimensions, ik_parameters, poses, legs_off_ground=()):
 
     # make the hexapod with all angles = 0
     # update the hexapod so that we know which given points are in contact with the ground
@@ -28,7 +28,13 @@ def recompute_hexapod(dimensions, ik_parameters, poses):
 
     # get two points that are on the ground before and after
     # updating to the given poses
-    id1, id2 = find_two_same_leg_ids(old_contacts, new_contacts)
+    id1, id2 = find_two_same_leg_ids(old_contacts, new_contacts, legs_off_ground)
+
+    # Nothing to line the body up against. The pose itself is still valid, so
+    # show it where the forward-kinematics pass put it rather than throwing the
+    # whole thing away.
+    if id1 is None:
+        return new_hexapod
 
     old_p1 = deepcopy(old_hexapod.legs[id1].ground_contact())
     old_p2 = deepcopy(old_hexapod.legs[id2].ground_contact())
@@ -43,7 +49,11 @@ def recompute_hexapod(dimensions, ik_parameters, poses):
     _, twist_frame = find_twist_to_recompute_hexapod(new_vector, old_vector)
     new_hexapod.rotate_and_shift(twist_frame, 0)
 
-    twisted_p2 = new_hexapod.legs[id2].foot_tip()
+    # The point being lined up has to be the same one the twist was measured
+    # from -- the ground contact, which is only the foot tip while the leg is
+    # standing on its foot. Under a steep pose the knee is the lowest point, and
+    # reading the foot tip there slid the body by the gap between the two.
+    twisted_p2 = new_hexapod.legs[id2].ground_contact()
     translate_vector = vector_from_to(twisted_p2, old_p2)
     new_hexapod.move_xyz(translate_vector.x, translate_vector.y, 0)
 
@@ -64,7 +74,16 @@ def make_contact_dict(ground_contact_list):
     return contact_dict
 
 
-def find_two_same_leg_ids(old_contacts, new_contacts):
+def find_two_same_leg_ids(old_contacts, new_contacts, legs_off_ground=()):
+    """Two legs planted both before and after the pose, or (None, None).
+
+    A leg the solver could not bring down to its target is not planted, but the
+    forward-kinematics pass can still count it as a ground contact -- being the
+    lowest point of a leg is not the same as being where the leg was asked to
+    go. Lining the body up against such a leg pins it to a point it never
+    reached and drags the rest of the robot out of place, so those are skipped.
+    """
+    off_ground = set(legs_off_ground)
     same_ids = []
     old_contact_dict = make_contact_dict(old_contacts)
     new_contact_dict = make_contact_dict(new_contacts)
@@ -72,9 +91,13 @@ def find_two_same_leg_ids(old_contacts, new_contacts):
     if PRINT_IK:
         print("In recomputing hexapod:")
         print("...old contacts:", old_contact_dict)
-        print("...new_contacts: ", old_contact_dict)
+        print("...new_contacts: ", new_contact_dict)
+        print("...legs off ground:", sorted(off_ground))
 
-    for leg_id in old_contact_dict:
+    for leg_id, leg_placement in old_contact_dict.items():
+        if leg_placement in off_ground:
+            continue
+
         if leg_id not in new_contact_dict:
             continue
 
@@ -82,10 +105,7 @@ def find_two_same_leg_ids(old_contacts, new_contacts):
         if len(same_ids) == 2:
             return same_ids[0], same_ids[1]
 
-    raise Exception(
-        f"Need at least two same points on ground.\n\
-        old: {old_contact_dict}\n new: {new_contact_dict}"
-    )
+    return None, None
 
 
 def find_twist_to_recompute_hexapod(a, b):

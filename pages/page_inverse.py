@@ -5,7 +5,7 @@ from settings import RECOMPUTE_HEXAPOD
 from hexapod.models import VirtualHexapod
 from hexapod.const import BASE_PLOTTER
 from hexapod.robot_link import ROBOT_LINK
-from hexapod.ik_solver.ik_solver2 import inverse_kinematics_update
+from hexapod.ik_solver.ik_solver2 import solve_inverse_kinematics
 from hexapod.ik_solver.recompute_hexapod import recompute_hexapod
 from widgets.ik_ui import IK_WIDGETS_SECTION, IK_CALLBACK_INPUTS
 from pages import helpers, shared
@@ -43,7 +43,9 @@ def update_inverse_page(dimensions_json, ik_parameters_json, relayout_data, figu
     hexapod = VirtualHexapod(dimensions)
 
     try:
-        poses, hexapod = inverse_kinematics_update(hexapod, ik_parameters)
+        poses, hexapod, legs_off_ground = solve_inverse_kinematics(
+            hexapod, ik_parameters
+        )
     except Exception as alert:
         return figure, helpers.make_alert_message(alert)
 
@@ -52,13 +54,15 @@ def update_inverse_page(dimensions_json, ik_parameters_json, relayout_data, figu
 
     if RECOMPUTE_HEXAPOD:
         try:
-            hexapod = recompute_hexapod(dimensions, ik_parameters, poses)
+            hexapod = recompute_hexapod(
+                dimensions, ik_parameters, poses, legs_off_ground
+            )
         except Exception as alert:
             return figure, helpers.make_alert_message(alert)
 
     BASE_PLOTTER.update(figure, hexapod)
     helpers.change_camera_view(figure, relayout_data)
-    return figure, helpers.make_poses_message(poses)
+    return figure, helpers.make_poses_message(poses, legs_off_ground)
 
 
 # ......................

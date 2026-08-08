@@ -74,7 +74,7 @@ def make_monospace(text):
     return dcc.Markdown(f" ```{text}")
 
 
-def make_poses_message(poses):
+def make_poses_message(poses, legs_off_ground=()):
     message = POSES_MSG_HEADER
 
     for pose in poses.values():
@@ -84,7 +84,16 @@ def make_poses_message(poses):
         )
         message += f"\n| {label:{_LEG_COLUMN_WIDTH}} | {angles} |"
 
-    return make_monospace(message + POSES_MSG_LAST_ROW)
+    message += POSES_MSG_LAST_ROW
+
+    # The pose is reachable, but these legs came up short of the ground point
+    # they were aimed at and are stretched straight out in the air instead.
+    # Worth saying, otherwise the robot just looks wrong for no stated reason.
+    if legs_off_ground:
+        labels = ", ".join(leg_label(leg) for leg in legs_off_ground)
+        message += f"\n\n⚠️ Not reaching the ground: {labels}"
+
+    return make_monospace(message)
 
 
 def make_alert_message(alert):

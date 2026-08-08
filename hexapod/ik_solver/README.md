@@ -124,6 +124,12 @@ as shown in the figure which is the alpha.
 #  --- angle between point p2, p1, and p3. (p1 at center)
 # phi
 #  --- angle between coxia vector (leg x axis) and coxia to foot vector
+#  --- SIGNED, counter clockwise positive, ie atan2(p3.z - p1.z, p3.x - p1.x).
+#      Taken unsigned it says nothing about which side of the leg x axis the
+#      target sits on, which is what the three cases below were working around.
+# epsi
+#  --- angle between femur vector and tibia vector
+#  --- angle between point p1, p2 and p3. (p2 at center)
 #
 # beta
 #  --- angle between coxia vector (leg x axis) and femur vector
@@ -131,15 +137,21 @@ as shown in the figure which is the alpha.
 # gamma
 #  --- angle between tibia vector and perpendicular vector to femur vector
 #  --- positive is counter clockwise
+#  --- ❗a leg stretched into a straight line is gamma = +90, NOT 0.
+#      gamma = 0 is the tibia folded square to the femur, pointing down.
 # alpha
 #  --- angle between leg coordinate frame and axis defined by line from
 #      hexapod's center of gravity to body contact.
 #
 #
-# For CASE 1 and CASE 2:
-#   beta = theta - phi
-#     beta is positive when phi < theta (case 1)
-#     beta is negative when phi > theta (case 2)
+# Because phi is signed, all three cases below are the same one line:
+#   beta = theta + phi
+#     beta is positive when the femur points above the leg x axis (case 1)
+#     beta is negative when it points below (case 2)
+#   gamma = epsi - 90
+#
+# The cases are kept here because they are what the geometry looks like,
+# not because the code still branches on them.
 # *****************
 # Case 1 (beta IS POSITIVE)
 # *****************
@@ -180,7 +192,7 @@ as shown in the figure which is the alpha.
 #          *
 #
 # *****************
-# Case 3 (p3 is above p1) then beta = phi + theta
+# Case 3 (p3 is above p1, so phi is positive and beta = theta + phi exceeds theta)
 # *****************
 #                * (p2)
 #               / \

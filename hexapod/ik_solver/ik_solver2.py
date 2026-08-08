@@ -57,6 +57,19 @@ def inverse_kinematics_update(hexapod, ik_parameters):
     return IKSolver(hexapod, ik_parameters).pose_and_hexapod()
 
 
+def solve_inverse_kinematics(hexapod, ik_parameters):
+    """Like inverse_kinematics_update(), but also reports the legs left in the air.
+
+    A pose can succeed with a leg that never made it down to its target ground
+    point. Callers that go on to place the body -- or to tell the user what they
+    are looking at -- need to know which legs those were, so this returns them
+    alongside the poses instead of dropping them on the floor.
+    """
+    solver = IKSolver(hexapod, ik_parameters)
+    poses, posed_hexapod = solver.pose_and_hexapod()
+    return poses, posed_hexapod, list(solver.legs_up_in_the_air)
+
+
 class IKSolver:
     __slots__ = [
         "hexapod",
@@ -183,25 +196,38 @@ class IKSolver:
             raise Exception(alert_msg)
 
     def compute_when_triangle_can_form(self):
+        # theta: the angle at p1, between the femur limb and the coxia-to-foot
+        # vector. Adding it to the bearing of that vector swings the femur up
+        # off the target and gives the elbow-up solution.
         theta = angle_opposite_of_last_side(
             self.d, self.hexapod.femur, self.hexapod.tibia
         )
-        phi = angle_between(self.coxia_to_foot_vector2d, self.leg_x_axis)
 
-        self.beta = theta - phi  # case 1 or 2
-        if self.p3.z > 0:  # case 3
-            self.beta = theta + phi
+        # phi is the bearing of the coxia-to-foot vector off the leg x axis,
+        # signed, so cases 1, 2 and 3 of the README are all just this one line.
+        # Taking it unsigned and recovering the sign from p3.z left it undefined
+        # for a target sitting exactly on the leg x axis.
+        phi = np.degrees(
+            np.arctan2(self.coxia_to_foot_vector2d.z, self.coxia_to_foot_vector2d.x)
+        )
+        self.beta = theta + phi
 
         z_ = self.hexapod.femur * np.sin(np.radians(self.beta))
         x_ = self.p1.x + self.hexapod.femur * np.cos(np.radians(self.beta))
-
         self.p2 = Vector(x_, 0, z_)
-        femur_vector = vector_from_to(self.p1, self.p2)
-        tibia_vector = vector_from_to(self.p2, self.p3)
-        self.gamma = 90 - angle_between(femur_vector, tibia_vector)
 
         if self.p2.z < self.p3.z:
             raise Exception(cant_reach_alert_msg(self.leg_name, "blocking"))
+
+        # epsi: the angle at p2, between the femur and tibia limbs. gamma is
+        # measured off the perpendicular to the femur, so a straight leg
+        # (epsi = 180) is gamma = +90. Solving epsi from the three side lengths
+        # keeps gamma exact; reading it back off the p2 just constructed made it
+        # inherit whatever error beta carried.
+        epsi = angle_opposite_of_last_side(
+            self.hexapod.femur, self.hexapod.tibia, self.d
+        )
+        self.gamma = epsi - 90
 
     def might_raise_cant_reach_target(self):
         if self.d + self.hexapod.tibia < self.hexapod.femur:
@@ -224,8 +250,17 @@ class IKSolver:
         tibia_vector = scalar_multiply(femur_tibia_direction, self.hexapod.tibia)
         self.p3 = add_vectors(self.p2, tibia_vector)
 
-        # Find beta and gamma
-        self.gamma = 0.0
+        # Find beta and gamma.
+        #
+        # gamma is measured off the perpendicular to the femur, so a leg
+        # stretched into a straight line is +90, not 0. Reporting 0 here
+        # described a leg folded square at the knee while the leg drawn just
+        # above is straight, so the moment any leg came up short of its target
+        # the angles and the picture stopped agreeing -- and since the body is
+        # placed by re-posing a fresh hexapod from these angles, the whole robot
+        # lurched. This is the same convention the triangle case uses, and the
+        # same value the JS simulator reports for a stretched leg.
+        self.gamma = 90.0
         self.beta = angle_between(self.leg_x_axis, femur_vector)
         if femur_vector.z < 0:
             self.beta = -self.beta
