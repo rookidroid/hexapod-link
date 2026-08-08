@@ -4,6 +4,8 @@ from hexapod.points import (
     dot,
     cross,
     vector_from_to,
+    get_normal_given_three_points,
+    scalar_multiply,
 )
 
 # Prioritize legs that are not adjacent to each other
@@ -65,6 +67,41 @@ def is_stable(p1, p2, p3, tol=0.001):
     cond2 = min_val <= beta <= max_val
     cond3 = min_val <= gamma <= max_val
     return cond1 and cond2 and cond3
+
+
+def ground_plane_properties(p0, p1, p2):
+    """The plane through three contact points, normal oriented up, and the
+    height of the cog above it.
+
+    Callers rely on the normal pointing up out of the ground: it is what makes
+    the height below the cog's clearance, what makes is_lower() mean lower, and
+    what the frame that stands the robot up is expecting. The trio tables were
+    written assuming their listed order delivers that, but the order fixes only
+    the winding, and the winding is not fixed: enough hip stance swings a leg
+    past its neighbour, reorders the feet around the body, and flips every
+    normal at once.
+
+    Up is the body's own +z, and it cannot be read off the cog instead. The cog
+    clears the plane through the robot's highest joints just as happily as the
+    one through its feet -- from underneath -- and taking that plane for the
+    ground hangs the robot off its own knees.
+    """
+    n = get_normal_given_three_points(p0, p1, p2)
+
+    if n.z < 0:
+        n = scalar_multiply(n, -1)
+
+    # p0 is the vector from the cog (the origin) to a point on the plane, so
+    # -dot(n, p0) is how far the cog sits above the plane, measured along n.
+    # With n pointing up, a plane above the robot gives this a negative value,
+    # and is_lower() then correctly reports the points beneath it.
+    #
+    #  cog *  ^ (n) ----
+    #      \  |        |
+    #       \ |     height
+    #        \|        |
+    #         V p0 -----
+    return n, -dot(n, p0)
 
 
 def is_lower(point, height, n, tol=1):

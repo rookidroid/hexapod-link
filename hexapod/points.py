@@ -121,16 +121,38 @@ def is_counter_clockwise(a, b, n):
     return dot(a, cross(b, n)) > 0
 
 
+def _half_turn_frame(a):
+    """A half turn about some axis perpendicular to a, which reverses it."""
+    # Any perpendicular axis will do; cross a with whichever of x or y it is
+    # not parallel to.
+    axis = cross(a, Vector(1, 0, 0))
+    if length(axis) == 0.0:
+        axis = cross(a, Vector(0, 1, 0))
+    k = get_unit_vector(axis)
+
+    # Rodrigues at theta = 180 degrees collapses to 2*k*k' - I.
+    kv = np.array([k.x, k.y, k.z])
+    r = 2 * np.outer(kv, kv) - np.eye(3)
+    r = np.hstack((r, [[0], [0], [0]]))
+    return np.vstack((r, [0, 0, 0, 1]))
+
+
 # https://math.stackexchange.com/questions/180418/calculate-rotation-matrix-to-align-vector-a-to-vector-b-in-3d
 def frame_to_align_vector_a_to_b(a, b):
     v = cross(a, b)
     s = length(v)
-
-    # When angle between a and b is zero or 180 degrees
-    # cross product is 0, R = I
-    if s == 0.0:
-        return np.eye(4)
     c = dot(a, b)
+
+    # The cross product vanishes both when a and b already point the same way
+    # and when they point exactly opposite, and the formula below divides by s
+    # so it cannot tell them apart. Returning the identity for the opposite case
+    # meant "align these" quietly left them reversed -- which is how a ground
+    # normal pointing into the floor used to survive being stood up.
+    if s == 0.0:
+        if c >= 0:
+            return np.eye(4)
+        return _half_turn_frame(a)
+
     i = np.eye(3)  # Identity matrix 3x3
 
     # skew symmetric cross product

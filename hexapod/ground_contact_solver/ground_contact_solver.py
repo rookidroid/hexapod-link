@@ -25,11 +25,11 @@ the hexapod's neutral position
 3. Determining the height of the center of gravity (cog) wrt to the ground.
 ie this height is distance between the cog and the plane defined by ground contacts.
 """
-from hexapod.points import dot, get_normal_given_three_points
 from hexapod.ground_contact_solver.shared import (
     is_stable,
     is_lower,
     find_legs_on_ground,
+    ground_plane_properties,
     LEG_TRIOS,
 )
 
@@ -69,26 +69,12 @@ def find_ground_plane_properties(legs):
         if not is_stable(p0, p1, p2):
             continue
 
-        # Get the vector normal to plane defined by these points
-        # ❗IMPORTANT: The normal is always pointing up
-        # because of how we specified the order of the trio
-        # (and the legs in general)
-        # starting from middle-right (id:0) to right back (id:5)
-        # always towards one direction (ccw)
-        n = get_normal_given_three_points(p0, p1, p2)
-
-        # p0 is vector from cog (0, 0, 0) to ground contact
-        # dot product of this and normal we get the
-        # hypothetical (negative) height of ground contact to cog
-        #
-        #  cog *  ^ (normal_vector) ----
-        #      \  |                  |
-        #       \ |               -height
-        #        \|                  |
-        #         V p0 (foot_tip) ------
+        # The plane these three contacts define, with the normal pointing up
+        # out of it and the height of the cog above it. The trio's listed order
+        # does not decide the normal's direction -- see ground_plane_properties.
         #
         # using p0, p1 or p2 should yield the same result
-        height = -dot(n, p0)
+        n, height = ground_plane_properties(p0, p1, p2)
 
         # height should be the highest since
         # the plane defined by this trio is on the ground

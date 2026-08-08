@@ -31,10 +31,10 @@ from hexapod.ground_contact_solver.shared import (
     is_stable,
     is_lower,
     find_legs_on_ground,
+    ground_plane_properties,
     SOME_LEG_TRIOS,
     ADJACENT_LEG_TRIOS,
 )
-from hexapod.points import get_normal_given_three_points, dot
 
 OTHER_POINTS_MAP = {1: (2, 3), 2: (3, 1), 3: (1, 2)}
 
@@ -71,8 +71,7 @@ def compute_orientation_properties(legs):
             if not is_stable(p0, p1, p2):
                 continue
 
-            n = get_normal_given_three_points(p0, p1, p2)
-            height = -dot(n, p0)
+            n, height = ground_plane_properties(p0, p1, p2)
 
             if same_leg_joints_break_condition(three_legs, joint_trio, n, height):
                 continue
