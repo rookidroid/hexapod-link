@@ -5,7 +5,7 @@
 
 # Core Dash packages
 dash>=2.14.0
-dash-daq>=0.5.0
+dash-daq>=0.6.0
 dash-bootstrap-components>=1.5.0
 
 # Scientific computing
