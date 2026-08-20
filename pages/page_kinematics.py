@@ -1,4 +1,5 @@
 import json
+from dash import html
 from dash.dependencies import Output
 from app import app
 from settings import WHICH_POSE_CONTROL_UI
@@ -23,8 +24,14 @@ GRAPH_ID = "graph-kinematics"
 MESSAGE_SECTION_ID = "message-kinematics"
 PARAMETERS_SECTION_ID = "parameters-kinematics"
 
+# Joint angles set here are streamed straight to the servos, so the stream
+# switch belongs on this page rather than in the global panel.
+widgets_section = html.Div(
+    [KINEMATICS_WIDGETS_SECTION, shared.make_stream_controls("kinematics")]
+)
+
 sidebar = shared.make_standard_page_sidebar(
-    MESSAGE_SECTION_ID, PARAMETERS_SECTION_ID, KINEMATICS_WIDGETS_SECTION
+    MESSAGE_SECTION_ID, PARAMETERS_SECTION_ID, widgets_section
 )
 
 layout = shared.make_standard_page_layout(GRAPH_ID, sidebar)

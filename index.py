@@ -46,7 +46,7 @@ div_header = dbc.Navbar(
                 GLOBAL_PANEL_TOGGLE_LABEL,
                 id=GLOBAL_PANEL_TOGGLE_ID,
                 className=GLOBAL_PANEL_TOGGLE_CLASS,
-                title="Robot dimensions, link and motion controls",
+                title="Robot link and dimensions",
             ),
         ],
         fluid=True,
@@ -63,11 +63,10 @@ app.layout = dbc.Container(
         div_header,
         dcc.Location(id="url", refresh=False),
         GLOBAL_CONTROLS_PANEL,
-        html.Div(
-            id="page-content",
-            className="flex-grow-1",
-            style={"overflowY": "auto", "display": "flex", "flexDirection": "column"}
-        ),
+        # Sizing and scrolling live in the PAGE LAYOUT block of scifi.css: it
+        # takes a media query to say that this scrolls only once the columns
+        # have stacked, and an inline style cannot carry one.
+        html.Div(id="page-content", className="flex-grow-1"),
     ],
     fluid=True,
     style={

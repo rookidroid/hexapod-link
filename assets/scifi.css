@@ -75,6 +75,63 @@ body {
 
 #page-content {
     animation: mechanicalSlide 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+/* ===========================================
+   PAGE LAYOUT — one screenful, one scrollbar
+
+   From `lg` up the app is a fixed-height console: the plot fills whatever
+   height is left beside the navbar, and the only thing that scrolls is the
+   control panel, inside its own column.
+
+   The nowrap is what makes that work. A Bootstrap row wraps, and a wrapping
+   flex line is as tall as its tallest item -- the panel -- not as tall as its
+   container, so the row grew past the viewport, the whole page took the
+   scrollbar and the plot was pushed off the bottom. The `min-height: 0` on the
+   columns is the other half: flex items refuse to shrink below their content
+   until told they may.
+
+   Below `lg` the columns stack, so the page scrolls as a whole and the plot
+   keeps a workable height of its own instead of collapsing.
+   =========================================== */
+
+.page-row {
+    min-height: 0;
+}
+
+.page-plot .graph-container {
+    min-height: 0;
+}
+
+@media (min-width: 992px) {
+    #page-content {
+        overflow: hidden;
+    }
+
+    .page-row {
+        flex-wrap: nowrap;
+        height: 100%;
+    }
+
+    /* Only while the row is clamped to the viewport: stacked, the columns are
+       supposed to be as tall as their content. */
+    .page-row > [class*="col-"] {
+        min-height: 0;
+    }
+
+    .page-panel {
+        overflow-y: auto;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .page-plot {
+        min-height: 70vh;
+    }
 }
 
 /* ===========================================
@@ -376,6 +433,29 @@ input[type="number"]:focus,
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1px;
+}
+
+/* ===========================================
+   OFFLINE SECTIONS — controls with no robot to act on
+
+   Streaming a pose and running a gait both need an open session, so while the
+   link is down those controls are greyed out and made inert. Only the controls
+   carry this class: the heading, the blurb and the status line above them stay
+   at full strength, because they are what says why the rest is greyed out.
+   =========================================== */
+
+.robot-section-controls {
+    transition: opacity 0.15s ease, filter 0.15s ease;
+}
+
+.robot-section-controls.is-offline {
+    opacity: 0.4;
+    filter: grayscale(1);
+    /* Belt and braces with the widgets' own `disabled` flags -- this also
+       catches the radio and checklist items, which have no single disabled
+       switch of their own. */
+    pointer-events: none;
+    user-select: none;
 }
 
 /* ===========================================

@@ -1,6 +1,6 @@
 import json
 import dash_bootstrap_components as dbc
-from dash import dcc, html
+from dash import dcc, html, no_update
 from dash.dependencies import Output, Input, State
 from app import app
 from widgets.dimensions_ui import (
@@ -10,25 +10,18 @@ from widgets.dimensions_ui import (
 )
 from widgets.robot_link_ui import (
     ROBOT_LINK_WIDGETS_SECTION,
-    ROBOT_MOTION_WIDGETS_SECTION,
     ROBOT_PROFILE_SELECT_ID,
     ROBOT_IP_INPUT_ID,
     ROBOT_CONNECT_BTN_ID,
-    ROBOT_STREAM_SWITCH_ID,
-    ROBOT_MAX_STEP_SLIDER_ID,
-    ROBOT_RELAX_BTN_ID,
     ROBOT_STATUS_ID,
     ROBOT_POLL_INTERVAL_ID,
-    ROBOT_MOTION_SELECT_ID,
-    ROBOT_MOTION_MODE_ID,
-    ROBOT_MOTION_LOOP_ID,
-    ROBOT_MOTION_RUN_BTN_ID,
-    ROBOT_MOTION_STOP_BTN_ID,
-    ROBOT_MOTION_MESSAGE_ID,
+    SECTION_CONTROLS_CLASS,
+    SECTION_CONTROLS_OFFLINE_CLASS,
+    make_stream_control_ids,
+    make_stream_controls_section,
 )
 from hexapod.const import BASE_FIGURE
-from hexapod.path_generator import generate_poses
-from hexapod.robot_link import ROBOT_LINK, MOTION_COMMANDS
+from hexapod.robot_link import ROBOT_LINK
 from hexapod.robot_profiles import get_profile, get_simulator_dimensions
 
 
@@ -60,6 +53,10 @@ def update_dimensions(front, side, middle, coxia, femur, tibia):
 # ......................
 # Make uniform layout
 # Graph on the right, controls on the left
+#
+# The height rules that make this one screenful -- who scrolls, who fills --
+# are in the PAGE LAYOUT block of assets/scifi.css, because they only hold
+# above the `lg` breakpoint and inline styles cannot carry a media query.
 # ......................
 
 
@@ -67,13 +64,11 @@ def make_standard_page_layout(graph_id, sidebar_sections):
     sidebar = dbc.Col(
         dbc.Card(
             dbc.CardBody(sidebar_sections),
-            className="scifi-card flex-grow-1",
-            style={"overflowY": "auto", "minHeight": 0},
+            className="scifi-card page-panel flex-grow-1",
         ),
         width=12,
         lg=4,
-        className="mb-3 mb-lg-0 d-flex flex-column",
-        style={"minHeight": 0}
+        className="page-sidebar mb-3 mb-lg-0 d-flex flex-column",
     )
     graph = dbc.Col(
         html.Div(
@@ -84,16 +79,13 @@ def make_standard_page_layout(graph_id, sidebar_sections):
                 style={"height": "100%", "width": "100%"},
             ),
             className="graph-container flex-grow-1",
-            style={"minHeight": 0},
         ),
         width=12,
         lg=8,
-        className="d-flex flex-column",
-        style={"minHeight": 0}
+        className="page-plot d-flex flex-column",
     )
 
-    layout = dbc.Row([sidebar, graph], className="flex-grow-1 m-0 h-100", style={"minHeight": 0})
-    return layout
+    return dbc.Row([sidebar, graph], className="page-row flex-grow-1 m-0")
 
 
 # ......................
@@ -106,8 +98,11 @@ def make_standard_page_sidebar(
 ):
     """Sidebar holding only what is specific to one page.
 
-    Robot dimensions and everything that talks to the hardware are deliberately
-    absent: they live in GLOBAL_CONTROLS_PANEL, mounted once for the whole app.
+    Robot dimensions and the link to the hardware are deliberately absent: they
+    describe the robot rather than the page, so they live in
+    GLOBAL_CONTROLS_PANEL, mounted once for the whole app. Controls that act on
+    what this page is showing -- streaming its pose, running its motion -- are
+    part of `params_widgets_section`.
     """
     params_hidden_section = html.Div(
         id=params_hidden_section_id, style={"display": "none"}
@@ -127,8 +122,7 @@ def make_standard_page_sidebar(
 # Dimensions and the robot link describe one robot, not one page, so they are
 # mounted once outside the routed page content. Keeping them here means their
 # values survive navigation instead of being rebuilt at defaults on every page
-# change, and there is only ever one connect button, one profile, one stream
-# switch.
+# change, and there is only ever one connect button and one profile.
 #
 # It is a drawer rather than a column so that no page has to give up layout
 # space for it and the landing page can reach it too.
@@ -181,7 +175,6 @@ GLOBAL_CONTROLS_PANEL = html.Div(
         _panel_header,
         DIMENSIONS_WIDGETS_SECTION,
         ROBOT_LINK_WIDGETS_SECTION,
-        ROBOT_MOTION_WIDGETS_SECTION,
         DIMENSIONS_HIDDEN_SECTION,
     ],
     id=GLOBAL_PANEL_ID,
@@ -260,36 +253,17 @@ def toggle_robot_connection(_n_clicks, ip):
     return "Connect", "primary"
 
 
-@app.callback(
-    Output(ROBOT_STREAM_SWITCH_ID, "value"),
-    Input(ROBOT_STREAM_SWITCH_ID, "value"),
-    prevent_initial_call=True,
-)
-def toggle_robot_streaming(streaming):
-    ROBOT_LINK.set_streaming(streaming)
-    # Reflect back what the link accepted; streaming cannot be enabled while
-    # disconnected, so the switch must not appear on in that case.
-    return ROBOT_LINK.streaming
+def _link_status_text(status):
+    """One line describing the link, shared by the panel and the page sections."""
+    if status["last_error"]:
+        return f"⚠ {status['last_error']}", "text-danger"
 
+    if not status["connected"]:
+        return "Disconnected", "text-muted"
 
-@app.callback(
-    Output(ROBOT_MAX_STEP_SLIDER_ID, "value"),
-    Input(ROBOT_MAX_STEP_SLIDER_ID, "value"),
-    prevent_initial_call=True,
-)
-def update_robot_max_step(max_step):
-    ROBOT_LINK.set_max_step(max_step)
-    return max_step
-
-
-@app.callback(
-    Output(ROBOT_STREAM_SWITCH_ID, "value", allow_duplicate=True),
-    Input(ROBOT_RELAX_BTN_ID, "n_clicks"),
-    prevent_initial_call=True,
-)
-def relax_robot(_n_clicks):
-    ROBOT_LINK.relax()
-    return False
+    mode = "STREAMING" if status["streaming"] else "IDLE (holding)"
+    text = f"● {status['ip']} — {mode} — {status['packets_sent']} pkts"
+    return text, "text-success" if status["streaming"] else "text-info"
 
 
 @app.callback(
@@ -307,95 +281,116 @@ def update_robot_status(_n_intervals):
     inside the drawer carries the address, mode and packet count.
     """
     status = ROBOT_LINK.status()
+    text, colour_class = _link_status_text(status)
     base_class = "small font-monospace text-center "
 
     if status["last_error"]:
-        return (
-            f"⚠ {status['last_error']}",
-            base_class + "text-danger",
-            _toggle_label("FAULT"),
-            _toggle_class("is-fault"),
-        )
+        state = ("FAULT", "is-fault")
+    elif not status["connected"]:
+        state = ("OFFLINE", "is-offline")
+    elif status["streaming"]:
+        state = ("ONLINE", "is-streaming")
+    else:
+        state = ("ONLINE", "is-online")
 
-    if not status["connected"]:
-        return (
-            "Disconnected",
-            base_class + "text-muted",
-            _toggle_label("OFFLINE"),
-            _toggle_class("is-offline"),
-        )
-
-    mode = "STREAMING" if status["streaming"] else "IDLE (holding)"
-    text = f"● {status['ip']} — {mode} — {status['packets_sent']} pkts"
-
-    if status["streaming"]:
-        return (
-            text,
-            base_class + "text-success",
-            _toggle_label("ONLINE"),
-            _toggle_class("is-streaming"),
-        )
     return (
         text,
-        base_class + "text-info",
-        _toggle_label("ONLINE"),
-        _toggle_class("is-online"),
+        base_class + colour_class,
+        _toggle_label(state[0]),
+        _toggle_class(state[1]),
     )
 
 
 # ......................
-# Run on robot
+# Stream-to-robot controls
 #
-# Commands the hardware from the global panel, so a gait can be started or
-# stopped without first navigating to the motion page.
+# Built and registered per page, because streaming the pose only means anything
+# where a pose is being solved. Each page owns its own widgets; they all drive
+# the one link, so the sync callback below re-seeds them from the link's state
+# rather than trusting the defaults they were rendered with.
 # ......................
 
 
-@app.callback(
-    Output(ROBOT_MOTION_MESSAGE_ID, "children"),
-    Input(ROBOT_MOTION_RUN_BTN_ID, "n_clicks"),
-    State(ROBOT_MOTION_SELECT_ID, "value"),
-    State(ROBOT_MOTION_MODE_ID, "value"),
-    State(ROBOT_MOTION_LOOP_ID, "value"),
-    State(ROBOT_PROFILE_SELECT_ID, "value"),
-    prevent_initial_call=True,
-)
-def run_motion_on_robot(_n_clicks, motion_name, mode, loop_values, profile_name):
-    if not ROBOT_LINK.connected:
-        return "Not connected — connect in the ROBOT LINK panel first."
+def make_stream_controls(page_key):
+    ids = make_stream_control_ids(page_key)
+    section = make_stream_controls_section(ids)
 
-    loop = bool(loop_values) and "loop" in loop_values
+    @app.callback(
+        Output(ids["switch"], "value"),
+        Input(ids["switch"], "value"),
+        prevent_initial_call=True,
+    )
+    def toggle_robot_streaming(streaming):
+        ROBOT_LINK.set_streaming(streaming)
+        # Reflect back what the link accepted; streaming cannot be enabled while
+        # disconnected, so the switch must not appear on in that case.
+        return ROBOT_LINK.streaming
 
-    if mode == "native":
-        if motion_name not in MOTION_COMMANDS:
-            # "standup" is the firmware's boot sequence, not a motion LUT it
-            # can be commanded into.
-            return (
-                f"'{motion_name}' has no built-in equivalent on the robot. "
-                "Use 'Stream frames from simulator' instead."
-            )
-        if ROBOT_LINK.send_motion_command(motion_name):
-            return f"Robot running its own '{motion_name}' gait."
-        return "Failed to send motion command."
+    @app.callback(
+        Output(ids["max_step"], "value"),
+        Input(ids["max_step"], "value"),
+        prevent_initial_call=True,
+    )
+    def update_robot_max_step(max_step):
+        ROBOT_LINK.set_max_step(max_step)
+        return max_step
 
-    frames = generate_poses(motion_name, profile_name)
-    if not ROBOT_LINK.play_sequence(frames, loop=loop):
-        return "Nothing to stream for this motion."
-    return f"Streaming '{motion_name}' — {len(frames)} frames{' (looping)' if loop else ''}."
+    @app.callback(
+        Output(ids["switch"], "value", allow_duplicate=True),
+        Input(ids["relax"], "n_clicks"),
+        prevent_initial_call=True,
+    )
+    def relax_robot(_n_clicks):
+        ROBOT_LINK.relax()
+        return False
 
+    @app.callback(
+        Output(ids["status"], "children"),
+        Output(ids["status"], "className"),
+        Output(ids["controls"], "className"),
+        Output(ids["switch"], "disabled"),
+        Output(ids["relax"], "disabled"),
+        Output(ids["max_step"], "disabled"),
+        Output(ids["switch"], "value", allow_duplicate=True),
+        Output(ids["max_step"], "value", allow_duplicate=True),
+        Input(ids["interval"], "n_intervals"),
+        State(ids["switch"], "value"),
+        State(ids["max_step"], "value"),
+        prevent_initial_call=True,
+    )
+    def sync_stream_controls(_n_intervals, switch_value, max_step_value):
+        """Keep this page's widgets honest about the one shared link.
 
-@app.callback(
-    Output(ROBOT_MOTION_MESSAGE_ID, "children", allow_duplicate=True),
-    Input(ROBOT_MOTION_STOP_BTN_ID, "n_clicks"),
-    prevent_initial_call=True,
-)
-def stop_motion_on_robot(_n_clicks):
-    if not ROBOT_LINK.connected:
-        return "Not connected."
+        Offline, none of these controls has anything to act on, so they are
+        greyed out and disabled; the status line above them says why.
 
-    ROBOT_LINK.stop_sequence()
-    ROBOT_LINK.send_motion_command("standby")
-    return "Robot returning to standby."
+        The values are only written back when they disagree with the link --
+        the page was arrived at showing its rendered default, or the link
+        dropped streaming on its own -- so the ordinary case does not retrigger
+        the toggle callbacks every second.
+        """
+        status = ROBOT_LINK.status()
+        text, colour_class = _link_status_text(status)
+        offline = not status["connected"]
+
+        streaming = status["streaming"]
+        switch = no_update if bool(switch_value) == streaming else streaming
+
+        max_step = status["max_step"]
+        max_step_out = no_update if max_step_value == max_step else max_step
+
+        return (
+            text,
+            "small font-monospace text-center " + colour_class,
+            SECTION_CONTROLS_OFFLINE_CLASS if offline else SECTION_CONTROLS_CLASS,
+            offline,
+            offline,
+            offline,
+            switch,
+            max_step_out,
+        )
+
+    return section
 
 
 # ......................

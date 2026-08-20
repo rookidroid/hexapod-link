@@ -243,16 +243,28 @@ HEXAPOD_FIGURE = {
         "scene": {
             "aspectmode": "manual",
             "aspectratio": {"x": 1, "y": 1, "z": 1},
+            # Default view: a three-quarter shot from behind and above the
+            # robot, framing the whole machine with room to spare.
+            #
+            # In the scene's normalised coordinates the robot sits low in the
+            # box -- the axis ranges below are sized from the sum of the
+            # dimensions, and the z range runs well above the tallest pose --
+            # so `center` looks below the middle of the box to put the body in
+            # the middle of the frame.
+            #
+            # The eye is one distance (0.75) away along azimuth -60 degrees,
+            # elevation 32 degrees. The negative azimuth is what puts the head
+            # up and to the right: the camera sits behind the tail, so the
+            # robot's +y (forward) axis projects up-screen, and the 60 degrees
+            # off-axis swings it right. Measured on the default pose, the head
+            # reads 49 degrees above horizontal and the robot fills ~63% of the
+            # frame; the widest walk frames still leave a margin all round.
             "camera": {
-                "center": {
-                    "x": 0.0348603742736399,
-                    "y": 0.16963779995083,
-                    "z": -0.394903376555686,
-                },
+                "center": {"x": 0, "y": 0, "z": -0.47},
                 "eye": {
-                    "x": 0.193913968006015,
-                    "y": 0.45997575676993,
-                    "z": -0.111568465000231,
+                    "x": 0.318018,
+                    "y": -0.550823,
+                    "z": -0.072561,
                 },
                 "up": {"x": 0, "y": 0, "z": 1},
             },

@@ -105,7 +105,10 @@ over WiFi in real time, from a single joint up to a full gait.
 2. Power on the robot and **join its WiFi access point** from the machine
    running this app — the ESP32 is the access point, so there is no other route
    to it. The robot performs its stand-up sequence when a client connects.
-3. Start the app, open any page, and use the **ROBOT LINK** panel in the sidebar.
+3. Start the app and open the **ROBOT** panel from the status button in the
+   navigation bar. It holds the robot's dimensions and the link to it -- the
+   profile, its address and the connect button -- and is reachable from every
+   page. Streaming and gait controls live on the pages that use them.
 
 ### Leg and joint numbering
 
@@ -151,12 +154,18 @@ so the on-screen hexapod agrees with the hardware. Profiles are defined in
 - **Inverse Kinematics page** — translate and rotate the body; the solved pose is
   streamed once it is reachable.
 - **Leg Patterns page** — preview individual leg-pattern trajectories.
-- **Motion page** — either trigger the robot's own built-in gait (recommended;
-  the ESP32 plays it from flash so smoothness does not depend on WiFi), or
-  stream the simulator's frames for paths the firmware does not have.
+- **Motion page** — the **RUN ON ROBOT** section plays the motion selected for
+  preview on the hardware: either trigger the robot's own built-in gait
+  (recommended; the ESP32 plays it from flash so smoothness does not depend on
+  WiFi), or stream the simulator's frames for paths the firmware does not have.
 
-Turn on **Stream pose to robot** to start sending. **Max joint speed** limits how
-fast any servo may slew, and **RELAX** cuts drive so the servos go limp.
+Connect from the **ROBOT** panel first — until then the **STREAM TO ROBOT** and
+**RUN ON ROBOT** controls are greyed out, since neither has anything to act on.
+Once connected, the **STREAM TO ROBOT** section on the Kinematics and Inverse
+Kinematics pages starts the sending: turn on **Stream pose to robot**, **Max
+joint speed** limits how fast any servo may slew, and **RELAX** cuts drive so
+the servos go limp. There is only one link behind them, so the switch follows
+the robot's actual state when moving between those two pages.
 
 ### Safety
 

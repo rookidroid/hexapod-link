@@ -1,36 +1,54 @@
 # Widgets for connecting to and driving the physical hexapod.
 #
-# Every widget here is mounted once, in the global panel, so the link's UI state
-# survives page navigation and cannot disagree with itself across pages.
+# Split by scope, because these controls do not all belong to the same place:
+#
+# * ROBOT LINK describes the robot itself -- which one, where it is, whether the
+#   session is up. It is mounted once in the global panel, next to the
+#   dimensions, so link state survives page navigation and there is only ever
+#   one connect button.
+# * Streaming and RUN ON ROBOT act on what a particular page is showing, so they
+#   are built per page by the factories below and live in that page's sidebar.
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
 from settings import ROBOT_DEFAULT_MAX_STEP
 from hexapod.robot_profiles import DEFAULT_PROFILE, PROFILE_OPTIONS, get_profile
-from widgets.motion_ui import MOTION_TYPES
 
 # --- Element IDs ---
 ROBOT_PROFILE_SELECT_ID = "robot-profile-select"
 ROBOT_IP_INPUT_ID = "robot-ip-input"
 ROBOT_CONNECT_BTN_ID = "robot-connect-btn"
-ROBOT_STREAM_SWITCH_ID = "robot-stream-switch"
-ROBOT_MAX_STEP_SLIDER_ID = "robot-max-step-slider"
-ROBOT_RELAX_BTN_ID = "robot-relax-btn"
 ROBOT_STATUS_ID = "robot-status"
 ROBOT_STATE_STORE_ID = "robot-state-store"
 ROBOT_POLL_INTERVAL_ID = "robot-poll-interval"
 
-ROBOT_MOTION_SELECT_ID = "robot-motion-select"
 ROBOT_MOTION_MODE_ID = "robot-motion-mode"
 ROBOT_MOTION_LOOP_ID = "robot-motion-loop"
 ROBOT_MOTION_RUN_BTN_ID = "robot-motion-run-btn"
 ROBOT_MOTION_STOP_BTN_ID = "robot-motion-stop-btn"
 ROBOT_MOTION_MESSAGE_ID = "robot-motion-message"
 
+ROBOT_MOTION_CONTROLS_ID = "robot-motion-controls"
+ROBOT_MOTION_POLL_INTERVAL_ID = "robot-motion-poll-interval"
+
 # Poll the link often enough that the status badge feels live, but not so often
 # that it adds noticeable callback traffic.
 STATUS_POLL_MS = 1000
 
+# Nothing in these sections can do anything without an open session, so while
+# the robot is offline they are dimmed and made inert. The controls keep their
+# own `disabled` flags as well -- the class is what a person reads, `disabled`
+# is what the widget honours.
+SECTION_CONTROLS_CLASS = "robot-section-controls"
+SECTION_CONTROLS_OFFLINE_CLASS = "robot-section-controls is-offline"
+
+
+# ................................
+# ROBOT LINK (global panel)
+#
+# Which robot, at which address, and is the session up. Nothing here depends on
+# what any page is drawing.
+# ................................
 
 profile_select = dbc.Select(
     id=ROBOT_PROFILE_SELECT_ID,
@@ -64,46 +82,6 @@ connection_row = dbc.Row(
     className="mb-3 g-2",
 )
 
-stream_row = dbc.Row(
-    [
-        dbc.Col(
-            dbc.Switch(
-                id=ROBOT_STREAM_SWITCH_ID,
-                label="Stream pose to robot",
-                value=False,
-                className="fw-bold mb-0",
-            ),
-            width=7,
-        ),
-        dbc.Col(
-            dbc.Button(
-                "RELAX",
-                id=ROBOT_RELAX_BTN_ID,
-                color="danger",
-                className="w-100 fw-bold",
-            ),
-            width=5,
-        ),
-    ],
-    className="mb-3 g-2 align-items-center",
-)
-
-max_step_slider = html.Div(
-    [
-        html.Label("Max joint speed (ticks/cycle)", className="fw-bold mb-1"),
-        dcc.Slider(
-            id=ROBOT_MAX_STEP_SLIDER_ID,
-            min=1,
-            max=30,
-            step=1,
-            value=ROBOT_DEFAULT_MAX_STEP,
-            marks={1: "1", 8: "8", 15: "15", 30: "30"},
-            tooltip={"placement": "bottom", "always_visible": False},
-        ),
-    ],
-    className="mb-3",
-)
-
 status_display = html.Div(
     "Disconnected",
     id=ROBOT_STATUS_ID,
@@ -123,13 +101,11 @@ ROBOT_LINK_WIDGETS_SECTION = dbc.Card(
             html.H6("ROBOT LINK", className="mb-2"),
             html.P(
                 "Pick your robot, join its WiFi access point, then connect. "
-                "Put the hexapod on a stand before streaming.",
+                "Streaming and gait controls are on the pages that use them.",
                 className="text-muted small mb-3",
             ),
             profile_select,
             connection_row,
-            stream_row,
-            max_step_slider,
             status_display,
             hidden_components,
         ]
@@ -139,19 +115,111 @@ ROBOT_LINK_WIDGETS_SECTION = dbc.Card(
 
 
 # ................................
-# RUN ON ROBOT
+# STREAM TO ROBOT (per page)
 #
-# Commands the hardware directly, independent of whatever the simulator is
-# drawing. The motion page keeps its own dropdown for on-screen playback and
-# pushes its selection here, so picking a motion there still runs it here.
+# Sending the pose only means something where a pose is being solved, so this is
+# built into the sidebar of each such page rather than the global panel. Every
+# instance drives the same single link, so the ids are page-scoped and the
+# widgets are re-seeded from the link's own state by the sync callback in
+# pages/shared.py -- otherwise a switch left on when leaving one page would
+# render off on the next while the robot was still being driven.
 # ................................
 
-motion_select = dbc.Select(
-    id=ROBOT_MOTION_SELECT_ID,
-    options=MOTION_TYPES,
-    value="walk_0",
-    className="mb-3 form-control",
-)
+
+def make_stream_control_ids(page_key):
+    return {
+        "switch": f"robot-stream-switch-{page_key}",
+        "max_step": f"robot-max-step-slider-{page_key}",
+        "relax": f"robot-relax-btn-{page_key}",
+        "controls": f"robot-stream-controls-{page_key}",
+        "status": f"robot-stream-status-{page_key}",
+        "interval": f"robot-stream-sync-{page_key}",
+    }
+
+
+def make_stream_controls_section(ids):
+    # Everything starts disabled because the app starts with no session; the
+    # sync callback in pages/shared.py opens them up once one is connected.
+    stream_row = dbc.Row(
+        [
+            dbc.Col(
+                dbc.Switch(
+                    id=ids["switch"],
+                    label="Stream pose to robot",
+                    value=False,
+                    disabled=True,
+                    className="fw-bold mb-0",
+                ),
+                width=7,
+            ),
+            dbc.Col(
+                dbc.Button(
+                    "RELAX",
+                    id=ids["relax"],
+                    color="danger",
+                    disabled=True,
+                    className="w-100 fw-bold",
+                ),
+                width=5,
+            ),
+        ],
+        className="mb-3 g-2 align-items-center",
+    )
+
+    max_step_slider = html.Div(
+        [
+            html.Label("Max joint speed (ticks/cycle)", className="fw-bold mb-1"),
+            dcc.Slider(
+                id=ids["max_step"],
+                min=1,
+                max=30,
+                step=1,
+                value=ROBOT_DEFAULT_MAX_STEP,
+                disabled=True,
+                marks={1: "1", 8: "8", 15: "15", 30: "30"},
+                tooltip={"placement": "bottom", "always_visible": False},
+            ),
+        ],
+        className="mb-3",
+    )
+
+    return dbc.Card(
+        dbc.CardBody(
+            [
+                html.H6("STREAM TO ROBOT", className="mb-2"),
+                html.P(
+                    "Put the hexapod on a stand before streaming.",
+                    className="text-muted small mb-3",
+                ),
+                # The heading, the blurb and the status line stay at full
+                # strength while offline -- they are what explains why the rest
+                # is greyed out.
+                html.Div(
+                    [stream_row, max_step_slider],
+                    id=ids["controls"],
+                    className=SECTION_CONTROLS_OFFLINE_CLASS,
+                ),
+                html.Div(
+                    "Disconnected",
+                    id=ids["status"],
+                    className="small text-muted font-monospace text-center",
+                ),
+                dcc.Interval(
+                    id=ids["interval"], interval=STATUS_POLL_MS, n_intervals=0
+                ),
+            ]
+        ),
+        className="mb-3 scifi-card",
+    )
+
+
+# ................................
+# RUN ON ROBOT (motion page)
+#
+# Commands the hardware to play a whole gait, which only the motion page has a
+# motion to name -- it supplies the selection from its own dropdown, so there is
+# no second motion list to keep in step with the one being previewed.
+# ................................
 
 motion_mode = dbc.RadioItems(
     id=ROBOT_MOTION_MODE_ID,
@@ -177,6 +245,7 @@ motion_buttons = dbc.Row(
                 "▶ Run on Robot",
                 id=ROBOT_MOTION_RUN_BTN_ID,
                 color="success",
+                disabled=True,
                 className="w-100 fw-bold",
             ),
             width=7,
@@ -186,6 +255,7 @@ motion_buttons = dbc.Row(
                 "■ Standby",
                 id=ROBOT_MOTION_STOP_BTN_ID,
                 color="secondary",
+                disabled=True,
                 className="w-100 fw-bold",
             ),
             width=5,
@@ -198,13 +268,27 @@ ROBOT_MOTION_WIDGETS_SECTION = dbc.Card(
     dbc.CardBody(
         [
             html.H6("RUN ON ROBOT", className="mb-2"),
-            motion_select,
-            motion_mode,
-            motion_loop,
-            motion_buttons,
+            html.P(
+                "Runs the motion selected above on the hardware.",
+                className="text-muted small mb-3",
+            ),
             html.Div(
+                [motion_mode, motion_loop, motion_buttons],
+                id=ROBOT_MOTION_CONTROLS_ID,
+                className=SECTION_CONTROLS_OFFLINE_CLASS,
+            ),
+            html.Div(
+                "Connect a robot to run this on the hardware.",
                 id=ROBOT_MOTION_MESSAGE_ID,
                 className="small text-muted font-monospace text-center mt-2",
+            ),
+            # Its own interval rather than the global one: this section is
+            # mounted with the motion page, and a callback whose output is not
+            # on the current page has nothing to write to.
+            dcc.Interval(
+                id=ROBOT_MOTION_POLL_INTERVAL_ID,
+                interval=STATUS_POLL_MS,
+                n_intervals=0,
             ),
         ]
     ),
