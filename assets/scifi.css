@@ -134,6 +134,14 @@ body {
     }
 }
 
+/* A page that is taller than the shell brings its own scroll region, since
+   above `lg` the shell itself does not scroll. See make_scrollable_page(). */
+.page-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+}
+
 /* ===========================================
    NAVBAR — Control Panel Header
    =========================================== */
@@ -336,12 +344,17 @@ input[type="number"]:focus,
    LANDING PAGE
    =========================================== */
 
-.scifi-landing-img {
-    border: 4px solid var(--ind-border);
-    border-radius: 0;
-    box-shadow: var(--shadow-hard);
-    background: var(--ind-surface);
-    padding: 8px;
+/* ===========================================
+   HOME — console hub
+
+   Reuses the plate-and-hard-shadow language of the cards. The one new idea is
+   the state chip, which shares its modifier names with the navbar readout
+   (.is-offline / .is-online / .is-streaming / .is-fault) so both are driven
+   from the same link status.
+   =========================================== */
+
+.landing {
+    padding-top: 0.5rem;
 }
 
 .scifi-hero-title {
@@ -355,46 +368,230 @@ input[type="number"]:focus,
     padding-bottom: 5px;
 }
 
-.scifi-hero-subtitle {
-    color: var(--ind-text-muted);
-    font-weight: 700;
-    font-family: var(--font-mono);
-    font-size: 1.1rem;
-    margin-top: 10px;
-    background: var(--ind-accent-alt);
-    color: #fff;
-    padding: 4px 12px;
-    display: inline-block;
-}
-
 .scifi-hero-hr {
     border: none;
     height: 4px;
     background: var(--ind-border-light);
-    margin: 1.5rem 0;
+    margin: 1.25rem 0;
 }
 
-.feature-card {
+.landing-lede {
+    color: var(--ind-text-muted);
+    font-size: 1.05rem;
+    line-height: 1.6;
+    margin-bottom: 1.25rem;
+}
+
+/* The plot is the hero image, so it needs a height of its own -- nothing else
+   on this page constrains it. */
+.landing-stage {
+    height: 380px;
+}
+
+@media (max-width: 991.98px) {
+    .landing-stage {
+        height: 300px;
+    }
+}
+
+/* ---- Link state ---- */
+
+.landing-link-panel {
+    border-top: 2px solid var(--ind-border-light);
+    padding-top: 1rem;
+}
+
+.landing-status-label {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--ind-text-muted);
+}
+
+.landing-state {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 2px 10px;
+    border: 2px solid var(--ind-border);
+    border-left-width: 6px;
+    background: var(--ind-surface);
+    color: var(--ind-text);
+}
+
+.landing-state.is-offline { border-left-color: var(--ind-text-muted); }
+.landing-state.is-online  { border-left-color: #16a34a; }
+.landing-state.is-fault   { border-left-color: #dc2626; }
+
+.landing-state.is-streaming {
+    border-left-color: var(--ind-accent);
+    animation: status-led-pulse 1s steps(1, end) infinite;
+}
+
+.landing-status-line {
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+}
+
+/* ---- Tool cards ---- */
+
+.landing-section-title {
+    font-family: var(--font-heading);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--ind-text);
+    border-bottom: 4px solid var(--ind-accent);
+    display: inline-block;
+    padding-bottom: 4px;
+    margin-bottom: 1rem;
+}
+
+.tool-link {
+    text-decoration: none;
+    display: block;
+    height: 100%;
+}
+
+.tool-card {
     background: var(--ind-surface-alt);
     border: 2px solid var(--ind-border);
-    padding: 1.5rem 1rem;
     box-shadow: var(--shadow-hard);
-    transition: transform 0.1s ease;
+    padding: 1.25rem 1rem 1rem;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.1s ease, box-shadow 0.1s ease,
+                border-color 0.1s ease;
 }
 
-.feature-card:hover {
+.tool-card:hover {
     transform: translate(-2px, -2px);
     box-shadow: var(--shadow-hover);
     border-color: var(--ind-accent);
 }
 
-.feature-title {
-    color: var(--ind-text);
+.tool-index {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--ind-accent);
+    letter-spacing: 1px;
+}
+
+.tool-title {
+    font-family: var(--font-heading);
     font-weight: 800;
     text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--ind-text);
+    font-size: 1.15rem;
     border-bottom: 2px solid var(--ind-border-light);
-    padding-bottom: 4px;
+    padding-bottom: 6px;
     margin-bottom: 8px;
+}
+
+.tool-desc {
+    color: var(--ind-text-muted);
+    line-height: 1.5;
+    flex-grow: 1;
+    margin-bottom: 0.75rem;
+}
+
+/* What this page does to the hardware, which is not the same as what it draws
+   on screen -- worth its own line rather than buried in the description. */
+.tool-hardware {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--ind-accent);
+    border-top: 2px solid var(--ind-border-light);
+    padding-top: 8px;
+}
+
+.tool-hardware.is-sim-only {
+    color: var(--ind-text-muted);
+}
+
+/* ---- Build guide and safety ---- */
+
+.build-link {
+    text-decoration: none;
+    display: block;
+    margin-bottom: 1rem;
+}
+
+.build-card {
+    background: var(--ind-surface-alt);
+    border: 2px solid var(--ind-border);
+    box-shadow: var(--shadow-hard);
+    padding: 1.25rem;
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    transition: transform 0.1s ease, box-shadow 0.1s ease,
+                border-color 0.1s ease;
+}
+
+.build-card:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: var(--shadow-hover);
+    border-color: var(--ind-accent);
+}
+
+.build-title {
+    font-family: var(--font-heading);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--ind-text);
+    font-size: 1.15rem;
+    margin-bottom: 4px;
+}
+
+.build-desc {
+    color: var(--ind-text-muted);
+    line-height: 1.5;
+}
+
+/* Leaves the app, so it says where it goes rather than just underlining. */
+.build-cue {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #fff;
+    background: var(--ind-accent);
+    padding: 6px 14px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.safety-callout {
+    background: var(--ind-surface-alt);
+    border: 2px solid var(--ind-border);
+    border-left: 6px solid var(--ind-accent);
+    box-shadow: var(--shadow-hard);
+    padding: 1rem 1.25rem;
+    margin-top: 0.5rem;
+}
+
+.safety-title {
+    font-family: var(--font-heading);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--ind-accent);
+    margin-bottom: 0.5rem;
+}
+
+.safety-list {
+    color: var(--ind-text-muted);
+    line-height: 1.6;
+    margin-bottom: 0;
+    padding-left: 1.2rem;
 }
 
 /* ===========================================

@@ -2,6 +2,7 @@ import json
 import dash_bootstrap_components as dbc
 from dash import dcc, html, no_update
 from dash.dependencies import Output, Input, State
+from dash.exceptions import PreventUpdate
 from app import app
 from widgets.dimensions_ui import (
     DIMENSION_CALLBACK_INPUTS,
@@ -86,6 +87,17 @@ def make_standard_page_layout(graph_id, sidebar_sections):
     )
 
     return dbc.Row([sidebar, graph], className="page-row flex-grow-1 m-0")
+
+
+def make_scrollable_page(children):
+    """Wrap a document-style page so it can scroll inside the fixed app shell.
+
+    The graph pages are one screenful by design, so above `lg` the shell does
+    not scroll -- see the PAGE LAYOUT block in assets/scifi.css. A page that is
+    taller than the viewport therefore has to bring its own scroll region, or
+    its bottom is simply cut off with no way to reach it.
+    """
+    return html.Div(children, className="page-scroll")
 
 
 # ......................
@@ -195,6 +207,30 @@ def toggle_global_panel(_toggle_clicks, _close_clicks, class_name):
     return _PANEL_CLASS_OPEN
 
 
+def register_open_panel_button(button_id):
+    """Wire a button on some page to open the global ROBOT drawer.
+
+    A separate callback rather than another Input on the toggle above: that one
+    is registered for the whole app, and a callback whose Input is missing from
+    the current page does not fire at all -- adding the landing page's button
+    there would stop the navbar handle working on every other page.
+    """
+
+    @app.callback(
+        Output(GLOBAL_PANEL_ID, "className", allow_duplicate=True),
+        Input(button_id, "n_clicks"),
+        prevent_initial_call=True,
+    )
+    def open_global_panel(n_clicks):
+        # `prevent_initial_call` does not cover this one. The button arrives as
+        # the output of the page-routing callback, and Dash fires callbacks for
+        # components another callback has just added -- so without this guard
+        # the drawer slid open by itself every time the page was opened.
+        if not n_clicks:
+            raise PreventUpdate
+        return _PANEL_CLASS_OPEN
+
+
 # ......................
 # Physical robot link callbacks
 #
@@ -253,7 +289,7 @@ def toggle_robot_connection(_n_clicks, ip):
     return "Connect", "primary"
 
 
-def _link_status_text(status):
+def link_status_text(status):
     """One line describing the link, shared by the panel and the page sections."""
     if status["last_error"]:
         return f"⚠ {status['last_error']}", "text-danger"
@@ -281,7 +317,7 @@ def update_robot_status(_n_intervals):
     inside the drawer carries the address, mode and packet count.
     """
     status = ROBOT_LINK.status()
-    text, colour_class = _link_status_text(status)
+    text, colour_class = link_status_text(status)
     base_class = "small font-monospace text-center "
 
     if status["last_error"]:
@@ -370,7 +406,7 @@ def make_stream_controls(page_key):
         the toggle callbacks every second.
         """
         status = ROBOT_LINK.status()
-        text, colour_class = _link_status_text(status)
+        text, colour_class = link_status_text(status)
         offline = not status["connected"]
 
         streaming = status["streaming"]
