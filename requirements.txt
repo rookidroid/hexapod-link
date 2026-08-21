@@ -4,7 +4,7 @@
 #   requirements-dev.txt      adds linters and the test runner
 
 # Core Dash packages
-dash>=2.14.0
+dash>=4.4.1
 dash-daq>=0.6.0
 dash-bootstrap-components>=1.5.0
 
