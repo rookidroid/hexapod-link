@@ -15,7 +15,7 @@ mccabe>=0.7.0
 astroid>=3.0.0
 lazy-object-proxy>=1.12.0
 wrapt>=1.15.0
-toml>=0.10.0
+toml>=0.10.2
 
 # WSGI server for a traditional (non-desktop) deployment. Unix only.
 gunicorn>=21.0.0; sys_platform != "win32"
