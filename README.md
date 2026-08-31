@@ -2,9 +2,9 @@
 [![Build desktop app](https://github.com/rookidroid/hexapod-link/actions/workflows/build-desktop.yml/badge.svg)](https://github.com/rookidroid/hexapod-link/actions/workflows/build-desktop.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
-<img src="assets/icon.png" align="right" width="120" alt="">
-
 # Hexapod Link
+
+<img src="assets/icon.png" align="right" width="120" alt="">
 
 A browser-based (and desktop) hexapod robot simulator built from first
 principles, with forward/inverse kinematics, gait animation, and real-time
