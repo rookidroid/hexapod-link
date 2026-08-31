@@ -1,6 +1,8 @@
-[![Tests](https://github.com/rookidroid/hexapod-simulator/actions/workflows/tests.yml/badge.svg)](https://github.com/rookidroid/hexapod-simulator/actions/workflows/tests.yml)
-[![Build desktop app](https://github.com/rookidroid/hexapod-simulator/actions/workflows/build-desktop.yml/badge.svg)](https://github.com/rookidroid/hexapod-simulator/actions/workflows/build-desktop.yml)
+[![Tests](https://github.com/rookidroid/hexapod-link/actions/workflows/tests.yml/badge.svg)](https://github.com/rookidroid/hexapod-link/actions/workflows/tests.yml)
+[![Build desktop app](https://github.com/rookidroid/hexapod-link/actions/workflows/build-desktop.yml/badge.svg)](https://github.com/rookidroid/hexapod-link/actions/workflows/build-desktop.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+
+<img src="assets/icon.png" align="right" width="120" alt="">
 
 # Hexapod Link
 
@@ -12,9 +14,9 @@ This is a fork of [mithi/hexapod-robot-simulator](https://github.com/mithi/hexap
 rebranded as **Hexapod Link** and extended with a desktop app, real-robot
 streaming control, and a rebuilt CI/test suite.
 
-|  |  |  |  |
-|---------|---------|---------|---------|
-|![Twisting turning and tilting](https://mithi.github.io/robotics-blog/robot-only-x1.gif)|<img src="https://mithi.github.io/robotics-blog/v2-hexapod-1.gif" width="550"/>|<img src="https://mithi.github.io/robotics-blog/v2-hexapod-2.gif" width="500"/>|![Adjusting camera view](https://mithi.github.io/robotics-blog/robot-only-x3.gif)|
+<p align="center">
+  <img src="docs/images/walk.gif" width="620" alt="One tripod gait cycle playing in the 3D view">
+</p>
 
 # Features
 
@@ -30,9 +32,19 @@ streaming control, and a rebuilt CI/test suite.
 
 ## Preview
 
-|![image](https://mithi.github.io/robotics-blog/v2-ik-ui.gif)|![image](https://mithi.github.io/robotics-blog/v2-kinematics-ui.gif)|
-|----|----|
-| ![image](https://mithi.github.io/robotics-blog/UI-1.gif) | ![image](https://mithi.github.io/robotics-blog/UI-2.gif) |
+![The landing page](docs/images/home.png)
+
+| | |
+|---|---|
+| ![The kinematics page](docs/images/kinematics.png) | ![The inverse kinematics page](docs/images/inverse-kinematics.png) |
+| **Kinematics** — set all 18 joint angles by hand and watch the body follow. | **Inverse Kinematics** — translate and rotate the body; the solver finds the joints. |
+| ![The leg patterns page](docs/images/leg-patterns.png) | ![The motion page](docs/images/motion.png) |
+| **Leg Patterns** — sweep all six legs together through one set of angles. | **Motion** — play the generated gaits frame by frame and scrub them. |
+
+Everything above is generated from the running app by
+[`tools/make_screenshots.py`](./tools/make_screenshots.py), and the app icon by
+[`tools/make_icon.py`](./tools/make_icon.py). Rerun those after a UI or theme
+change rather than editing the images by hand.
 
 ## Requirements
 
@@ -200,12 +212,6 @@ needing a display, a browser, or a physical robot.
 - [Dependabot](./.github/dependabot.yml) — weekly update checks for both pip
   dependencies and GitHub Actions versions.
 
-## Screenshots
-
-| ![Kinematics](https://mithi.github.io/robotics-blog/v2-kinematics-screenshot.png)|
-|---|
-| ![IK](https://mithi.github.io/robotics-blog/v2-ik-screenshot.png)|
-
 ## More Information
 The original project's [Wiki](https://github.com/mithi/hexapod-robot-simulator/wiki/Notes)
 has additional background on the kinematics math this simulator is built on.
@@ -219,15 +225,15 @@ Original project ([mithi/hexapod-robot-simulator](https://github.com/mithi/hexap
 - [@guilyx](https://github.com/guilyx)
 - [@markkulube](https://github.com/markkulube)
 
-This fork ([rookidroid/hexapod-simulator](https://github.com/rookidroid/hexapod-simulator)):
+This fork ([rookidroid/hexapod-link](https://github.com/rookidroid/hexapod-link)):
 - [@rookidroid](https://github.com/rookidroid/)
 
 ## License
 
 MIT — see [`LICENSE`](./LICENSE). Copyright (c) 2020 Mithi Sevilla, (c) 2026 rookidroid.com.
 
-![](https://img.shields.io/github/last-commit/rookidroid/hexapod-simulator)
-![](https://img.shields.io/github/commit-activity/y/rookidroid/hexapod-simulator)
-![](https://img.shields.io/github/languages/code-size/rookidroid/hexapod-simulator?color=yellow)
-![](https://img.shields.io/github/repo-size/rookidroid/hexapod-simulator?color=violet)
-![](https://img.shields.io/github/languages/top/rookidroid/hexapod-simulator)
+![](https://img.shields.io/github/last-commit/rookidroid/hexapod-link)
+![](https://img.shields.io/github/commit-activity/y/rookidroid/hexapod-link)
+![](https://img.shields.io/github/languages/code-size/rookidroid/hexapod-link?color=yellow)
+![](https://img.shields.io/github/repo-size/rookidroid/hexapod-link?color=violet)
+![](https://img.shields.io/github/languages/top/rookidroid/hexapod-link)

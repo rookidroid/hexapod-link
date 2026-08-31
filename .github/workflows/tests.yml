@@ -67,7 +67,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Compile all sources
-        run: python -m compileall -q hexapod pages widgets tests *.py
+        run: python -m compileall -q hexapod pages widgets tests tools *.py
 
       # Importing index.py builds app.layout and registers every page callback,
       # so this catches a broken widget or a duplicate Dash element id that

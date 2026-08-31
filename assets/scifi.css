@@ -728,6 +728,55 @@ input[type="number"]:focus,
 }
 
 /* ===========================================
+   DAQ SLIDER HANDLE LABELS
+
+   dash_daq pins the label box a fixed distance from the handle, which assumes
+   a one-line label. Ours wrap to two lines ("Joint 1" / "(alpha)") and
+   sometimes three, so on the horizontal sliders the box grew back down over
+   the handle and the current value was drawn on top of the marker.
+
+   Anchoring the box by the edge that faces the handle makes it grow away
+   from it instead, so the clearance is the same whatever the label wraps to.
+   The library's own transform still does the centring on the other axis --
+   only the one anchor changes here.
+   =========================================== */
+
+/* Horizontal (leg patterns): label above the handle, so anchor the bottom. */
+.rc-slider:not(.rc-slider-vertical) .rc-slider-handle > div.rc-slider-handle {
+    top: auto;
+    /* Negative because the library's -44px transform applies on top of this;
+       together they leave ~13px between the box and the marker. */
+    bottom: -24px;
+}
+
+/* Vertical (inverse kinematics): label to the left, so anchor the right. */
+.rc-slider-vertical .rc-slider-handle > div.rc-slider-handle {
+    left: auto;
+    right: 12px;
+}
+
+/* The box is sized by its contents, so it used to grow and shrink under the
+   cursor as the value went 0 -> 1.5 -> -178.5 (33px to 51px, re-centred on
+   every render). Reserving the width of the longest value any of these
+   sliders can reach -- "-178.5", 4.3 characters wide -- pins the box at one
+   width for the whole drag. Tabular figures keep the digits from shifting
+   inside it. */
+.rc-slider-handle > div.rc-slider-handle .value {
+    min-width: 4.5ch;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+/* dash_daq sets the handle label in 8px, well under the 0.75rem this theme
+   uses for every other small label (.scifi-label), and unreadable next to the
+   20px value under it. The names wrap to two lines at this size, which the
+   anchoring above already accounts for. */
+.rc-slider-handle > div.rc-slider-handle .label {
+    font-size: 0.75rem;
+    line-height: 1.15;
+}
+
+/* ===========================================
    SCROLLBAR
    =========================================== */
 

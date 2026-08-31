@@ -1,6 +1,6 @@
 APP_TITLE = "Hexapod Link"
 
-URL_REPO = "https://github.com/rookidroid/hexapod-simulator"
+URL_REPO = "https://github.com/rookidroid/hexapod-link"
 URL_BUILD_GUIDE = "https://rookidroid.com/hexapod-evolution/"
 
 KINEMATICS_PAGE_PATH = "/kinematics"

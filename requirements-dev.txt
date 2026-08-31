@@ -19,3 +19,7 @@ toml>=0.10.2
 
 # WSGI server for a traditional (non-desktop) deployment. Unix only.
 gunicorn>=21.0.0; sys_platform != "win32"
+
+# Generating the README screenshots and the app icon (tools/). Numpy comes in
+# with the app itself; the icon and the screenshots are drawn with Pillow.
+pillow>=10.0.0
