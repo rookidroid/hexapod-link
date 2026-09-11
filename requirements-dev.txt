@@ -3,7 +3,7 @@
 -r requirements.txt
 
 # Tests
-pytest>=7.4.0
+pytest>=9.1.1
 
 # Linting and formatting
 flake8>=7.3.0
