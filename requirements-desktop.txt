@@ -19,7 +19,7 @@ pywebview>=6.2.1
 # earlier; the upper bound keeps the build working on the distributions that
 # ship 1.0. Drop it once the target distribution has libgirepository-2.0-dev.
 PyGObject>=3.42,<3.50; sys_platform == "linux"
-pycairo>=1.23; sys_platform == "linux"
+pycairo>=1.29.1; sys_platform == "linux"
 
 # Production WSGI server. Replaces the Flask dev server that index.py uses,
 # which prints warnings and is not meant to be left running.
