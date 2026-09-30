@@ -137,5 +137,5 @@ CALIBRATION_WIDGETS_SECTION = dbc.Card(
             ),
         ]
     ),
-    className="mb-3 scifi-card",
+    className="mb-3 ind-card",
 )

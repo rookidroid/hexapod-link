@@ -125,7 +125,7 @@ ROBOT_LINK_WIDGETS_SECTION = dbc.Card(
             hidden_components,
         ]
     ),
-    className="mb-3 scifi-card",
+    className="mb-3 ind-card",
 )
 
 
@@ -224,7 +224,7 @@ def make_stream_controls_section(ids):
                 ),
             ]
         ),
-        className="mb-3 scifi-card",
+        className="mb-3 ind-card",
     )
 
 
@@ -327,5 +327,5 @@ ROBOT_MOTION_WIDGETS_SECTION = dbc.Card(
             ),
         ]
     ),
-    className="mb-3 scifi-card",
+    className="mb-3 ind-card",
 )

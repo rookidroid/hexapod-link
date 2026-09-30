@@ -23,7 +23,7 @@ def make_number_widget(_name, _value):
 def _code(name):
     return html.Small(
         name.upper(),
-        className="d-block text-center scifi-label",
+        className="d-block text-center ind-label",
     )
 
 
@@ -69,5 +69,5 @@ sections = dbc.Container(
 
 DIMENSIONS_WIDGETS_SECTION = dbc.Card(
     dbc.CardBody([HEADER, sections]),
-    className="mb-3 scifi-card",
+    className="mb-3 ind-card",
 )

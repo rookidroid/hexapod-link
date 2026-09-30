@@ -60,7 +60,7 @@ div_header = dbc.Navbar(
         ],
         fluid=True,
     ),
-    className="mb-3 scifi-navbar",
+    className="mb-3 ind-navbar",
     sticky="top",
 )
 
@@ -72,7 +72,7 @@ app.layout = dbc.Container(
         div_header,
         dcc.Location(id="url", refresh=False),
         GLOBAL_CONTROLS_PANEL,
-        # Sizing and scrolling live in the PAGE LAYOUT block of scifi.css: it
+        # Sizing and scrolling live in the PAGE LAYOUT block of industrial.css: it
         # takes a media query to say that this scrolls only once the columns
         # have stacked, and an inline style cannot carry one.
         html.Div(id="page-content", className="flex-grow-1"),

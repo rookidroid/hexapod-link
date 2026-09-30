@@ -66,7 +66,7 @@ def update_dimensions(front, side, middle, coxia, femur, tibia):
 # Graph on the right, controls on the left
 #
 # The height rules that make this one screenful -- who scrolls, who fills --
-# are in the PAGE LAYOUT block of assets/scifi.css, because they only hold
+# are in the PAGE LAYOUT block of assets/industrial.css, because they only hold
 # above the `lg` breakpoint and inline styles cannot carry a media query.
 # ......................
 
@@ -75,7 +75,7 @@ def make_standard_page_layout(graph_id, sidebar_sections):
     sidebar = dbc.Col(
         dbc.Card(
             dbc.CardBody(sidebar_sections),
-            className="scifi-card page-panel flex-grow-1",
+            className="ind-card page-panel flex-grow-1",
         ),
         width=12,
         lg=4,
@@ -103,7 +103,7 @@ def make_scrollable_page(children):
     """Wrap a document-style page so it can scroll inside the fixed app shell.
 
     The graph pages are one screenful by design, so above `lg` the shell does
-    not scroll -- see the PAGE LAYOUT block in assets/scifi.css. A page that is
+    not scroll -- see the PAGE LAYOUT block in assets/industrial.css. A page that is
     taller than the viewport therefore has to bring its own scroll region, or
     its bottom is simply cut off with no way to reach it.
     """
@@ -161,8 +161,8 @@ GLOBAL_PANEL_CLOSE_ID = "global-controls-close"
 
 # The navbar button is also the app's status readout: ONLINE means the link to
 # the hexapod is up, OFFLINE means it is not. The state modifier drives the LED
-# and the accent bar in scifi.css.
-_TOGGLE_BASE_CLASS = "scifi-status-btn"
+# and the accent bar in industrial.css.
+_TOGGLE_BASE_CLASS = "ind-status-btn"
 
 
 def _toggle_label(state):

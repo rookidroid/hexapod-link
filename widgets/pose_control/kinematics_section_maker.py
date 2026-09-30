@@ -34,21 +34,21 @@ def make_section(joint_widgets, add_joint_names=False, style_to_use=None):
 
     return dbc.Card(
         dbc.CardBody([HEADER, widget_sections]),
-        className="mb-3 scifi-card",
+        className="mb-3 ind-card",
     )
 
 
 def code(name):
     return html.Small(
         name.upper(),
-        className="d-block text-center scifi-label",
+        className="d-block text-center ind-label",
     )
 
 
 def make_leg_section(name, joint_widgets, add_joint_names=False):
     header = html.Div(
         leg_label(name).upper(),
-        className="scifi-leg-header mb-2",
+        className="ind-leg-header mb-2",
     )
     coxia = joint_widgets[name]["coxia"]
     femur = joint_widgets[name]["femur"]

@@ -10,7 +10,7 @@ embeds in the Windows exe) and assets/favicon.ico (the browser tab icon).
 Both .ico files are real multi-resolution ICOs.
 
 The palette is the app's own light-industrial theme, kept in sync with
-style_settings.py and assets/scifi.css by hand.
+style_settings.py and assets/industrial.css by hand.
 """
 
 import math

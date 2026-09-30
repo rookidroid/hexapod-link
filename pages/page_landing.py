@@ -74,8 +74,8 @@ hero = dbc.Row(
         dbc.Col(
             html.Div(
                 [
-                    html.H1("HEXAPOD LINK", className="scifi-hero-title"),
-                    html.Div(className="scifi-hero-hr"),
+                    html.H1("HEXAPOD LINK", className="ind-hero-title"),
+                    html.Div(className="ind-hero-hr"),
                     html.P(
                         "Pose a hexapod in 3D and, when one is connected, drive "
                         "the real machine with the same controls — from a "
