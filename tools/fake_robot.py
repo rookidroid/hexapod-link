@@ -1,0 +1,198 @@
+"""A stand-in hexapod for trying the app without the hardware.
+
+    python tools/fake_robot.py                 # a Nougat on 127.0.0.1:8080
+    python tools/fake_robot.py mochi --port 8081
+
+Serves the firmware's HTTP routes -- /robot_config, the speed routes and the
+calibration routes -- with the same replies and refusals as the ESP32, and
+prints every UDP packet sent to it on port 1234. In the app, connect to
+127.0.0.1:8080: the port goes to HTTP, UDP always goes to 1234.
+
+The config it reports is one of the fixtures in tests/fixtures/robot_config,
+which are the firmware's own replies. The tests use FakeRobot directly.
+Nothing here is imported by the app itself.
+"""
+
+import argparse
+import json
+import socket
+import struct
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from urllib.parse import parse_qs, urlparse
+
+FIXTURES = Path(__file__).resolve().parent.parent / "tests" / "fixtures" / "robot_config"
+
+UDP_PORT = 1234
+MAX_OFFSET = 100
+
+
+class FakeRobot:
+    """HTTP side of a robot, on a background thread.
+
+    `requests` records (method, path, body) for each request, for the tests.
+    """
+
+    def __init__(self, payload, host="127.0.0.1", port=0):
+        self.payload = payload
+        self.speed = payload.get("speed", {}).get("current", 60)
+        self.calibrating = False
+        self.offsets = {"left": [[0] * 3 for _ in range(3)], "right": [[0] * 3 for _ in range(3)]}
+        self.saved_offsets = None
+        self.requests = []
+        self._server = ThreadingHTTPServer((host, port), self._handler())
+        self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
+
+    @classmethod
+    def from_fixture(cls, name, **kwargs):
+        with open(FIXTURES / f"{name}.json", encoding="utf-8") as f:
+            return cls(json.load(f), **kwargs)
+
+    @property
+    def address(self):
+        host, port = self._server.server_address[:2]
+        return f"{host}:{port}"
+
+    def start(self):
+        self._thread.start()
+        return self
+
+    def stop(self):
+        self._server.shutdown()
+        self._server.server_close()
+
+    def __enter__(self):
+        return self.start()
+
+    def __exit__(self, *exc):
+        self.stop()
+
+    def _handler(self):
+        robot = self
+
+        class Handler(BaseHTTPRequestHandler):
+            def log_message(self, *args):
+                pass
+
+            def _reply(self, status, body, content_type="text/plain"):
+                data = body.encode("utf-8")
+                self.send_response(status)
+                self.send_header("Content-Type", content_type)
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+
+            def _json(self, obj):
+                self._reply(200, json.dumps(obj), "application/json")
+
+            def _body(self):
+                length = int(self.headers.get("Content-Length") or 0)
+                return self.rfile.read(length).decode("utf-8") if length else ""
+
+            def do_GET(self):
+                url = urlparse(self.path)
+                robot.requests.append(("GET", url.path, None))
+                if url.path == "/robot_config":
+                    payload = dict(robot.payload)
+                    payload["speed"] = dict(payload.get("speed", {}), current=robot.speed)
+                    self._json(payload)
+                elif url.path == "/get_speed":
+                    self._json({"speed": robot.speed})
+                elif url.path == "/enter_calibration":
+                    robot.calibrating = True
+                    self._json(robot.offsets)
+                elif url.path == "/exit_calibration":
+                    robot.calibrating = False
+                    self._reply(200, "Exited calibration mode")
+                elif url.path == "/get_offsets":
+                    self._json(robot.offsets)
+                else:
+                    self._reply(404, "Not found")
+
+            def do_POST(self):
+                url = urlparse(self.path)
+                body = self._body()
+                robot.requests.append(("POST", url.path, body))
+                if url.path == "/set_speed":
+                    pct = parse_qs(url.query).get("pct")
+                    if not pct:
+                        self._reply(400, "Missing pct")
+                        return
+                    robot.speed = max(20, min(100, int(pct[0])))
+                    self._json({"speed": robot.speed})
+                elif url.path == "/set_offsets":
+                    if not robot.calibrating:
+                        self._reply(409, "Enter calibration mode first")
+                        return
+                    if not body:
+                        self._reply(400, "No data received")
+                        return
+                    try:
+                        data = json.loads(body)
+                        robot.offsets = {
+                            side: [
+                                [max(-MAX_OFFSET, min(MAX_OFFSET, int(v))) for v in leg]
+                                for leg in data[side]
+                            ]
+                            for side in ("left", "right")
+                        }
+                    except (ValueError, KeyError, TypeError):
+                        self._reply(400, "Malformed offsets")
+                        return
+                    self._reply(200, "Offsets applied!")
+                elif url.path == "/save_offsets":
+                    robot.saved_offsets = json.loads(json.dumps(robot.offsets))
+                    self._reply(200, "Offsets saved to flash!")
+                else:
+                    self._reply(404, "Not found")
+
+        return Handler
+
+
+def _describe_packet(data):
+    magic = data[0] if data else None
+    if magic == 0xA5 and len(data) in (6, 7):
+        _, cmd, seq = struct.unpack("<BBI", data[:6])
+        speed = data[6] if len(data) == 7 else None
+        return f"MOTION cmd={cmd} seq={seq} speed={speed} ({len(data)} bytes)"
+    if magic == 0xA6 and len(data) == 44:
+        _, flags, max_step, seq, *ticks = struct.unpack("<BBHI" + "h" * 18, data)
+        return f"POSE seq={seq} max_step={max_step} flags={flags} ticks={ticks}"
+    if magic == 0xA7 and len(data) == 6:
+        _, action, seq = struct.unpack("<BBI", data)
+        names = {0: "EXIT", 1: "ENTER", 2: "RELAX", 3: "PING"}
+        return f"SESSION {names.get(action, action)} seq={seq}"
+    return f"unknown {len(data)} bytes: {data[:16].hex()}"
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    parser.add_argument("robot", nargs="?", default="nougat",
+                        help="fixture name: " + ", ".join(p.stem for p in FIXTURES.glob("*.json")))
+    parser.add_argument("--host", default="127.0.0.1")
+    parser.add_argument("--port", type=int, default=8080)
+    parser.add_argument("--quiet-pings", action="store_true", help="hide RT_PING packets")
+    args = parser.parse_args()
+
+    robot = FakeRobot.from_fixture(args.robot, host=args.host, port=args.port).start()
+    print(f"Fake {args.robot} serving HTTP on {robot.address}, UDP on {args.host}:{UDP_PORT}")
+
+    udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    udp.bind((args.host, UDP_PORT))
+    try:
+        while True:
+            data, _ = udp.recvfrom(2048)
+            text = _describe_packet(data)
+            if args.quiet_pings and text.startswith("SESSION PING"):
+                continue
+            print(text, flush=True)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        udp.close()
+        robot.stop()
+
+
+if __name__ == "__main__":
+    main()

@@ -1,15 +1,14 @@
 import numpy as np
 
-from hexapod.robot_profiles import (
-    DEFAULT_PROFILE,
-    get_physical_config,
-    get_profile,
+from hexapod.robot_config import (
+    GENERIC_CONFIG,
+    get_leg_signs,
     get_simulator_dimensions,
 )
 
-# Geometry and gait parameters differ between the two robots, so they live in
-# hexapod/robot_profiles.py. `get_simulator_dimensions` is re-exported here for
-# callers that used to import it from this module.
+# Geometry and gait parameters differ between robots and are read from the
+# robot itself; see hexapod/robot_config.py. `get_simulator_dimensions` is
+# re-exported here for callers that used to import it from this module.
 __all__ = [
     "generate_poses",
     "get_simulator_dimensions",
@@ -304,19 +303,21 @@ def gen_standup_path(standby_coordinate, laydown_coordinate, steps=28):
     center_offset[:, 0] = x_offset
     center_offset[:, 2] = z_offset
     # `center_offset` is the reposition arc for the centre-right leg, which lies
-    # along +x; every other leg needs the same arc turned into its own radial
-    # direction. The azimuth is read off the standby stance rather than
-    # hardcoded: path_tool used to spell these 45 / -45 / 135 / 180 / -135,
-    # which is right only for a body whose corner legs sit on the diagonals
-    # (front == side). Both real robots have side == front * tan(60deg), putting
-    # the corners at 60deg. Same stale-45deg assumption gen_turn_path carried.
+    # along +x; every other leg needs the same arc turned into the direction its
+    # own foot travels between laydown and standby. That direction is read off
+    # the two stances rather than hardcoded: path_tool used to spell these
+    # 45 / -45 / 135 / 180 / -135, which is right only for a body whose corner
+    # legs sit on the diagonals (front == side). Mochi and Macaroon have
+    # side == front * tan(60deg), putting the corners at 60deg -- the same
+    # stale-45deg assumption gen_turn_path carried. Nor is it the foot's azimuth
+    # from the cog: Nougat's corner legs point out at 45deg from mounts that sit
+    # at about 59deg, so its feet do not travel radially.
     #
     # The magnitude is shared rather than derived per leg, which is exact here:
     # gen_posture extends every leg from its own mount by the same distance, so
-    # laydown and standby differ by the same radial travel on all six.
-    azimuths = np.degrees(
-        np.arctan2(standby_coordinate[:, 1], standby_coordinate[:, 0])
-    )
+    # laydown and standby differ by the same travel on all six.
+    travel = laydown_coordinate[:, :2] - standby_coordinate[:, :2]
+    azimuths = np.degrees(np.arctan2(travel[:, 1], travel[:, 0]))
     leg_offset = np.array(
         [np.asarray(path_rotate_z(center_offset, azimuth)) for azimuth in azimuths]
     )
@@ -338,18 +339,19 @@ def gen_standup_path(standby_coordinate, laydown_coordinate, steps=28):
 # Leg indices are shared with the path tool and the firmware, so the paths above
 # are indexed directly; hexapod/naming.py holds that correspondence.
 
-def generate_poses(motion_name, profile_name=DEFAULT_PROFILE):
+def generate_poses(motion_name, robot_config=GENERIC_CONFIG):
     """
     Generates a list of poses for a given motion name, compatible with VirtualHexapod.update().
 
-    `profile_name` selects which physical robot the path is generated for; the
-    two robots differ in leg geometry and in stride and turn radii, so a path
-    baked for one is wrong for the other.
+    `robot_config` (hexapod/robot_config.py) is the physical robot the path is
+    generated for; robots differ in leg geometry and in stride and turn radii,
+    so a path baked for one is wrong for another.
 
     Returns: list of dicts, where each dict is a pose for all 6 legs at a specific frame.
     """
-    config = get_physical_config(profile_name)
-    gait = get_profile(profile_name)["gait"]
+    config = robot_config["config"]
+    gait = robot_config["gait"]
+    signs = get_leg_signs(robot_config)
 
     standby = gen_posture(*gait["standby_posture"], config)
     laydown = gen_posture(*gait["laydown_posture"], config)
@@ -418,12 +420,12 @@ def generate_poses(motion_name, profile_name=DEFAULT_PROFILE):
             # This is the inverse of the relation in hexapod/robot_link.py, and
             # is verified there against the firmware's own standby LUT:
             #
-            #   j1 = 90 + alpha              (both sides; the mirroring is
+            #   j1 = 90 + alpha              (every leg; the mirroring is
             #                                 already folded into the path
             #                                 tool's local frame)
             #   j2 = 90 - sign * beta
-            #   j3 = 90 + sign * gamma       sign = +1 right legs, -1 left legs
-            sign = 1 if leg_id < 3 else -1
+            #   j3 = 90 + sign * gamma       sign = the leg's legScale
+            sign = signs[leg_id]
             coxia = j1 - 90
             femur = sign * (90 - j2)
             tibia = sign * (j3 - 90)

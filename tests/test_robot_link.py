@@ -1,29 +1,37 @@
 """The wire format between the simulator and the ESP32.
 
 Everything here mirrors something in the firmware repo -- SERVOMIN/SERVOMAX and
-the packed structs in config.h, the RobotCommand enum, the baked lut_standby --
-and none of it is checked at runtime: a wrong tick is a servo driven into a hard
-stop, and a wrong struct layout is a packet the firmware silently misreads. The
-tests below are the only place those constants are held to their originals.
+the packed structs in protocol.h, the RobotCommand enum, the baked motion LUTs
+-- and none of it is checked at runtime: a wrong tick is a servo driven into a
+hard stop, and a wrong struct layout is a packet the firmware silently misreads.
+The tests below are the only place those constants are held to their originals.
 
 RobotLink itself owns a socket and a thread, so what is exercised here is the
-pure conversion layer it is built on, plus the packet encoding.
+pure conversion layer it is built on, plus the packet encoding. Connecting --
+reading the robot's config first -- is covered in test_robot_config.py.
 """
 
 import struct
 
+import numpy as np
 import pytest
 
 from hexapod.path_generator import generate_poses
+from hexapod.robot_config import (
+    FIRMWARE_COMMANDS,
+    GENERIC_CONFIG,
+    command_id,
+    get_joint_limits,
+    get_leg_signs,
+    get_sequence_fps,
+)
 from hexapod.robot_link import (
-    LEG_SIGN,
     MAGIC_MOTION,
     MAGIC_POSE,
     MAGIC_SESSION,
     MOTION_COMMANDS,
-    SERVO_MAX_TICKS,
-    SERVO_MIN_TICKS,
     STANDBY_POSE,
+    RobotLink,
     _FMT_MOTION,
     _FMT_POSE,
     _FMT_SESSION,
@@ -32,12 +40,20 @@ from hexapod.robot_link import (
     pose_to_ticks,
     servo_angle_to_ticks,
 )
-from hexapod.robot_profiles import ROBOT_PROFILES, get_joint_limits
+from tests.robots import ROBOT_CONFIGS, load_firmware_luts
 from widgets.motion_ui import MOTION_TYPES
 
-# The firmware's lut_standby, right legs. Both robots bake standby from
-# gen_posture(60, 75), whose joint angles do not depend on link lengths.
-FIRMWARE_STANDBY_RIGHT = [307, 239, 273]
+SERVO_MIN_TICKS = 102
+SERVO_MAX_TICKS = 512
+
+# The firmware's lut_standby for an unmirrored leg. Every robot bakes standby
+# from gen_posture(60, 75), whose joint angles do not depend on link lengths.
+FIRMWARE_STANDBY_UNMIRRORED = [307, 239, 273]
+FIRMWARE_STANDBY_MIRRORED = [307, 375, 341]
+
+
+def _leg(ticks, leg_id):
+    return ticks[leg_id * 3 : leg_id * 3 + 3]
 
 
 def test_standby_pose_reproduces_the_firmware_lut():
@@ -45,42 +61,80 @@ def test_standby_pose_reproduces_the_firmware_lut():
 
     If this drifts, connecting to the robot jerks it out of the posture it
     booted into, which is the whole reason STANDBY_POSE was decoded from the
-    LUT rather than guessed.
+    LUT rather than guessed. Checked against each robot's own motion.h.
     """
-    ticks = pose_to_ticks(STANDBY_POSE)
-    assert len(ticks) == 18
-    for leg_id in range(3):
-        assert ticks[leg_id * 3 : leg_id * 3 + 3] == FIRMWARE_STANDBY_RIGHT, (
-            f"right leg {leg_id} does not match the firmware's lut_standby"
-        )
+    for name, robot in ROBOT_CONFIGS.items():
+        ticks = pose_to_ticks(STANDBY_POSE, robot)
+        assert ticks == load_firmware_luts(name)["standby"][0], name
 
 
-def test_left_legs_mirror_the_right_ones():
-    """Left servos are mounted facing the other way, so LEG_SIGN flips j2 and j3.
+def test_standby_follows_each_robots_mirroring():
+    """Which legs are mirrored comes from the robot's legScale.
 
-    In ticks that mirroring is a reflection about the 90deg centre: coxia is
-    untouched, femur and tibia land the same distance the other side of it.
+    Mochi and Macaroon mirror the left side; Nougat mirrors legs 0, 4 and 5.
     """
-    ticks = pose_to_ticks(STANDBY_POSE)
-    centre = servo_angle_to_ticks(90)
+    expected_mirrored = {
+        "mochi": {3, 4, 5},
+        "macaroon": {3, 4, 5},
+        "nougat": {0, 4, 5},
+    }
+    for name, robot in ROBOT_CONFIGS.items():
+        ticks = pose_to_ticks(STANDBY_POSE, robot)
+        for leg_id in range(6):
+            mirrored = leg_id in expected_mirrored[name]
+            expected = FIRMWARE_STANDBY_MIRRORED if mirrored else FIRMWARE_STANDBY_UNMIRRORED
+            assert _leg(ticks, leg_id) == expected, f"{name} leg {leg_id}"
 
-    for right_id, left_id in zip(range(3), range(3, 6)):
-        right = ticks[right_id * 3 : right_id * 3 + 3]
-        left = ticks[left_id * 3 : left_id * 3 + 3]
-        assert right[0] == left[0] == centre, "coxia is not mirrored"
-        assert right[1] - centre == centre - left[1], "femur is not mirrored"
-        assert right[2] - centre == centre - left[2], "tibia is not mirrored"
+
+@pytest.mark.parametrize("name", ["nougat", "macaroon"])
+def test_a_streamed_walk_is_the_robots_own_walk(name):
+    """Streaming walk_0 from the simulator sends exactly the robot's LUT.
+
+    The whole chain -- path generation, IK around the robot's mount angles, the
+    per-leg mirroring and the tick conversion -- against the firmware's baked
+    lut_walk_0, tick for tick.
+    """
+    robot = ROBOT_CONFIGS[name]
+    ticks = [pose_to_ticks(pose, robot) for pose in generate_poses("walk_0", robot)]
+    assert ticks == load_firmware_luts(name)["walk_0"]
 
 
-def test_leg_sign_splits_the_sides():
-    """+1 for the right legs (0-2), -1 for the left (3-5)."""
-    assert LEG_SIGN == (1, 1, 1, -1, -1, -1)
+def test_a_streamed_mochi_walk_differs_only_where_it_is_clamped():
+    """Mochi's walk asks for more femur than its joint limits allow (see below),
+    so the streamed walk matches the LUT except for a few clipped ticks."""
+    robot = ROBOT_CONFIGS["mochi"]
+    ticks = np.array([pose_to_ticks(p, robot) for p in generate_poses("walk_0", robot)])
+    lut = np.array(load_firmware_luts("mochi")["walk_0"])
+    diff = np.abs(ticks - lut)
+    assert diff.max() <= 4
+    # Only femurs (joint index 1 of each leg) are clipped.
+    assert set(np.nonzero(diff > 1)[1] % 3) == {1}
+
+
+def test_leg_signs_come_from_leg_scale():
+    assert get_leg_signs(ROBOT_CONFIGS["mochi"]) == (1, 1, 1, -1, -1, -1)
+    assert get_leg_signs(ROBOT_CONFIGS["macaroon"]) == (1, 1, 1, -1, -1, -1)
+    assert get_leg_signs(ROBOT_CONFIGS["nougat"]) == (-1, 1, 1, 1, -1, -1)
+    assert get_leg_signs(GENERIC_CONFIG) == (1, 1, 1, -1, -1, -1)
+
+
+def test_mirrored_legs_reflect_about_the_centre():
+    """A mirrored servo lands the same distance the other side of 90 degrees.
+
+    Coxia is untouched, femur and tibia are reflected.
+    """
+    for sign in (1, -1):
+        j1, j2, j3 = joint_angles_to_servo_angles(sign, 10, 20, -30)
+        m1, m2, m3 = joint_angles_to_servo_angles(-sign, 10, 20, -30)
+        assert j1 == m1
+        assert j2 - 90 == 90 - m2
+        assert j3 - 90 == 90 - m3
 
 
 def test_servo_angles_put_zero_at_the_centre():
     """A zeroed simulator pose is every servo at 90deg, its mechanical centre."""
-    for leg_id in range(6):
-        assert joint_angles_to_servo_angles(leg_id, 0, 0, 0) == (90.0, 90.0, 90.0)
+    for sign in (1, -1):
+        assert joint_angles_to_servo_angles(sign, 0, 0, 0) == (90.0, 90.0, 90.0)
 
 
 def test_servo_angle_to_ticks_spans_the_firmware_range():
@@ -90,6 +144,13 @@ def test_servo_angle_to_ticks_spans_the_firmware_range():
     assert servo_angle_to_ticks(90) == pytest.approx(
         (SERVO_MIN_TICKS + SERVO_MAX_TICKS) / 2, abs=1
     )
+
+
+def test_servo_angle_to_ticks_follows_the_robots_range():
+    """The range is the robot's, as it reports it."""
+    assert servo_angle_to_ticks(0, 150, 600) == 150
+    assert servo_angle_to_ticks(180, 150, 600) == 600
+    assert servo_angle_to_ticks(90, 150, 600) == 375
 
 
 def test_servo_angle_to_ticks_clamps_and_returns_an_int():
@@ -109,16 +170,16 @@ def test_servo_angle_to_ticks_clamps_and_returns_an_int():
 
 def test_clamp_pose_angles_holds_the_mechanical_limits():
     """The simulator lets beta and gamma reach +/-180; the hardware does not."""
-    for name in ROBOT_PROFILES:
-        limits = get_joint_limits(name)
-        clamped = clamp_pose_angles(180, 180, 180, name)
+    for robot in ROBOT_CONFIGS.values():
+        limits = get_joint_limits(robot)
+        clamped = clamp_pose_angles(180, 180, 180, robot)
         assert clamped == (limits["coxia"], limits["femur"], limits["tibia"])
 
-        clamped = clamp_pose_angles(-180, -180, -180, name)
+        clamped = clamp_pose_angles(-180, -180, -180, robot)
         assert clamped == (-limits["coxia"], -limits["femur"], -limits["tibia"])
 
         # An already-legal pose passes through untouched.
-        assert clamp_pose_angles(1, 2, 3, name) == (1, 2, 3)
+        assert clamp_pose_angles(1, 2, 3, robot) == (1, 2, 3)
 
 
 def test_pose_to_ticks_accepts_int_or_str_leg_keys():
@@ -141,10 +202,10 @@ def test_pose_to_ticks_treats_a_missing_leg_as_centred():
 
 def test_pose_to_ticks_never_leaves_the_servo_range():
     """Whatever a gait asks for, every tick in the packet has to be sendable."""
-    for name in ROBOT_PROFILES:
+    for name, robot in ROBOT_CONFIGS.items():
         for motion_name in ("walk_0", "turn_left", "twist", "standup"):
-            for pose in generate_poses(motion_name, name):
-                ticks = pose_to_ticks(pose, name)
+            for pose in generate_poses(motion_name, robot):
+                ticks = pose_to_ticks(pose, robot)
                 assert len(ticks) == 18
                 assert all(
                     SERVO_MIN_TICKS <= t <= SERVO_MAX_TICKS for t in ticks
@@ -152,26 +213,27 @@ def test_pose_to_ticks_never_leaves_the_servo_range():
 
 
 def test_streaming_a_gait_clips_it_against_the_joint_limits():
-    """Recorded behaviour, not an endorsement: the gaits overrun the femur limit.
+    """Recorded behaviour, not an endorsement: some gaits overrun the femur limit.
 
     mochi's walking and turning paths ask for up to ~3.5 degrees more femur than
     its joint_limits allow, so clamp_pose_angles flattens the extremes of the
     stride on the way to the servos and the streamed gait is slightly shallower
-    than the simulated one. macaroon overruns by under half a degree.
+    than the simulated one. macaroon overruns by under half a degree, and
+    nougat stays inside its limits.
 
     Either the limits are more conservative than the hardware or the gait radii
     are too wide for it; this test exists so that whichever way it is resolved,
     it is resolved deliberately rather than noticed on the robot.
     """
     overruns = {}
-    for profile_name in ROBOT_PROFILES:
-        limits = get_joint_limits(profile_name)
-        worst = 0.0
+    for name, robot in ROBOT_CONFIGS.items():
+        limits = get_joint_limits(robot)
+        worst = -np.inf
         for motion_name in ("walk_0", "walk_l90", "turn_left"):
-            for pose in generate_poses(motion_name, profile_name):
+            for pose in generate_poses(motion_name, robot):
                 for entry in pose.values():
                     worst = max(worst, abs(entry["femur"]) - limits["femur"])
-        overruns[profile_name] = worst
+        overruns[name] = worst
 
     assert overruns["mochi"] == pytest.approx(3.53, abs=0.1), (
         f"mochi's femur overrun moved to {overruns['mochi']:.2f} deg"
@@ -179,15 +241,20 @@ def test_streaming_a_gait_clips_it_against_the_joint_limits():
     assert 0 < overruns["macaroon"] < 1, (
         f"macaroon's femur overrun moved to {overruns['macaroon']:.2f} deg"
     )
+    assert overruns["nougat"] < 0, (
+        f"nougat now overruns its femur limit by {overruns['nougat']:.2f} deg"
+    )
 
 
 def test_packet_layouts_match_the_firmware_structs():
-    """The firmware's structs are #pragma pack(1) at 6 / 44 / 6 bytes.
+    """The firmware's structs are #pragma pack(1) at 7 / 44 / 6 bytes.
 
-    '<' is what keeps these little-endian and unpadded; without it Python pads
-    to native alignment and every field after the first lands in the wrong place.
+    The motion packet is UdpControlSpeedPacket, the form that carries the gait
+    speed. '<' is what keeps these little-endian and unpadded; without it Python
+    pads to native alignment and every field after the first lands in the wrong
+    place.
     """
-    assert struct.calcsize(_FMT_MOTION) == 6
+    assert struct.calcsize(_FMT_MOTION) == 7
     assert struct.calcsize(_FMT_POSE) == 44
     assert struct.calcsize(_FMT_SESSION) == 6
 
@@ -205,6 +272,59 @@ def test_a_pose_packet_round_trips():
     assert decoded == ticks
 
 
+class _CapturingLink(RobotLink):
+    """A link whose packets are captured rather than sent."""
+
+    def __init__(self, robot_config):
+        super().__init__(robot_config)
+        self.sent = []
+
+    def _send(self, packet):
+        self.sent.append(packet)
+        return True
+
+
+def test_a_motion_command_carries_the_speed():
+    link = _CapturingLink(ROBOT_CONFIGS["nougat"])
+    link.set_motion_speed(80)
+    assert link.send_motion_command("walk_l90")
+
+    magic, command, _seq, speed = struct.unpack(_FMT_MOTION, link.sent[-1])
+    assert magic == MAGIC_MOTION
+    assert command == MOTION_COMMANDS["walk_l90"]
+    assert speed == 80
+
+
+def test_the_speed_is_clamped_to_the_robots_range():
+    link = _CapturingLink(ROBOT_CONFIGS["nougat"])
+    assert link.set_motion_speed(5) == 20
+    assert link.set_motion_speed(250) == 100
+
+
+def test_streamed_gaits_play_at_the_robots_speed():
+    """The firmware stretches each frame to DELAY_MS * 100 / speed."""
+    for robot in ROBOT_CONFIGS.values():
+        assert get_sequence_fps(robot, 50) == pytest.approx(
+            1000.0 / robot["delay_ms"] / 2
+        )
+
+    link = _CapturingLink(ROBOT_CONFIGS["macaroon"])
+    link.set_motion_speed(40)
+    link.play_sequence(generate_poses("walk_0", ROBOT_CONFIGS["macaroon"]))
+    assert link._sequence_fps == pytest.approx(1000.0 / 25 * 0.4)
+
+    # Changing the speed mid-gait retimes the gait.
+    link.set_motion_speed(100)
+    assert link._sequence_fps == pytest.approx(1000.0 / 25)
+
+
+def test_an_unknown_motion_is_not_sent():
+    link = _CapturingLink(ROBOT_CONFIGS["nougat"])
+    assert not link.send_motion_command("standup")
+    assert not link.has_motion_command("standup")
+    assert link.sent == []
+
+
 def test_the_magics_are_distinct():
     """The firmware dispatches on the first byte alone."""
     assert len({MAGIC_MOTION, MAGIC_POSE, MAGIC_SESSION}) == 3
@@ -220,12 +340,21 @@ def test_motion_command_ids_are_unique_and_fit_a_byte():
     assert MOTION_COMMANDS["standby"] == 0
 
 
+def test_the_robots_command_list_resolves_every_motion():
+    """The link takes command ids from the robot's own list; for the current
+    firmware that must agree with the enum above."""
+    for robot in list(ROBOT_CONFIGS.values()) + [GENERIC_CONFIG]:
+        assert robot["commands"] == FIRMWARE_COMMANDS
+        for motion_name, expected in MOTION_COMMANDS.items():
+            assert command_id(robot, motion_name) == expected, motion_name
+
+
 def test_every_robot_command_is_a_motion_the_ui_offers():
     """A command the UI cannot reach is unreachable; the reverse is allowed.
 
     'standup' is the exception in the other direction: it is the firmware's boot
     sequence rather than a LUT it can be commanded into, so the UI offers it for
-    streaming only. pages/shared.py depends on exactly that asymmetry.
+    streaming only. pages/page_motion.py depends on exactly that asymmetry.
     """
     ui_motions = {option["value"] for option in MOTION_TYPES}
     assert set(MOTION_COMMANDS) <= ui_motions, (

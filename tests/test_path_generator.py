@@ -18,7 +18,8 @@ from hexapod.path_generator import (
     path_rotate_z,
     semicircle_generator,
 )
-from hexapod.robot_profiles import ROBOT_PROFILES, get_physical_config, get_profile
+from hexapod.robot_config import get_leg_signs
+from tests.robots import ROBOT_CONFIGS
 from widgets.motion_ui import MOTION_TYPES
 
 UI_MOTIONS = [option["value"] for option in MOTION_TYPES]
@@ -29,9 +30,9 @@ GAIT_STEPS = 28
 
 def test_every_motion_the_ui_offers_generates_poses():
     """A motion in the dropdown that generates nothing is a dead menu entry."""
-    for profile_name in ROBOT_PROFILES:
+    for profile_name in ROBOT_CONFIGS:
         for motion_name in UI_MOTIONS:
-            poses = generate_poses(motion_name, profile_name)
+            poses = generate_poses(motion_name, ROBOT_CONFIGS[profile_name])
             assert len(poses) > 0, f"{profile_name}/{motion_name} generated no frames"
 
 
@@ -41,9 +42,9 @@ def test_poses_are_well_formed():
     VirtualHexapod.update indexes straight into this, so a missing leg or a
     renamed key is an error a long way from here.
     """
-    for profile_name in ROBOT_PROFILES:
+    for profile_name in ROBOT_CONFIGS:
         for motion_name in UI_MOTIONS:
-            for i, pose in enumerate(generate_poses(motion_name, profile_name)):
+            for i, pose in enumerate(generate_poses(motion_name, ROBOT_CONFIGS[profile_name])):
                 where = f"{profile_name}/{motion_name} frame {i}"
                 assert set(pose) == set(range(6)), f"{where}: legs {sorted(pose)}"
                 for leg_id, entry in pose.items():
@@ -55,40 +56,42 @@ def test_poses_are_well_formed():
 
 def test_gaits_are_baked_at_a_fixed_frame_count():
     """The robot's LUTs are this long, so a streamed gait has to match them."""
-    for profile_name in ROBOT_PROFILES:
-        assert len(generate_poses("standby", profile_name)) == 1
+    for profile_name in ROBOT_CONFIGS:
+        assert len(generate_poses("standby", ROBOT_CONFIGS[profile_name])) == 1
         for motion_name in UI_MOTIONS:
             if motion_name == "standby":
                 continue
-            assert len(generate_poses(motion_name, profile_name)) == GAIT_STEPS, (
+            assert len(generate_poses(motion_name, ROBOT_CONFIGS[profile_name])) == GAIT_STEPS, (
                 f"{profile_name}/{motion_name} is not {GAIT_STEPS} frames"
             )
 
 
 def test_an_unknown_motion_falls_back_to_standby():
     """The UI can hold a stale motion name; that must hold the pose, not raise."""
-    for profile_name in ROBOT_PROFILES:
-        standby = generate_poses("standby", profile_name)
-        assert generate_poses("no-such-motion", profile_name) == standby
+    for profile_name in ROBOT_CONFIGS:
+        standby = generate_poses("standby", ROBOT_CONFIGS[profile_name])
+        assert generate_poses("no-such-motion", ROBOT_CONFIGS[profile_name]) == standby
 
 
 def test_generation_is_deterministic():
     """Two runs of a gait must agree, or streaming would jitter between frames."""
     for motion_name in ("walk_0", "turn_left", "standup"):
-        assert generate_poses(motion_name, "mochi") == generate_poses(
-            motion_name, "mochi"
+        assert generate_poses(motion_name, ROBOT_CONFIGS["mochi"]) == generate_poses(
+            motion_name, ROBOT_CONFIGS["mochi"]
         )
 
 
-def test_the_two_robots_get_different_paths():
-    """A path baked for one robot's geometry is wrong for the other's.
+def test_the_robots_get_different_paths():
+    """A path baked for one robot's geometry is wrong for another's.
 
-    This is the reason generate_poses takes a profile at all, so it is worth
-    pinning that the argument actually reaches the geometry.
+    This is the reason generate_poses takes a robot config at all, so it is
+    worth pinning that the argument actually reaches the geometry.
     """
-    mochi = generate_poses("walk_0", "mochi")
-    macaroon = generate_poses("walk_0", "macaroon")
-    assert mochi[0][0]["femur"] != macaroon[0][0]["femur"]
+    first_frames = {
+        name: generate_poses("walk_0", robot)[0][0]["femur"]
+        for name, robot in ROBOT_CONFIGS.items()
+    }
+    assert len(set(first_frames.values())) == len(first_frames), first_frames
 
 
 def test_inverse_kinematics_inverts_the_standby_posture():
@@ -105,22 +108,20 @@ def test_inverse_kinematics_inverts_the_standby_posture():
     one the gaits are built from, so it is the one pinned here; see
     test_laydown_is_not_a_fixed_point_of_the_round_trip for the other end.
 
-    The left legs come back mirrored (180 - angle), which is legScale doing its
-    job -- their servos face the other way.
+    The mirrored legs come back mirrored (180 - angle), which is legScale doing
+    its job -- their servos face the other way. That is the left side on Mochi
+    and Macaroon, and legs 0, 4 and 5 on Nougat.
     """
-    for profile_name in ROBOT_PROFILES:
-        config = get_physical_config(profile_name)
-        j2, j3 = get_profile(profile_name)["gait"]["standby_posture"]
+    for profile_name, robot in ROBOT_CONFIGS.items():
+        config = robot["config"]
+        j2, j3 = robot["gait"]["standby_posture"]
         angles = inverse_kinematics(gen_posture(j2, j3, config), config)
 
-        for leg_id in range(3):
-            assert angles[leg_id] == pytest.approx([90, j2, j3], abs=1e-9), (
-                f"{profile_name}: right leg {leg_id} did not round trip"
+        for leg_id, sign in enumerate(get_leg_signs(robot)):
+            expected = [90, j2, j3] if sign == 1 else [90, 180 - j2, 180 - j3]
+            assert angles[leg_id] == pytest.approx(expected, abs=1e-9), (
+                f"{profile_name}: leg {leg_id} did not round trip"
             )
-        for leg_id in range(3, 6):
-            assert angles[leg_id] == pytest.approx(
-                [90, 180 - j2, 180 - j3], abs=1e-9
-            ), f"{profile_name}: left leg {leg_id} did not round trip"
 
 
 def test_laydown_is_not_a_fixed_point_of_the_round_trip():
@@ -132,13 +133,14 @@ def test_laydown_is_not_a_fixed_point_of_the_round_trip():
     ends exactly on standby -- but it means this pair is not interchangeable with
     the standby pair, and a future gait built off laydown cannot assume it is.
     """
-    for profile_name in ROBOT_PROFILES:
-        config = get_physical_config(profile_name)
-        j2, j3 = get_profile(profile_name)["gait"]["laydown_posture"]
+    for profile_name in ROBOT_CONFIGS:
+        config = ROBOT_CONFIGS[profile_name]["config"]
+        j2, j3 = ROBOT_CONFIGS[profile_name]["gait"]["laydown_posture"]
         angles = inverse_kinematics(gen_posture(j2, j3, config), config)
 
-        assert angles[0][1] == pytest.approx(j2, abs=1e-9), "femur should round trip"
-        assert angles[0][2] != pytest.approx(j3, abs=1e-6), (
+        # Leg 1 (centre right) is unmirrored on every robot.
+        assert angles[1][1] == pytest.approx(j2, abs=1e-9), "femur should round trip"
+        assert angles[1][2] != pytest.approx(j3, abs=1e-6), (
             "laydown now round trips; the inverse above can be generalised"
         )
 
@@ -146,9 +148,9 @@ def test_laydown_is_not_a_fixed_point_of_the_round_trip():
 def test_a_posture_stands_level():
     """Both postures put every foot at the same height, which is what makes them
     a stance rather than a pose mid-stride."""
-    for profile_name in ROBOT_PROFILES:
-        config = get_physical_config(profile_name)
-        gait = get_profile(profile_name)["gait"]
+    for profile_name in ROBOT_CONFIGS:
+        config = ROBOT_CONFIGS[profile_name]["config"]
+        gait = ROBOT_CONFIGS[profile_name]["gait"]
         for posture_name in ("standby_posture", "laydown_posture"):
             posture = gen_posture(*gait[posture_name], config)
             assert posture.shape == (6, 3)
@@ -160,9 +162,9 @@ def test_a_posture_stands_level():
 
 def test_laydown_sits_lower_than_standby():
     """Standing up is the move between them, so the order has to be this way."""
-    for profile_name in ROBOT_PROFILES:
-        config = get_physical_config(profile_name)
-        gait = get_profile(profile_name)["gait"]
+    for profile_name in ROBOT_CONFIGS:
+        config = ROBOT_CONFIGS[profile_name]["config"]
+        gait = ROBOT_CONFIGS[profile_name]["gait"]
         standby = gen_posture(*gait["standby_posture"], config)
         laydown = gen_posture(*gait["laydown_posture"], config)
         assert laydown[0, 2] > standby[0, 2], (
@@ -230,8 +232,8 @@ def test_opposite_walks_swap_the_legs_rather_than_negate_one():
     sweep going backwards -- and *not* its own negated sweep, which is what a
     per-leg mirror would predict.
     """
-    forward = generate_poses("walk_0", "mochi")
-    backward = generate_poses("walk_180", "mochi")
+    forward = generate_poses("walk_0", ROBOT_CONFIGS["mochi"])
+    backward = generate_poses("walk_180", ROBOT_CONFIGS["mochi"])
 
     def coxia_sweep(poses, leg_id, sign=1):
         return sorted(round(sign * pose[leg_id]["coxia"], 6) for pose in poses)
@@ -250,8 +252,8 @@ def test_opposite_walks_sweep_the_same_range():
     Cheap guard that `direction` reaches the generator as a rotation rather than
     changing the size of the stroke.
     """
-    forward = [pose[0]["coxia"] for pose in generate_poses("walk_0", "mochi")]
-    backward = [pose[0]["coxia"] for pose in generate_poses("walk_180", "mochi")]
+    forward = [pose[0]["coxia"] for pose in generate_poses("walk_0", ROBOT_CONFIGS["mochi"])]
+    backward = [pose[0]["coxia"] for pose in generate_poses("walk_180", ROBOT_CONFIGS["mochi"])]
 
     assert min(forward) == pytest.approx(min(backward))
     assert max(forward) == pytest.approx(max(backward))

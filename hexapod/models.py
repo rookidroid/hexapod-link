@@ -73,7 +73,7 @@ class Hexagon:
         "coxia_axes",
     )
 
-    def __init__(self, f, m, s):
+    def __init__(self, f, m, s, mount_angles=None):
         self.f = f
         self.m = m
         self.s = s
@@ -93,18 +93,22 @@ class Hexagon:
 
         # Azimuth of each leg's coxia (joint 1) rotation axis, in the body frame.
         #
-        # A leg bolts onto its hexagon corner and points radially away from the
-        # cog, so the axis direction is the direction of the vertex itself --
-        # it follows from f, m and s rather than being a constant. It must,
-        # because the path generator solves IK around the physical robot's
-        # `legMountAngle` (hexapod/robot_profiles.py), and for both robots that
-        # angle is exactly atan2(legMountY, legMountX). Pinning these to the
-        # 45/0/315/135/180/225 that a square body happens to give would rotate
-        # each corner leg about its own mount point, which shears the support
-        # polygon apart as a gait plays instead of translating it rigidly.
-        self.coxia_axes = tuple(
-            degrees(atan2(vertex.y, vertex.x)) % 360 for vertex in self.vertices
-        )
+        # It has to match the physical robot's `legMountAngle`, the angle the
+        # path generator solves IK around (hexapod/robot_config.py). Get it
+        # wrong and each leg rotates about its own mount point, which shears the
+        # support polygon apart as a gait plays instead of translating it.
+        #
+        # A robot that reports its mount angles passes them in: Nougat's corner
+        # legs are angled at 45 degrees while sitting at about 59. Without them
+        # a leg is taken to point radially away from the cog, i.e. along its own
+        # vertex -- right for Mochi and Macaroon, whose legMountAngle is exactly
+        # atan2(legMountY, legMountX), and it follows edits to f, m and s.
+        if mount_angles is not None:
+            self.coxia_axes = tuple(float(angle) % 360 for angle in mount_angles)
+        else:
+            self.coxia_axes = tuple(
+                degrees(atan2(vertex.y, vertex.x)) % 360 for vertex in self.vertices
+            )
 
 
 # ..........................................
@@ -217,7 +221,9 @@ class VirtualHexapod:
         self.front = dimensions["front"]
         self.mid = dimensions["middle"]
         self.side = dimensions["side"]
-        self.body = Hexagon(self.front, self.mid, self.side)
+        self.body = Hexagon(
+            self.front, self.mid, self.side, dimensions.get("mount_angles")
+        )
 
     def _init_legs(self):
         self.legs = []

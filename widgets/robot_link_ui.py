@@ -2,8 +2,8 @@
 #
 # Split by scope, because these controls do not all belong to the same place:
 #
-# * ROBOT LINK describes the robot itself -- which one, where it is, whether the
-#   session is up. It is mounted once in the global panel, next to the
+# * ROBOT LINK describes the robot itself -- where it is, which one answered
+#   there, whether the session is up. It is mounted once in the global panel, next to the
 #   dimensions, so link state survives page navigation and there is only ever
 #   one connect button.
 # * Streaming and RUN ON ROBOT act on what a particular page is showing, so they
@@ -11,11 +11,13 @@
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
-from settings import ROBOT_DEFAULT_MAX_STEP
-from hexapod.robot_profiles import DEFAULT_PROFILE, PROFILE_OPTIONS, get_profile
+from settings import ROBOT_DEFAULT_IP, ROBOT_DEFAULT_MAX_STEP
+from hexapod.robot_config import describe
+from hexapod.robot_link import ROBOT_LINK
 
 # --- Element IDs ---
-ROBOT_PROFILE_SELECT_ID = "robot-profile-select"
+ROBOT_INFO_ID = "robot-info"
+ROBOT_CONFIG_STORE_ID = "robot-config-store"
 ROBOT_IP_INPUT_ID = "robot-ip-input"
 ROBOT_CONNECT_BTN_ID = "robot-connect-btn"
 ROBOT_STATUS_ID = "robot-status"
@@ -23,6 +25,7 @@ ROBOT_STATE_STORE_ID = "robot-state-store"
 ROBOT_POLL_INTERVAL_ID = "robot-poll-interval"
 
 ROBOT_MOTION_MODE_ID = "robot-motion-mode"
+ROBOT_MOTION_SPEED_ID = "robot-motion-speed"
 ROBOT_MOTION_LOOP_ID = "robot-motion-loop"
 ROBOT_MOTION_RUN_BTN_ID = "robot-motion-run-btn"
 ROBOT_MOTION_STOP_BTN_ID = "robot-motion-stop-btn"
@@ -46,15 +49,17 @@ SECTION_CONTROLS_OFFLINE_CLASS = "robot-section-controls is-offline"
 # ................................
 # ROBOT LINK (global panel)
 #
-# Which robot, at which address, and is the session up. Nothing here depends on
-# what any page is drawing.
+# At which address, which robot answered there, and is the session up. Nothing
+# here depends on what any page is drawing.
+#
+# There is no robot picker: connecting reads the robot's own config, and that
+# is what the simulator then models (hexapod/robot_config.py).
 # ................................
 
-profile_select = dbc.Select(
-    id=ROBOT_PROFILE_SELECT_ID,
-    options=PROFILE_OPTIONS,
-    value=DEFAULT_PROFILE,
-    className="mb-3 form-control",
+robot_info = html.Div(
+    describe(ROBOT_LINK.robot_config),
+    id=ROBOT_INFO_ID,
+    className="small fw-bold text-center mb-2",
 )
 
 connection_row = dbc.Row(
@@ -63,9 +68,9 @@ connection_row = dbc.Row(
             dbc.Input(
                 id=ROBOT_IP_INPUT_ID,
                 type="text",
-                value=get_profile(DEFAULT_PROFILE)["ip"],
+                value=ROBOT_DEFAULT_IP,
                 debounce=True,
-                placeholder="192.168.4.1",
+                placeholder=ROBOT_DEFAULT_IP,
             ),
             width=7,
         ),
@@ -91,6 +96,15 @@ status_display = html.Div(
 hidden_components = html.Div(
     [
         dcc.Store(id=ROBOT_STATE_STORE_ID, data={"connected": False}),
+        # Which robot config the simulator is on; written when a connect loads
+        # one, and read by everything drawn from the robot's geometry.
+        dcc.Store(
+            id=ROBOT_CONFIG_STORE_ID,
+            data={
+                "version": ROBOT_LINK.config_version,
+                "name": ROBOT_LINK.robot_config["name"],
+            },
+        ),
         dcc.Interval(id=ROBOT_POLL_INTERVAL_ID, interval=STATUS_POLL_MS, n_intervals=0),
     ]
 )
@@ -100,11 +114,12 @@ ROBOT_LINK_WIDGETS_SECTION = dbc.Card(
         [
             html.H6("ROBOT LINK", className="mb-2"),
             html.P(
-                "Pick your robot, join its WiFi access point, then connect. "
+                "Join the robot's WiFi access point, then connect. The robot "
+                "reports its own size and gaits, and the simulator follows. "
                 "Streaming and gait controls are on the pages that use them.",
                 className="text-muted small mb-3",
             ),
-            profile_select,
+            robot_info,
             connection_row,
             status_display,
             hidden_components,
@@ -238,6 +253,26 @@ motion_loop = dcc.Checklist(
     className="fw-bold mb-3",
 )
 
+# Gait playback speed, as a percent of the robot's tuned frame rate. Its range
+# and value are re-seeded from the connected robot by the motion page.
+_speed = ROBOT_LINK.robot_config["speed"]
+motion_speed = html.Div(
+    [
+        html.Label("Gait speed (%)", className="fw-bold mb-1"),
+        dcc.Slider(
+            id=ROBOT_MOTION_SPEED_ID,
+            min=_speed["min"],
+            max=_speed["max"],
+            step=5,
+            value=ROBOT_LINK.speed_pct,
+            disabled=True,
+            marks={_speed["min"]: str(_speed["min"]), _speed["max"]: str(_speed["max"])},
+            tooltip={"placement": "bottom", "always_visible": False},
+        ),
+    ],
+    className="mb-3",
+)
+
 motion_buttons = dbc.Row(
     [
         dbc.Col(
@@ -273,7 +308,7 @@ ROBOT_MOTION_WIDGETS_SECTION = dbc.Card(
                 className="text-muted small mb-3",
             ),
             html.Div(
-                [motion_mode, motion_loop, motion_buttons],
+                [motion_mode, motion_loop, motion_speed, motion_buttons],
                 id=ROBOT_MOTION_CONTROLS_ID,
                 className=SECTION_CONTROLS_OFFLINE_CLASS,
             ),

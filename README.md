@@ -112,14 +112,14 @@ over WiFi in real time, from a single joint up to a full gait.
 ### Setup
 
 1. Flash the ESP32 firmware from the `hexapod` repo (`software/hexapod_esp32`).
-   Real-time control needs the pose-streaming protocol, which is documented in
-   that firmware's README.
+   The app needs a firmware that serves its own config at `GET /robot_config`
+   (protocol 1); the protocol is documented in that firmware's README.
 2. Power on the robot and **join its WiFi access point** from the machine
    running this app — the ESP32 is the access point, so there is no other route
    to it. The robot performs its stand-up sequence when a client connects.
 3. Start the app and open the **ROBOT** panel from the status button in the
-   navigation bar. It holds the robot's dimensions and the link to it -- the
-   profile, its address and the connect button -- and is reachable from every
+   navigation bar. It holds the robot's dimensions and the link to it -- its
+   address (`192.168.4.1`) and the connect button -- and is reachable from every
    page. Streaming and gait controls live on the pages that use them.
 
 ### Leg and joint numbering
@@ -145,20 +145,28 @@ person reads is built from the label tables in
 vocabularies meet. The joint *angles* still follow the simulator's own sign
 convention; `hexapod/robot_link.py` converts them to servo angles when streaming.
 
-### Supported robots
+### The robot's config comes from the robot
 
-Two robots are supported, matching the `mochi` and `macaroon` branches of the
-firmware repo. They differ in leg geometry, stride and turn radii, and servo
-step delay.
+The app keeps no list of robots. Connecting first asks the robot for its config
+(`GET http://<robot>/robot_config`): its name and access point, leg geometry
+(mount positions and angles, link lengths, which servos are mirrored), gait
+radii, joint limits, servo range, LUT frame delay, speed range and the motion
+commands it knows. The simulator's body and leg dimensions switch to match, so
+the on-screen hexapod agrees with the hardware. Any robot in the family --
+Nougat, Mochi, Macaroon, or a new one -- works without changing this app; the
+geometry lives in the firmware repo's `software/path_tool/robots/<name>.json`.
 
-| Profile | WiFi SSID | Coxia / Femur / Tibia | Gait rate |
-|---------|-----------|----------------------|-----------|
-| Mochi | `hexapod` | 36 / 43.6 / 85.22 mm | 83 fps |
-| Macaroon | `hexapod_macaroon` | 62 / 76 / 132 mm | 40 fps |
+The last config received is saved to `~/.hexapod-link/robot_config.json` (set
+`HEXAPOD_LINK_CONFIG_CACHE` to move it), so starting the app without a robot
+still shows the last one. Before any robot has connected it shows a generic
+model. See [`hexapod/robot_config.py`](./hexapod/robot_config.py).
 
-Selecting a profile also sets the simulator's body and leg dimensions to match,
-so the on-screen hexapod agrees with the hardware. Profiles are defined in
-[`hexapod/robot_profiles.py`](./hexapod/robot_profiles.py); add a robot there.
+To try the app without hardware, run the stand-in robot and connect to
+`127.0.0.1:8080` (the port is for HTTP; UDP always goes to 1234):
+
+```bash
+$ python tools/fake_robot.py nougat
+```
 
 ### Using it
 
@@ -170,6 +178,12 @@ so the on-screen hexapod agrees with the hardware. Profiles are defined in
   preview on the hardware: either trigger the robot's own built-in gait
   (recommended; the ESP32 plays it from flash so smoothness does not depend on
   WiFi), or stream the simulator's frames for paths the firmware does not have.
+  **Gait speed** (20-100 % of the robot's tuned rate) applies to both, and is
+  sent to the robot as soon as it changes.
+- **Calibration page** — trims each servo's offset through the robot's own
+  calibration routes: **Enter calibration** puts the robot in its calibration
+  posture, **Apply** moves the servos to the edited offsets, **Save to robot**
+  writes them to the robot's flash, then **Exit**.
 
 Connect from the **ROBOT** panel first — until then the **STREAM TO ROBOT** and
 **RUN ON ROBOT** controls are greyed out, since neither has anything to act on.
@@ -183,9 +197,9 @@ the robot's actual state when moving between those two pages.
 
 - **Put the robot on a stand before streaming.** A pose that is stable in the
   simulator is not necessarily stable on the floor.
-- Joint angles are clamped to each profile's mechanical limits before being sent
-  (see `joint_limits` in `robot_profiles.py`), because the simulator allows far
-  more travel than the hardware has. Widen these only after checking clearances.
+- Joint angles are clamped to the robot's mechanical limits before being sent
+  (`jointLimits` in the robot's config), because the simulator allows far more
+  travel than the hardware has. Widen these only after checking clearances.
 - If the stream stops, the robot eases back to standby on its own after 1 s.
 
 ## Testing
@@ -197,8 +211,9 @@ $ pytest
 
 The suite (~1200 lines across [`tests/`](./tests)) covers forward/inverse
 kinematics, leg patterns, path/motion generation, leg-naming conversions, the
-robot-link streaming protocol, and robot profile geometry — all without
-needing a display, a browser, or a physical robot.
+robot-link streaming protocol, and reading each robot's config (against
+`tools/fake_robot.py`) — all without needing a display, a browser, or a physical
+robot.
 
 ## CI/CD
 

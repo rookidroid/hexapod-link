@@ -234,7 +234,7 @@ hardware = html.Div(
                             "the floor."
                         ),
                         html.Li(
-                            "Joint angles are clamped to each profile's "
+                            "Joint angles are clamped to the robot's "
                             "mechanical limits before being sent — the "
                             "simulator allows far more travel than the servos "
                             "have."

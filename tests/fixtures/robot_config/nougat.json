@@ -1,0 +1,132 @@
+{
+  "protocol": 1,
+  "name": "nougat",
+  "ssid": "hexapod_nougat",
+  "delay_ms": 12,
+  "servo": {
+    "min": 102,
+    "mid": 307,
+    "max": 512
+  },
+  "speed": {
+    "min": 20,
+    "max": 100,
+    "default": 60,
+    "current": 60
+  },
+  "commands": [
+    "standby",
+    "walk0",
+    "walk180",
+    "walkr45",
+    "walkr90",
+    "walkr135",
+    "walkl45",
+    "walkl90",
+    "walkl135",
+    "fastforward",
+    "fastbackward",
+    "turnleft",
+    "turnright",
+    "climbforward",
+    "climbbackward",
+    "rotatex",
+    "rotatey",
+    "rotatez",
+    "twist"
+  ],
+  "geometry": {
+    "name": "nougat",
+    "label": "Nougat",
+    "legNames": [
+      "front_right",
+      "center_right",
+      "rear_right",
+      "front_left",
+      "center_left",
+      "rear_left"
+    ],
+    "legMountX": [
+      44.82,
+      61.03,
+      44.82,
+      -44.82,
+      -61.03,
+      -44.82
+    ],
+    "legMountY": [
+      74.82,
+      0,
+      -74.82,
+      74.82,
+      0,
+      -74.82
+    ],
+    "legMountAngle": [
+      45,
+      0,
+      -45,
+      -225,
+      -180,
+      -135
+    ],
+    "legScale": [
+      [
+        1,
+        -1,
+        -1
+      ],
+      [
+        1,
+        1,
+        1
+      ],
+      [
+        1,
+        1,
+        1
+      ],
+      [
+        1,
+        1,
+        1
+      ],
+      [
+        1,
+        -1,
+        -1
+      ],
+      [
+        1,
+        -1,
+        -1
+      ]
+    ],
+    "legRootToJoint1": 0,
+    "legJoint1ToJoint2": 38.0,
+    "legJoint2ToJoint3": 54.06,
+    "legJoint3ToTip": 93.53,
+    "servoMin": 102,
+    "servoMax": 512,
+    "jointLimits": {
+      "coxia": 45,
+      "femur": 75,
+      "tibia": 75
+    },
+    "standbyPosture": [
+      60,
+      75
+    ],
+    "laydownPosture": [
+      25,
+      25
+    ],
+    "gait": {
+      "walk_radius": 30,
+      "fastwalk_y_radius": 50,
+      "fastwalk_z_radius": 40,
+      "fastwalk_x_radius": 15,
+      "turn_radius": 35
+    }
+  }
+}

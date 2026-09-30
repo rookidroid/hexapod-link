@@ -1,0 +1,132 @@
+{
+  "protocol": 1,
+  "name": "macaroon",
+  "ssid": "hexapod_macaroon",
+  "delay_ms": 25,
+  "servo": {
+    "min": 102,
+    "mid": 307,
+    "max": 512
+  },
+  "speed": {
+    "min": 20,
+    "max": 100,
+    "default": 60,
+    "current": 60
+  },
+  "commands": [
+    "standby",
+    "walk0",
+    "walk180",
+    "walkr45",
+    "walkr90",
+    "walkr135",
+    "walkl45",
+    "walkl90",
+    "walkl135",
+    "fastforward",
+    "fastbackward",
+    "turnleft",
+    "turnright",
+    "climbforward",
+    "climbbackward",
+    "rotatex",
+    "rotatey",
+    "rotatez",
+    "twist"
+  ],
+  "geometry": {
+    "name": "macaroon",
+    "label": "Macaroon",
+    "legNames": [
+      "front_right",
+      "center_right",
+      "rear_right",
+      "front_left",
+      "center_left",
+      "rear_left"
+    ],
+    "legMountX": [
+      49.2,
+      98.4,
+      49.2,
+      -49.2,
+      -98.4,
+      -49.2
+    ],
+    "legMountY": [
+      85.22,
+      0,
+      -85.22,
+      85.22,
+      0,
+      -85.22
+    ],
+    "legMountAngle": [
+      60,
+      0,
+      -60,
+      -240,
+      -180,
+      -120
+    ],
+    "legScale": [
+      [
+        1,
+        1,
+        1
+      ],
+      [
+        1,
+        1,
+        1
+      ],
+      [
+        1,
+        1,
+        1
+      ],
+      [
+        1,
+        -1,
+        -1
+      ],
+      [
+        1,
+        -1,
+        -1
+      ],
+      [
+        1,
+        -1,
+        -1
+      ]
+    ],
+    "legRootToJoint1": 0,
+    "legJoint1ToJoint2": 62.0,
+    "legJoint2ToJoint3": 76.0,
+    "legJoint3ToTip": 132.0,
+    "servoMin": 102,
+    "servoMax": 512,
+    "jointLimits": {
+      "coxia": 45,
+      "femur": 75,
+      "tibia": 75
+    },
+    "standbyPosture": [
+      60,
+      75
+    ],
+    "laydownPosture": [
+      25,
+      25
+    ],
+    "gait": {
+      "walk_radius": 50,
+      "fastwalk_y_radius": 70,
+      "fastwalk_z_radius": 50,
+      "fastwalk_x_radius": 20,
+      "turn_radius": 50
+    }
+  }
+}

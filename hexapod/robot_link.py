@@ -9,11 +9,14 @@
 # The relationship, verified against path_tool by round-tripping foot-tip
 # positions, is:
 #
-#     j1 = 90 + alpha                    (all legs)
-#     j2 = 90 - beta   right legs        j2 = 90 + beta   left legs
-#     j3 = 90 + gamma  right legs        j3 = 90 - gamma  left legs
+#     j1 = 90 + alpha
+#     j2 = 90 - sign * beta
+#     j3 = 90 + sign * gamma
 #
-# and a servo angle becomes a tick with
+# where `sign` is the leg's legScale from the robot's config, i.e. how that leg's
+# femur and tibia servos are mirrored. Mochi and Macaroon mirror the left side
+# (+1 right, -1 left); Nougat mirrors legs 0, 4 and 5. A servo angle becomes a
+# tick with
 #
 #     ticks = round(j / 180 * (SERVO_MAX - SERVO_MIN) + SERVO_MIN)
 #
@@ -21,6 +24,10 @@
 #
 # Only the angle convention differs. Leg indices and joint indices are shared
 # with the firmware -- see hexapod/naming.py -- so nothing is reordered here.
+#
+# The robot's config -- geometry, servo range, frame delay, speed limits and
+# command list -- is read from the robot itself when connecting; see
+# hexapod/robot_config.py.
 
 import socket
 import struct
@@ -28,25 +35,29 @@ import threading
 import time
 
 from settings import (
+    ROBOT_DEFAULT_IP,
     ROBOT_UDP_PORT,
     ROBOT_STREAM_HZ,
     ROBOT_PING_HZ,
     ROBOT_DEFAULT_MAX_STEP,
     ROBOT_SEQUENCE_MAX_STEP,
 )
-from hexapod.robot_profiles import (
-    DEFAULT_PROFILE,
+from hexapod import robot_http
+from hexapod.robot_config import (
+    GENERIC_CONFIG,
+    RobotConfigError,
+    clamp_speed,
+    command_id,
+    fetch_robot_config,
     get_joint_limits,
-    get_profile,
+    get_leg_signs,
     get_sequence_fps,
+    load_startup_config,
+    save_cached_config,
 )
+from hexapod.robot_http import RobotHttpError, split_address
 
-# Servo tick range, mirrors SERVOMIN/SERVOMAX in the firmware's config.h
-SERVO_MIN_TICKS = 102
-SERVO_MAX_TICKS = 512
-_TICKS_PER_DEGREE = (SERVO_MAX_TICKS - SERVO_MIN_TICKS) / 180.0
-
-# Packet magics, mirrors hexapod_esp32.ino
+# Packet magics, mirrors protocol.h in the firmware
 MAGIC_MOTION = 0xA5
 MAGIC_POSE = 0xA6
 MAGIC_SESSION = 0xA7
@@ -60,15 +71,15 @@ RT_RELAX = 2
 RT_PING = 3
 
 # struct formats. '<' keeps these little-endian and unpadded, matching the
-# firmware's #pragma pack(1) structs (6 / 44 / 6 bytes).
-_FMT_MOTION = "<BBI"
+# firmware's #pragma pack(1) structs (7 / 44 / 6 bytes). The motion packet is
+# the 7-byte form that carries the gait playback speed.
+_FMT_MOTION = "<BBIB"
 _FMT_POSE = "<BBHI" + "h" * 18
 _FMT_SESSION = "<BBI"
 
-# +1 for right legs (ids 0-2), -1 for left legs (ids 3-5)
-LEG_SIGN = (1, 1, 1, -1, -1, -1)
-
-# Motion command ids, mirrors the RobotCommand enum in the firmware
+# Motion command ids of the current firmware, mirrors the RobotCommand enum. The
+# link resolves ids from the connected robot's own command list instead (see
+# robot_config.command_id); this is the reference the tests hold that list to.
 MOTION_COMMANDS = {
     "standby": 0,
     "walk_0": 1,
@@ -92,30 +103,29 @@ MOTION_COMMANDS = {
 }
 
 
-def joint_angles_to_servo_angles(leg_id, coxia, femur, tibia):
+def joint_angles_to_servo_angles(leg_sign, coxia, femur, tibia):
     """Convert one leg's simulator angles to the robot's j1/j2/j3 servo angles."""
-    sign = LEG_SIGN[leg_id]
     return (
         90.0 + coxia,
-        90.0 - sign * femur,
-        90.0 + sign * tibia,
+        90.0 - leg_sign * femur,
+        90.0 + leg_sign * tibia,
     )
 
 
-def servo_angle_to_ticks(angle):
+def servo_angle_to_ticks(angle, servo_min=102, servo_max=512):
     """Convert a servo angle in degrees to a PWM tick count, clamped to range."""
-    ticks = round(angle * _TICKS_PER_DEGREE + SERVO_MIN_TICKS)
-    return int(min(max(ticks, SERVO_MIN_TICKS), SERVO_MAX_TICKS))
+    ticks = round(angle * (servo_max - servo_min) / 180.0 + servo_min)
+    return int(min(max(ticks, servo_min), servo_max))
 
 
-def clamp_pose_angles(coxia, femur, tibia, profile_name=DEFAULT_PROFILE):
+def clamp_pose_angles(coxia, femur, tibia, robot_config=GENERIC_CONFIG):
     """Clamp simulator angles to the robot's mechanically safe joint range.
 
     The simulator permits far more travel than the hardware has (beta and gamma
     go to +/-180 there), so this is what keeps an unreachable simulator pose
     from being sent to the servos as a hard stop.
     """
-    limits = get_joint_limits(profile_name)
+    limits = get_joint_limits(robot_config)
     return (
         min(max(coxia, -limits["coxia"]), limits["coxia"]),
         min(max(femur, -limits["femur"]), limits["femur"]),
@@ -123,16 +133,17 @@ def clamp_pose_angles(coxia, femur, tibia, profile_name=DEFAULT_PROFILE):
     )
 
 
-def pose_to_ticks(poses, profile_name=DEFAULT_PROFILE):
+def pose_to_ticks(poses, robot_config=GENERIC_CONFIG):
     """Convert a simulator pose dict to a flat list of 18 servo ticks.
 
     `poses` is the structure used throughout the simulator: keys 0-5 (int or
     str) mapping to dicts with "coxia", "femur" and "tibia" in degrees.
     Returns ticks ordered leg-major, matching the firmware's LUT layout.
-
-    The angle-to-tick relation is the same for both robots; only the joint
-    travel limits are profile-specific.
     """
+    signs = get_leg_signs(robot_config)
+    servo_min = robot_config["servo_min"]
+    servo_max = robot_config["servo_max"]
+
     ticks = []
     for leg_id in range(6):
         pose = poses.get(leg_id, poses.get(str(leg_id)))
@@ -143,16 +154,17 @@ def pose_to_ticks(poses, profile_name=DEFAULT_PROFILE):
             femur = pose.get("femur") or 0.0
             tibia = pose.get("tibia") or 0.0
 
-        coxia, femur, tibia = clamp_pose_angles(coxia, femur, tibia, profile_name)
-        for angle in joint_angles_to_servo_angles(leg_id, coxia, femur, tibia):
-            ticks.append(servo_angle_to_ticks(angle))
+        coxia, femur, tibia = clamp_pose_angles(coxia, femur, tibia, robot_config)
+        for angle in joint_angles_to_servo_angles(signs[leg_id], coxia, femur, tibia):
+            ticks.append(servo_angle_to_ticks(angle, servo_min, servo_max))
 
     return ticks
 
 
-# Standby posture, decoded from the firmware's lut_standby ({307, 239, 273} for
-# the right legs). Both robots bake standby from gen_posture(60, 75), whose
-# joint angles do not depend on link lengths, so this is shared.
+# Standby posture, decoded from the firmware's lut_standby ({307, 239, 273} on an
+# unmirrored leg). Every robot bakes standby from gen_posture(60, 75), whose
+# joint angles do not depend on link lengths, so this is shared; only the
+# mirroring differs, and pose_to_ticks applies that.
 STANDBY_POSE = {
     leg_id: {
         "id": leg_id,
@@ -173,18 +185,21 @@ class RobotLink:
     keeps the session alive and turns sporadic UI events into a smooth stream.
     """
 
-    def __init__(self):
+    def __init__(self, robot_config=None):
         self._lock = threading.Lock()
         self._socket = None
         self._thread = None
         self._stop_event = threading.Event()
 
-        self._profile_name = DEFAULT_PROFILE
-        self._ip = get_profile(DEFAULT_PROFILE)["ip"]
+        robot_config = robot_config or load_startup_config()
+        self._robot_config = robot_config
+        self._config_version = 0
+        self._ip = ROBOT_DEFAULT_IP
         self._connected = False
         self._streaming = False
         self._max_step = ROBOT_DEFAULT_MAX_STEP
-        self._ticks = pose_to_ticks(STANDBY_POSE, DEFAULT_PROFILE)
+        self._speed_pct = robot_config["speed"]["default"]
+        self._ticks = pose_to_ticks(STANDBY_POSE, robot_config)
         self._seq = 0
         self._packets_sent = 0
         self._last_error = None
@@ -195,7 +210,8 @@ class RobotLink:
         self._sequence_index = 0
         self._sequence_loop = True
         self._sequence_next_time = 0.0
-        self._sequence_fps = get_sequence_fps(DEFAULT_PROFILE)
+        self._sequence_fps_override = None
+        self._sequence_fps = get_sequence_fps(robot_config, self._speed_pct)
 
     # ---------------------------------------------------------------- status
 
@@ -210,9 +226,26 @@ class RobotLink:
             return self._streaming
 
     @property
-    def profile_name(self):
+    def robot_config(self):
+        """The config of the robot being modelled: connected, cached or generic."""
         with self._lock:
-            return self._profile_name
+            return self._robot_config
+
+    @property
+    def config_version(self):
+        """Bumped whenever a robot's config is loaded, so the UI can follow."""
+        with self._lock:
+            return self._config_version
+
+    @property
+    def ip(self):
+        with self._lock:
+            return self._ip
+
+    @property
+    def speed_pct(self):
+        with self._lock:
+            return self._speed_pct
 
     def status(self):
         with self._lock:
@@ -223,37 +256,37 @@ class RobotLink:
                 "packets_sent": self._packets_sent,
                 "last_error": self._last_error,
                 "max_step": self._max_step,
-                "profile": self._profile_name,
-                "label": get_profile(self._profile_name)["label"],
+                "speed_pct": self._speed_pct,
+                "robot_name": self._robot_config["name"],
+                "robot_label": self._robot_config["label"],
+                "config_source": self._robot_config["source"],
+                "config_version": self._config_version,
             }
-
-    def set_profile(self, profile_name):
-        """Select which physical robot is being driven.
-
-        Switching robots while connected would keep streaming poses clamped for
-        the previous machine, so the session is closed first.
-        """
-        if profile_name == self.profile_name:
-            return
-
-        if self.connected:
-            self.disconnect()
-
-        with self._lock:
-            self._profile_name = profile_name
-            self._ip = get_profile(profile_name)["ip"]
-            self._sequence_fps = get_sequence_fps(profile_name)
-            self._sequence = None
-            self._sequence_index = 0
-            self._ticks = pose_to_ticks(STANDBY_POSE, profile_name)
 
     # ------------------------------------------------------------ connection
 
     def connect(self, ip=None):
-        """Open the socket and put the robot into real-time mode."""
-        with self._lock:
-            if ip:
+        """Read the robot's config, then open the socket and enter real-time mode.
+
+        The config comes first: the robot's geometry decides how every pose is
+        turned into servo ticks, so nothing is sent until it is known. A robot
+        that does not answer leaves the link disconnected with the reason in
+        `last_error`.
+        """
+        ip = (ip or self.ip or ROBOT_DEFAULT_IP).strip()
+        try:
+            robot_config = fetch_robot_config(ip)
+        except RobotConfigError as error:
+            with self._lock:
                 self._ip = ip
+                self._last_error = str(error)
+            return False
+
+        save_cached_config(robot_config)
+        self._load_config(robot_config)
+
+        with self._lock:
+            self._ip = ip
             if self._socket is None:
                 try:
                     self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -267,6 +300,21 @@ class RobotLink:
         self._send_session(RT_ENTER)
         self._start_thread()
         return True
+
+    def _load_config(self, robot_config):
+        """Switch the link to a newly read robot config."""
+        with self._lock:
+            self._robot_config = robot_config
+            self._config_version += 1
+            # The robot's own speed is what its native gaits are playing at.
+            self._speed_pct = clamp_speed(
+                robot_config, robot_config["speed"].get("current", self._speed_pct)
+            )
+            self._sequence = None
+            self._sequence_index = 0
+            self._sequence_fps_override = None
+            self._sequence_fps = get_sequence_fps(robot_config, self._speed_pct)
+            self._ticks = pose_to_ticks(STANDBY_POSE, robot_config)
 
     def disconnect(self):
         """Return the robot to LUT control and close the socket."""
@@ -296,6 +344,30 @@ class RobotLink:
         with self._lock:
             self._streaming = bool(streaming) and self._connected
 
+    def set_motion_speed(self, pct):
+        """Set how fast gaits play, in percent of the robot's tuned frame rate.
+
+        Applies to the robot's own gaits -- sent to it now, and with every
+        motion command after -- and to gaits streamed from the simulator, whose
+        frame rate is scaled to match. Returns the speed that was applied.
+        """
+        with self._lock:
+            pct = clamp_speed(self._robot_config, pct)
+            self._speed_pct = pct
+            if self._sequence_fps_override is None:
+                self._sequence_fps = get_sequence_fps(self._robot_config, pct)
+            connected = self._connected
+            ip = self._ip
+
+        if connected:
+            try:
+                robot_http.set_speed(ip, pct)
+            except RobotHttpError as error:
+                # Not fatal: the next motion command carries the speed anyway.
+                with self._lock:
+                    self._last_error = f"Speed not applied: {error}"
+        return pct
+
     # --------------------------------------------------------------- sending
 
     def send_pose(self, poses, snap=False):
@@ -303,7 +375,7 @@ class RobotLink:
 
         Posing by hand takes precedence over any gait sequence in flight.
         """
-        ticks = pose_to_ticks(poses, self.profile_name)
+        ticks = pose_to_ticks(poses, self.robot_config)
         with self._lock:
             self._ticks = ticks
             self._sequence = None
@@ -311,14 +383,17 @@ class RobotLink:
         if self.streaming:
             self._send_pose_packet(snap=snap)
 
+    def has_motion_command(self, motion_name):
+        return command_id(self.robot_config, motion_name) is not None
+
     def send_motion_command(self, motion_name):
         """Ask the robot to run one of its own built-in gait LUTs.
 
         Preferred over streaming for the pre-programmed motions: the ESP32 plays
         the gait from flash, so smoothness does not depend on WiFi latency.
         """
-        command_id = MOTION_COMMANDS.get(motion_name)
-        if command_id is None:
+        motion_id = command_id(self.robot_config, motion_name)
+        if motion_id is None:
             return False
 
         # Streaming and LUT playback are mutually exclusive on the robot: the
@@ -329,7 +404,8 @@ class RobotLink:
             self._sequence_index = 0
             self._seq += 1
             seq = self._seq
-        return self._send(struct.pack(_FMT_MOTION, MAGIC_MOTION, command_id, seq))
+            speed = self._speed_pct
+        return self._send(struct.pack(_FMT_MOTION, MAGIC_MOTION, motion_id, seq, speed))
 
     def play_sequence(self, pose_frames, loop=True, fps=None):
         """Stream a list of poses as a gait, timed by the stream thread.
@@ -338,9 +414,12 @@ class RobotLink:
         round-trips; doing it here keeps the cadence steady. Prefer
         send_motion_command() for the robot's built-in gaits, which avoids the
         network being in the loop at all.
+
+        Without an explicit `fps` the frames play at the rate the robot would
+        play its own LUT at the current speed.
         """
-        profile_name = self.profile_name
-        frames = [pose_to_ticks(pose, profile_name) for pose in pose_frames]
+        robot_config = self.robot_config
+        frames = [pose_to_ticks(pose, robot_config) for pose in pose_frames]
         if not frames:
             return False
 
@@ -348,7 +427,8 @@ class RobotLink:
             self._sequence = frames
             self._sequence_index = 0
             self._sequence_loop = loop
-            self._sequence_fps = fps or get_sequence_fps(profile_name)
+            self._sequence_fps_override = fps
+            self._sequence_fps = fps or get_sequence_fps(robot_config, self._speed_pct)
             self._sequence_next_time = 0.0
             self._streaming = self._connected
         return True
@@ -430,12 +510,13 @@ class RobotLink:
     def _send(self, packet):
         with self._lock:
             sock = self._socket
-            ip = self._ip
+            # An HTTP port on the address is for the web routes only.
+            host, _ = split_address(self._ip)
             if sock is None:
                 return False
 
         try:
-            sock.sendto(packet, (ip, ROBOT_UDP_PORT))
+            sock.sendto(packet, (host, ROBOT_UDP_PORT))
         except OSError as error:
             with self._lock:
                 self._last_error = str(error)
@@ -477,7 +558,9 @@ class RobotLink:
             if not self.streaming:
                 # Keeps the firmware's real-time session from timing out while
                 # the operator is not moving anything. Rate-limited separately,
-                # since holding a pose does not need the full stream rate.
+                # since holding a pose does not need the full stream rate. Any
+                # packet also feeds the firmware's LUT failsafe, so this is what
+                # keeps a native gait walking as well.
                 now = time.monotonic()
                 if now >= next_ping:
                     self._send_session(RT_PING)

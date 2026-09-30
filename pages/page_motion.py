@@ -17,12 +17,13 @@ from widgets.motion_ui import (
 )
 from pages import shared
 from hexapod.path_generator import generate_poses
-from hexapod.robot_link import ROBOT_LINK, MOTION_COMMANDS
-from hexapod.robot_profiles import get_simulator_dimensions
+from hexapod.robot_link import ROBOT_LINK
+from hexapod.robot_config import get_simulator_dimensions
 from widgets.robot_link_ui import (
-    ROBOT_PROFILE_SELECT_ID,
+    ROBOT_CONFIG_STORE_ID,
     ROBOT_MOTION_WIDGETS_SECTION,
     ROBOT_MOTION_MODE_ID,
+    ROBOT_MOTION_SPEED_ID,
     ROBOT_MOTION_LOOP_ID,
     ROBOT_MOTION_RUN_BTN_ID,
     ROBOT_MOTION_STOP_BTN_ID,
@@ -77,20 +78,21 @@ layout = shared.make_standard_page_layout(GRAPH_ID, sidebar)
     Output(MOTION_PLAY_BTN_ID, "color"),
     Output(INTERVAL_ID, "disabled"),
     Input(MOTION_DROPDOWN_ID, "value"),
-    Input(ROBOT_PROFILE_SELECT_ID, "value"),
+    Input(ROBOT_CONFIG_STORE_ID, "data"),
 )
-def update_motion_and_dimensions(motion_name, profile_name):
+def update_motion_and_dimensions(motion_name, _config_store):
     if not motion_name:
         raise PreventUpdate
 
-    # The body is measured from the profile, not from the dimension widgets.
-    # These motions are baked joint angles, solved by generate_poses against one
-    # robot's leg lengths and mount angles, and they only describe a walk on that
-    # geometry -- replay them on a body of another shape and the legs land
-    # somewhere the gait never intended, which tears the support polygon apart as
-    # the animation plays.
-    dimensions = get_simulator_dimensions(profile_name)
-    frames = generate_poses(motion_name, profile_name)
+    # The body is measured from the robot's config, not from the dimension
+    # widgets. These motions are baked joint angles, solved by generate_poses
+    # against one robot's leg lengths and mount angles, and they only describe a
+    # walk on that geometry -- replay them on a body of another shape and the
+    # legs land somewhere the gait never intended, which tears the support
+    # polygon apart as the animation plays.
+    robot_config = ROBOT_LINK.robot_config
+    dimensions = get_simulator_dimensions(robot_config)
+    frames = generate_poses(motion_name, robot_config)
     max_frames = max(len(frames) - 1, 0)
     marks = {0: "0", max_frames: str(max_frames)}
 
@@ -234,31 +236,50 @@ app.clientside_callback(
     State(MOTION_DROPDOWN_ID, "value"),
     State(ROBOT_MOTION_MODE_ID, "value"),
     State(ROBOT_MOTION_LOOP_ID, "value"),
-    State(ROBOT_PROFILE_SELECT_ID, "value"),
     prevent_initial_call=True,
 )
-def run_motion_on_robot(_n_clicks, motion_name, mode, loop_values, profile_name):
+def run_motion_on_robot(_n_clicks, motion_name, mode, loop_values):
     if not ROBOT_LINK.connected:
         return "Not connected — connect in the ROBOT panel first."
 
     loop = bool(loop_values) and "loop" in loop_values
 
     if mode == "native":
-        if motion_name not in MOTION_COMMANDS:
+        if not ROBOT_LINK.has_motion_command(motion_name):
             # "standup" is the firmware's boot sequence, not a motion LUT it
-            # can be commanded into.
+            # can be commanded into; the robot's own command list says which
+            # motions it has.
             return (
                 f"'{motion_name}' has no built-in equivalent on the robot. "
                 "Use 'Stream frames from simulator' instead."
             )
         if ROBOT_LINK.send_motion_command(motion_name):
-            return f"Robot running its own '{motion_name}' gait."
+            return (
+                f"Robot running its own '{motion_name}' gait at "
+                f"{ROBOT_LINK.speed_pct}%."
+            )
         return "Failed to send motion command."
 
-    frames = generate_poses(motion_name, profile_name)
+    frames = generate_poses(motion_name, ROBOT_LINK.robot_config)
     if not ROBOT_LINK.play_sequence(frames, loop=loop):
         return "Nothing to stream for this motion."
-    return f"Streaming '{motion_name}' — {len(frames)} frames{' (looping)' if loop else ''}."
+    return (
+        f"Streaming '{motion_name}' — {len(frames)} frames at "
+        f"{ROBOT_LINK.speed_pct}%{' (looping)' if loop else ''}."
+    )
+
+
+@app.callback(
+    Output(ROBOT_MOTION_SPEED_ID, "value"),
+    Input(ROBOT_MOTION_SPEED_ID, "value"),
+    prevent_initial_call=True,
+)
+def update_robot_motion_speed(speed_pct):
+    """Gait speed: sent to the robot now, and carried by every motion command."""
+    if speed_pct is None:
+        raise PreventUpdate
+    applied = ROBOT_LINK.set_motion_speed(speed_pct)
+    return no_update if applied == speed_pct else applied
 
 
 @app.callback(
@@ -287,12 +308,34 @@ OFFLINE_MESSAGE = "Connect a robot to run this on the hardware."
     Output(ROBOT_MOTION_RUN_BTN_ID, "disabled"),
     Output(ROBOT_MOTION_STOP_BTN_ID, "disabled"),
     Output(ROBOT_MOTION_MESSAGE_ID, "children", allow_duplicate=True),
+    Output(ROBOT_MOTION_SPEED_ID, "disabled"),
+    Output(ROBOT_MOTION_SPEED_ID, "min"),
+    Output(ROBOT_MOTION_SPEED_ID, "max"),
+    Output(ROBOT_MOTION_SPEED_ID, "marks"),
+    Output(ROBOT_MOTION_SPEED_ID, "value", allow_duplicate=True),
     Input(ROBOT_MOTION_POLL_INTERVAL_ID, "n_intervals"),
     State(ROBOT_MOTION_MESSAGE_ID, "children"),
+    State(ROBOT_MOTION_SPEED_ID, "value"),
+    State(ROBOT_MOTION_SPEED_ID, "min"),
+    State(ROBOT_MOTION_SPEED_ID, "max"),
     prevent_initial_call=True,
 )
-def sync_robot_motion_controls(_n_intervals, message):
+def sync_robot_motion_controls(_n_intervals, message, speed_value, speed_min, speed_max):
     offline = not ROBOT_LINK.connected
+
+    # The slider's range is the connected robot's, and its value the link's --
+    # the page may have been rendered before either was known. Only written
+    # when they differ, so the speed callback is not retriggered every second.
+    speed = ROBOT_LINK.robot_config["speed"]
+    range_out = [no_update] * 3
+    if (speed_min, speed_max) != (speed["min"], speed["max"]):
+        range_out = [
+            speed["min"],
+            speed["max"],
+            {speed["min"]: str(speed["min"]), speed["max"]: str(speed["max"])},
+        ]
+    link_speed = ROBOT_LINK.speed_pct
+    speed_out = no_update if speed_value == link_speed else link_speed
 
     # The message line is otherwise owned by the run and stop callbacks, so it
     # is only written here when it actually has to change: put the hint up on
@@ -308,6 +351,9 @@ def sync_robot_motion_controls(_n_intervals, message):
         offline,
         offline,
         new_message,
+        offline,
+        *range_out,
+        speed_out,
     )
 
 

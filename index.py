@@ -6,12 +6,20 @@ from texts import (
     IK_PAGE_PATH,
     PATTERNS_PAGE_PATH,
     MOTION_PAGE_PATH,
+    CALIBRATION_PAGE_PATH,
     ROOT_PATH,
 )
 from settings import DEBUG_MODE
 from style_settings import GLOBAL_PAGE_STYLE
 from app import app
-from pages import page_inverse, page_kinematics, page_patterns, page_landing, page_motion
+from pages import (
+    page_calibration,
+    page_inverse,
+    page_kinematics,
+    page_landing,
+    page_motion,
+    page_patterns,
+)
 from pages.shared import (
     GLOBAL_CONTROLS_PANEL,
     GLOBAL_PANEL_TOGGLE_ID,
@@ -36,6 +44,7 @@ div_header = dbc.Navbar(
                     dbc.NavItem(dbc.NavLink("Inverse Kinematics", href=IK_PAGE_PATH)),
                     dbc.NavItem(dbc.NavLink("Leg Patterns", href=PATTERNS_PAGE_PATH)),
                     dbc.NavItem(dbc.NavLink("Motion", href=MOTION_PAGE_PATH)),
+                    dbc.NavItem(dbc.NavLink("Calibration", href=CALIBRATION_PAGE_PATH)),
                     dbc.NavItem(dbc.NavLink("👾 Source", href=URL_REPO, target="_blank")),
                 ],
                 navbar=True,
@@ -89,6 +98,7 @@ PAGES = {
     KINEMATICS_PAGE_PATH: page_kinematics.layout,
     PATTERNS_PAGE_PATH: page_patterns.layout,
     MOTION_PAGE_PATH: page_motion.layout,
+    CALIBRATION_PAGE_PATH: page_calibration.layout,
     ROOT_PATH: page_landing.layout,
 }
 

@@ -2,6 +2,8 @@
 # Settings
 # ***************************
 
+from pathlib import Path
+
 # The range of each leg joint in degrees
 ALPHA_MAX_ANGLE = 90
 BETA_MAX_ANGLE = 180
@@ -57,10 +59,21 @@ INPUT_DIMENSIONS_RESOLUTION = 1
 # ***************************
 
 # The ESP32 runs as a WiFi access point, so the machine running this app has to
-# join the selected robot's network before it can be reached. Per-robot details
-# (SSID, IP, geometry, gait parameters, joint limits) live in
-# hexapod/robot_profiles.py.
+# join the robot's network before it can be reached. Per-robot details
+# (geometry, gait parameters, joint limits, frame delay) are not kept here: the
+# robot serves them at GET /robot_config and the link fetches them on connect;
+# see hexapod/robot_config.py.
+ROBOT_DEFAULT_IP = "192.168.4.1"
 ROBOT_UDP_PORT = 1234
+
+# The firmware's web server: robot config, speed and calibration routes.
+ROBOT_HTTP_PORT = 80
+ROBOT_HTTP_TIMEOUT_S = 2.0
+
+# Where the last robot's config is kept, so the app still models that robot when
+# started offline. The environment variable overrides it (the tests use this).
+ROBOT_CONFIG_CACHE_ENV = "HEXAPOD_LINK_CONFIG_CACHE"
+ROBOT_CONFIG_CACHE_PATH = Path.home() / ".hexapod-link" / "robot_config.json"
 
 # Rate at which the current pose is republished to the robot. This has to be at
 # least the fastest robot's gait frame rate (mochi runs 1000/12 = 83 fps) or

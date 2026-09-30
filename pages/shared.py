@@ -11,7 +11,8 @@ from widgets.dimensions_ui import (
 )
 from widgets.robot_link_ui import (
     ROBOT_LINK_WIDGETS_SECTION,
-    ROBOT_PROFILE_SELECT_ID,
+    ROBOT_INFO_ID,
+    ROBOT_CONFIG_STORE_ID,
     ROBOT_IP_INPUT_ID,
     ROBOT_CONNECT_BTN_ID,
     ROBOT_STATUS_ID,
@@ -23,7 +24,7 @@ from widgets.robot_link_ui import (
 )
 from hexapod.const import BASE_FIGURE
 from hexapod.robot_link import ROBOT_LINK
-from hexapod.robot_profiles import get_profile, get_simulator_dimensions
+from hexapod.robot_config import describe, get_simulator_dimensions
 
 
 # ......................
@@ -48,6 +49,15 @@ def update_dimensions(front, side, middle, coxia, femur, tibia):
         "femur": femur or 0,
         "tibia": tibia or 0,
     }
+
+    # A real robot's legs are mounted at the angles it reports, whatever the
+    # body measurements are edited to. The generic model has no robot behind
+    # it, so its legs keep pointing out from the cog as the body is resized.
+    robot_config = ROBOT_LINK.robot_config
+    if robot_config["source"] != "generic":
+        dimensions["mount_angles"] = get_simulator_dimensions(robot_config)[
+            "mount_angles"
+        ]
     return json.dumps(dimensions)
 
 
@@ -134,7 +144,7 @@ def make_standard_page_sidebar(
 # Dimensions and the robot link describe one robot, not one page, so they are
 # mounted once outside the routed page content. Keeping them here means their
 # values survive navigation instead of being rebuilt at defaults on every page
-# change, and there is only ever one connect button and one profile.
+# change, and there is only ever one connect button and one robot.
 #
 # It is a drawer rather than a column so that no page has to give up layout
 # space for it and the landing page can reach it too.
@@ -239,54 +249,56 @@ def register_open_panel_button(button_id):
 
 
 @app.callback(
-    [Output(widget_id, "value") for widget_id in DIMENSION_WIDGET_IDS]
-    + [
-        Output(ROBOT_IP_INPUT_ID, "value"),
-        Output(ROBOT_CONNECT_BTN_ID, "children", allow_duplicate=True),
-        Output(ROBOT_CONNECT_BTN_ID, "color", allow_duplicate=True),
-    ],
-    Input(ROBOT_PROFILE_SELECT_ID, "value"),
+    Output(ROBOT_CONNECT_BTN_ID, "children"),
+    Output(ROBOT_CONNECT_BTN_ID, "color"),
+    Output(ROBOT_CONFIG_STORE_ID, "data"),
+    Input(ROBOT_CONNECT_BTN_ID, "n_clicks"),
+    State(ROBOT_IP_INPUT_ID, "value"),
+    State(ROBOT_CONFIG_STORE_ID, "data"),
     prevent_initial_call=True,
 )
-def select_robot_profile(profile_name):
-    """Point the link at a different robot and match the simulator to it.
+def toggle_robot_connection(_n_clicks, ip, config_store):
+    """Connect or disconnect. Connecting reads the robot's config first."""
+    if ROBOT_LINK.connected:
+        ROBOT_LINK.disconnect()
+    else:
+        ROBOT_LINK.connect(ip)
 
-    The two robots have different leg geometry, so the simulator's dimensions
-    are set from the profile as well; leaving them at the previous robot's
-    values would make the on-screen hexapod disagree with the hardware.
+    # Only a successful connect loads a config; tell everything drawn from the
+    # robot's geometry when it has changed.
+    version = ROBOT_LINK.config_version
+    store = no_update
+    if not config_store or config_store.get("version") != version:
+        store = {"version": version, "name": ROBOT_LINK.robot_config["name"]}
+
+    if ROBOT_LINK.connected:
+        return "Disconnect", "secondary", store
+    return "Connect", "primary", store
+
+
+@app.callback(
+    [Output(widget_id, "value") for widget_id in DIMENSION_WIDGET_IDS]
+    + [Output(ROBOT_INFO_ID, "children")],
+    Input(ROBOT_CONFIG_STORE_ID, "data"),
+)
+def follow_robot_config(_config_store):
+    """Match the simulator's dimensions to the robot's reported geometry.
+
+    Runs on load as well as on connect: the layout is built once at import, so
+    a browser refresh would otherwise show the dimensions of whichever robot
+    was known when the app started rather than the one connected since.
     """
-    ROBOT_LINK.set_profile(profile_name)
-
-    dimensions = get_simulator_dimensions(profile_name)
-    dimension_values = [
+    robot_config = ROBOT_LINK.robot_config
+    dimensions = get_simulator_dimensions(robot_config)
+    return [
         dimensions["front"],
         dimensions["side"],
         dimensions["middle"],
         dimensions["coxia"],
         dimensions["femur"],
         dimensions["tibia"],
+        describe(robot_config),
     ]
-
-    # set_profile() drops any open session, so the button must reflect that.
-    return dimension_values + [get_profile(profile_name)["ip"], "Connect", "primary"]
-
-
-@app.callback(
-    Output(ROBOT_CONNECT_BTN_ID, "children"),
-    Output(ROBOT_CONNECT_BTN_ID, "color"),
-    Input(ROBOT_CONNECT_BTN_ID, "n_clicks"),
-    State(ROBOT_IP_INPUT_ID, "value"),
-    prevent_initial_call=True,
-)
-def toggle_robot_connection(_n_clicks, ip):
-    if ROBOT_LINK.connected:
-        ROBOT_LINK.disconnect()
-    else:
-        ROBOT_LINK.connect(ip)
-
-    if ROBOT_LINK.connected:
-        return "Disconnect", "secondary"
-    return "Connect", "primary"
 
 
 def link_status_text(status):
@@ -298,7 +310,10 @@ def link_status_text(status):
         return "Disconnected", "text-muted"
 
     mode = "STREAMING" if status["streaming"] else "IDLE (holding)"
-    text = f"● {status['ip']} — {mode} — {status['packets_sent']} pkts"
+    text = (
+        f"● {status['robot_label']} @ {status['ip']} — {mode} — "
+        f"{status['packets_sent']} pkts"
+    )
     return text, "text-success" if status["streaming"] else "text-info"
 
 
