@@ -97,3 +97,14 @@ ROBOT_DEFAULT_MAX_STEP = 8
 # be played back to back, so the limit is relaxed; with the manual-posing value
 # the robot would lag behind the gait instead of walking it.
 ROBOT_SEQUENCE_MAX_STEP = 40
+
+# ***************************
+# User preferences
+# ***************************
+
+# UI choices that outlive a session (currently just the colour theme). Kept on
+# disk rather than in the browser: the desktop window runs in pywebview's
+# private mode and on a fresh port each launch, so browser storage would not
+# survive a restart. The environment variable overrides it (the tests use this).
+PREFERENCES_ENV = "HEXAPOD_LINK_PREFERENCES"
+PREFERENCES_PATH = Path.home() / ".hexapod-link" / "preferences.json"

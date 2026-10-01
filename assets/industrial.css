@@ -1,5 +1,9 @@
 /* =============================================
-   HEXAPOD LINK — LIGHT INDUSTRIAL THEME
+   HEXAPOD LINK — INDUSTRIAL THEME (LIGHT / DARK)
+
+   Every colour that differs between the themes is a token on :root. The dark
+   values override them when <html> carries data-theme="dark"; the attribute is
+   set by hexapod_link.py and the navbar theme toggle (pages/shared.py).
    ============================================= */
 
 /* Fonts are bundled locally (assets/fonts) rather than pulled from Google
@@ -83,12 +87,50 @@
     --ind-accent-alt: #ca8a04; /* Industrial yellow */
     --ind-text: #111827; /* Near black */
     --ind-text-muted: #4b5563;
-    
+    --ind-hover: #f3f4f6; /* Hovered nav links and secondary buttons */
+    --ind-input-bg: #f3f4f6;
+    --ind-input-focus-bg: #ffffff;
+    --ind-outline: #111827; /* Heavy outline on the solid buttons */
+    --ind-stripe: #111827; /* Dark band of the hazard stripe */
+    --ind-alert-text: #9a3412;
+    --ind-alert-bg: #fff7ed;
+
     --font-heading: 'Chakra Petch', sans-serif;
     --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
     
     --shadow-hard: 4px 4px 0px rgba(17, 24, 39, 0.15);
     --shadow-hover: 6px 6px 0px rgba(17, 24, 39, 0.2);
+    --shadow-soft: 0 2px 10px rgba(0, 0, 0, 0.1);
+    --shadow-drawer: -4px 0 16px rgba(0, 0, 0, 0.18);
+}
+
+/* Night shift: the same machinery under low light. Gunmetal plates, light
+   text, and the warning orange lifted a step so it still reads on dark. The 3D
+   plot is a dark CAD view in both themes and does not change. */
+:root[data-theme="dark"] {
+    color-scheme: dark;
+
+    --ind-bg: #0f141b;
+    --ind-surface: #18202a;
+    --ind-surface-alt: #1f2833;
+    --ind-border: #64748b;
+    --ind-border-light: #3b4655;
+    --ind-accent: #f97316;
+    --ind-accent-alt: #eab308;
+    --ind-text: #e5e7eb;
+    --ind-text-muted: #9ca3af;
+    --ind-hover: #2a3441;
+    --ind-input-bg: #111820;
+    --ind-input-focus-bg: #0b1016;
+    --ind-outline: #05070a;
+    --ind-stripe: #05070a;
+    --ind-alert-text: #fdba74;
+    --ind-alert-bg: rgba(249, 115, 22, 0.12);
+
+    --shadow-hard: 4px 4px 0px rgba(0, 0, 0, 0.45);
+    --shadow-hover: 6px 6px 0px rgba(0, 0, 0, 0.55);
+    --shadow-soft: 0 2px 10px rgba(0, 0, 0, 0.5);
+    --shadow-drawer: -4px 0 16px rgba(0, 0, 0, 0.6);
 }
 
 /* ---- Global Reset ---- */
@@ -181,7 +223,7 @@ body {
 .ind-navbar {
     background: var(--ind-surface) !important;
     border-bottom: 4px solid var(--ind-accent);
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    box-shadow: var(--shadow-soft);
     padding: 0.8rem 0;
 }
 
@@ -195,8 +237,8 @@ body {
       45deg,
       var(--ind-accent),
       var(--ind-accent) 10px,
-      var(--ind-text) 10px,
-      var(--ind-text) 20px
+      var(--ind-stripe) 10px,
+      var(--ind-stripe) 20px
     );
     position: absolute;
     bottom: -4px;
@@ -245,7 +287,7 @@ body {
 .ind-navbar .nav-link:hover {
     color: var(--ind-text) !important;
     border-color: var(--ind-border-light);
-    background: #f3f4f6;
+    background: var(--ind-hover);
 }
 
 /* Below `lg` there is no room for brand, links and status button on one line.
@@ -358,7 +400,7 @@ input[type="number"],
     font-family: var(--font-mono) !important;
     font-size: 0.95rem;
     font-weight: 600;
-    background: #f3f4f6 !important;
+    background: var(--ind-input-bg) !important;
     border: 2px solid var(--ind-border-light) !important;
     border-radius: 0 !important;
     color: var(--ind-text) !important;
@@ -369,7 +411,7 @@ input[type="number"],
 input[type="number"]:focus,
 .form-control:focus {
     border-color: var(--ind-accent) !important;
-    background: #ffffff !important;
+    background: var(--ind-input-focus-bg) !important;
     outline: none !important;
     box-shadow: inset 2px 2px 0px rgba(0,0,0,0.05), 0 0 0 2px rgba(234, 88, 12, 0.2) !important;
 }
@@ -702,16 +744,16 @@ input[type="number"]:focus,
 .btn-primary {
     --bs-btn-color: #fff;
     --bs-btn-bg: var(--ind-accent);
-    --bs-btn-border-color: var(--ind-text);
+    --bs-btn-border-color: var(--ind-outline);
     --bs-btn-hover-color: #fff;
     --bs-btn-hover-bg: #c2410c;
-    --bs-btn-hover-border-color: var(--ind-text);
+    --bs-btn-hover-border-color: var(--ind-outline);
     --bs-btn-active-color: #fff;
     --bs-btn-active-bg: #9a3412;
-    --bs-btn-active-border-color: var(--ind-text);
+    --bs-btn-active-border-color: var(--ind-outline);
     --bs-btn-disabled-color: #fff;
     --bs-btn-disabled-bg: var(--ind-accent);
-    --bs-btn-disabled-border-color: var(--ind-text);
+    --bs-btn-disabled-border-color: var(--ind-outline);
     --bs-btn-focus-shadow-rgb: 234, 88, 12;
 }
 
@@ -721,7 +763,7 @@ input[type="number"]:focus,
     --bs-btn-bg: var(--ind-surface-alt);
     --bs-btn-border-color: var(--ind-border);
     --bs-btn-hover-color: var(--ind-text);
-    --bs-btn-hover-bg: #f3f4f6;
+    --bs-btn-hover-bg: var(--ind-hover);
     --bs-btn-hover-border-color: var(--ind-text);
     --bs-btn-active-color: var(--ind-text);
     --bs-btn-active-bg: var(--ind-bg);
@@ -736,32 +778,32 @@ input[type="number"]:focus,
 .btn-success {
     --bs-btn-color: #fff;
     --bs-btn-bg: #16a34a;
-    --bs-btn-border-color: var(--ind-text);
+    --bs-btn-border-color: var(--ind-outline);
     --bs-btn-hover-color: #fff;
     --bs-btn-hover-bg: #15803d;
-    --bs-btn-hover-border-color: var(--ind-text);
+    --bs-btn-hover-border-color: var(--ind-outline);
     --bs-btn-active-color: #fff;
     --bs-btn-active-bg: #166534;
-    --bs-btn-active-border-color: var(--ind-text);
+    --bs-btn-active-border-color: var(--ind-outline);
     --bs-btn-disabled-color: #fff;
     --bs-btn-disabled-bg: #16a34a;
-    --bs-btn-disabled-border-color: var(--ind-text);
+    --bs-btn-disabled-border-color: var(--ind-outline);
     --bs-btn-focus-shadow-rgb: 22, 163, 74;
 }
 
 .btn-danger {
     --bs-btn-color: #fff;
     --bs-btn-bg: #dc2626;
-    --bs-btn-border-color: var(--ind-text);
+    --bs-btn-border-color: var(--ind-outline);
     --bs-btn-hover-color: #fff;
     --bs-btn-hover-bg: #b91c1c;
-    --bs-btn-hover-border-color: var(--ind-text);
+    --bs-btn-hover-border-color: var(--ind-outline);
     --bs-btn-active-color: #fff;
     --bs-btn-active-bg: #991b1b;
-    --bs-btn-active-border-color: var(--ind-text);
+    --bs-btn-active-border-color: var(--ind-outline);
     --bs-btn-disabled-color: #fff;
     --bs-btn-disabled-bg: #dc2626;
-    --bs-btn-disabled-border-color: var(--ind-text);
+    --bs-btn-disabled-border-color: var(--ind-outline);
     --bs-btn-focus-shadow-rgb: 220, 38, 38;
 }
 
@@ -785,7 +827,7 @@ input[type="number"]:focus,
     overflow-y: auto;
     background: var(--ind-bg);
     border-left: 4px solid var(--ind-accent);
-    box-shadow: -4px 0 16px rgba(0,0,0,0.18);
+    box-shadow: var(--shadow-drawer);
     transform: translateX(105%);
     visibility: hidden;
     transition: transform 0.2s ease, visibility 0.2s ease;
@@ -834,7 +876,6 @@ input[type="number"]:focus,
    =========================================== */
 
 .ind-status-btn {
-    margin-left: auto;
     font-family: var(--font-mono);
     font-weight: 700;
     font-size: 0.9rem;
@@ -896,6 +937,39 @@ input[type="number"]:focus,
     50% { opacity: 0.25; }
 }
 
+/* Right-hand end of the navbar: theme toggle, then the status button. */
+.navbar-actions {
+    display: flex;
+    align-items: stretch;
+    gap: 0.6rem;
+    margin-left: auto;
+}
+
+/* Theme toggle: a square plate in the status button's style, showing the icon
+   of the theme it switches to. */
+.ind-theme-btn {
+    min-width: 2.4rem;
+    font-size: 1.1rem;
+    line-height: 1;
+    color: var(--ind-text);
+    background: var(--ind-surface-alt);
+    border: 2px solid var(--ind-border);
+    border-radius: 0;
+    box-shadow: var(--shadow-hard);
+    transition: transform 0.1s ease, box-shadow 0.1s ease, color 0.1s ease;
+}
+
+.ind-theme-btn:hover {
+    color: var(--ind-accent);
+    transform: translate(-2px, -2px);
+    box-shadow: var(--shadow-hover);
+}
+
+.ind-theme-btn:active {
+    transform: translate(0, 0);
+    box-shadow: none;
+}
+
 /* ===========================================
    SIDEBAR FIELDS
 
@@ -920,6 +994,7 @@ input[type="number"]:focus,
     --Dash-Text-Strong: var(--ind-text);
     --Dash-Text-Primary: var(--ind-text);
     --Dash-Text-Weak: var(--ind-text-muted);
+    --Dash-Fill-Inverse-Strong: var(--ind-surface-alt);
 }
 
 /* The `.ind-card label` rule styles section headers; the labels that belong
@@ -1124,8 +1199,8 @@ input[type="number"]:focus,
     font-family: var(--font-mono);
     font-size: 0.8rem;
     font-weight: 600;
-    color: #9a3412;
-    background: #fff7ed;
+    color: var(--ind-alert-text);
+    background: var(--ind-alert-bg);
     border-left: 4px solid var(--ind-accent);
     padding: 0.5rem 0.75rem;
     /* Solver messages put their list of legs on a line of its own. */

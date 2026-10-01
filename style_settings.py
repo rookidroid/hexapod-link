@@ -7,8 +7,9 @@ EXTERNAL_STYLESHEETS = ["/assets/bootstrap.min.css"]
 # ***************************************
 
 GLOBAL_PAGE_STYLE = {
-    "background": "#e5e7eb",  # Concrete grey
-    "color": "#111827",       # Near black text
+    # Theme tokens from industrial.css, so the light/dark switch reaches them.
+    "background": "var(--ind-bg)",
+    "color": "var(--ind-text)",
     "padding": "0em",
     "fontFamily": "'Chakra Petch', sans-serif"
 }
