@@ -247,6 +247,14 @@ body {
     box-shadow: var(--shadow-hover);
 }
 
+/* The page panel fills an overflow-clipped region, so the lift above would push
+   its top edge out of view. The sections inside it keep the lift: the panel's
+   padding leaves them room to move. */
+.page-panel:hover {
+    transform: none;
+    box-shadow: var(--shadow-hard);
+}
+
 .ind-card .card-body,
 .card .card-body {
     padding: 1.25rem;
