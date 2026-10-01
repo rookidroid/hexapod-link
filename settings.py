@@ -45,11 +45,6 @@ PRINT_IK_LOCAL_LEG = False
 PRINT_IK = False
 PRINT_MODEL_ON_UPDATE = False
 
-# 1 - Use the daq slider UI
-# 2 - Use the generic slider UI
-# Anything else defaults to the generic input UI, which I prefer
-WHICH_POSE_CONTROL_UI = 0
-
 # Make it more granular to prevent overloading the server
 SLIDER_ANGLE_RESOLUTION = 1.5
 INPUT_DIMENSIONS_RESOLUTION = 1

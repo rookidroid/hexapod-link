@@ -1,19 +1,11 @@
 import json
 from dash import callback, html
 from dash.dependencies import Output
-from settings import WHICH_POSE_CONTROL_UI
 from hexapod.models import VirtualHexapod
 from hexapod.const import BASE_PLOTTER
 from hexapod.robot_link import ROBOT_LINK
-from widgets.pose_control.components import KINEMATICS_CALLBACK_INPUTS
+from widgets.kinematics_ui import KINEMATICS_CALLBACK_INPUTS, KINEMATICS_WIDGETS_SECTION
 from pages import helpers, shared
-
-if WHICH_POSE_CONTROL_UI == 1:
-    from widgets.pose_control.generic_daq_slider_ui import KINEMATICS_WIDGETS_SECTION
-elif WHICH_POSE_CONTROL_UI == 2:
-    from widgets.pose_control.generic_slider_ui import KINEMATICS_WIDGETS_SECTION
-else:
-    from widgets.pose_control.generic_input_ui import KINEMATICS_WIDGETS_SECTION
 
 # ......................
 # Page layout
