@@ -1,9 +1,8 @@
 import copy
 from dash.dependencies import Input, Output, State
-from dash import dcc, html, no_update
+from dash import callback, clientside_callback, dcc, html, no_update
 from dash.exceptions import PreventUpdate
 
-from app import app
 from hexapod.models import VirtualHexapod
 from hexapod.const import BASE_PLOTTER, BASE_FIGURE
 from widgets.motion_ui import (
@@ -68,7 +67,7 @@ layout = shared.make_standard_page_layout(GRAPH_ID, sidebar)
 # --- Callbacks ---
 
 # 1. Server-side: Generate pre-rendered figures for smooth client-side playback
-@app.callback(
+@callback(
     Output(ANIMATION_STORE_ID, "data"),
     Output(MOTION_FRAME_SLIDER_ID, "max"),
     Output(MOTION_FRAME_SLIDER_ID, "marks"),
@@ -121,7 +120,7 @@ def update_motion_and_dimensions(motion_name, _config_store):
 
 
 # 2. Client-side: Handle Play/Pause button
-app.clientside_callback(
+clientside_callback(
     """
     function(n_clicks, is_playing, current_frame, max_frame) {
         if (n_clicks === undefined) {
@@ -154,7 +153,7 @@ app.clientside_callback(
 )
 
 # 3. Client-side: Handle interval ticks
-app.clientside_callback(
+clientside_callback(
     """
     function(n_intervals, current_frame, max_frame, loop_values) {
         let loop = loop_values && loop_values.includes("loop");
@@ -190,7 +189,7 @@ app.clientside_callback(
 )
 
 # 4. Client-side: Sync slider with graph frame
-app.clientside_callback(
+clientside_callback(
     """
     function(frame_idx, figures, relayoutData, current_fig) {
         if (frame_idx === undefined || !figures || figures.length === 0) {
@@ -230,7 +229,7 @@ app.clientside_callback(
 # 5. Server-side: run the selected motion on the physical robot
 # The motion is whatever the dropdown above is previewing, so there is no second
 # list to keep in step; nothing is sent until the Run button is pressed.
-@app.callback(
+@callback(
     Output(ROBOT_MOTION_MESSAGE_ID, "children"),
     Input(ROBOT_MOTION_RUN_BTN_ID, "n_clicks"),
     State(MOTION_DROPDOWN_ID, "value"),
@@ -269,7 +268,7 @@ def run_motion_on_robot(_n_clicks, motion_name, mode, loop_values):
     )
 
 
-@app.callback(
+@callback(
     Output(ROBOT_MOTION_SPEED_ID, "value"),
     Input(ROBOT_MOTION_SPEED_ID, "value"),
     prevent_initial_call=True,
@@ -282,7 +281,7 @@ def update_robot_motion_speed(speed_pct):
     return no_update if applied == speed_pct else applied
 
 
-@app.callback(
+@callback(
     Output(ROBOT_MOTION_MESSAGE_ID, "children", allow_duplicate=True),
     Input(ROBOT_MOTION_STOP_BTN_ID, "n_clicks"),
     prevent_initial_call=True,
@@ -303,7 +302,7 @@ def stop_motion_on_robot(_n_clicks):
 OFFLINE_MESSAGE = "Connect a robot to run this on the hardware."
 
 
-@app.callback(
+@callback(
     Output(ROBOT_MOTION_CONTROLS_ID, "className"),
     Output(ROBOT_MOTION_RUN_BTN_ID, "disabled"),
     Output(ROBOT_MOTION_STOP_BTN_ID, "disabled"),
@@ -358,7 +357,7 @@ def sync_robot_motion_controls(_n_intervals, message, speed_value, speed_min, sp
 
 
 # 6. Client-side: Control interval speed
-app.clientside_callback(
+clientside_callback(
     """
     function(speed) {
         let base = 50;

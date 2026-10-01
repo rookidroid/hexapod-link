@@ -1,7 +1,6 @@
 import json
-from dash import html
+from dash import callback, html
 from dash.dependencies import Output
-from app import app
 from settings import WHICH_POSE_CONTROL_UI
 from hexapod.models import VirtualHexapod
 from hexapod.const import BASE_PLOTTER
@@ -46,7 +45,7 @@ outputs, inputs, states = shared.make_standard_page_callback_params(
 )
 
 
-@app.callback(outputs, inputs, states)
+@callback(outputs, inputs, states)
 def update_kinematics_page(dimensions_json, poses_json, relayout_data, figure):
 
     dimensions = helpers.load_params(dimensions_json, "dims")
@@ -78,7 +77,7 @@ input_parameters = KINEMATICS_CALLBACK_INPUTS
 # fmt: off
 
 
-@app.callback(output_parameter, input_parameters)
+@callback(output_parameter, input_parameters)
 def update_poses(
     rfc, rff, rft,
     rmc, rmf, rmt,

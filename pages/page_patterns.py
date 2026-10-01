@@ -1,6 +1,6 @@
 import json
+from dash import callback
 from dash.dependencies import Output
-from app import app
 from hexapod.models import VirtualHexapod
 from hexapod.const import BASE_PLOTTER
 from widgets.leg_patterns_ui import PATTERNS_WIDGETS_SECTION, PATTERNS_CALLBACK_INPUTS
@@ -31,7 +31,7 @@ outputs, inputs, states = shared.make_standard_page_callback_params(
 )
 
 
-@app.callback(outputs, inputs, states)
+@callback(outputs, inputs, states)
 def update_patterns_page(dimensions_json, poses_json, relayout_data, figure):
 
     dimensions = helpers.load_params(dimensions_json, "dims")
@@ -56,6 +56,6 @@ output_parameter = Output(PARAMETERS_SECTION_ID, "children")
 input_parameters = PATTERNS_CALLBACK_INPUTS
 
 
-@app.callback(output_parameter, input_parameters)
+@callback(output_parameter, input_parameters)
 def update_poses_alpha_beta_gamma(alpha, beta, gamma):
     return json.dumps(helpers.make_pose(alpha, beta, gamma))

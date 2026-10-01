@@ -29,7 +29,7 @@ WINDOWS = sys.platform == "win32"
 ICON = "assets/app.ico" if WINDOWS else None
 
 # The app's own static files: stylesheets, the bundled fonts and the favicon.
-# app.py locates these at runtime through sys._MEIPASS.
+# hexapod_link.py locates these at runtime through sys._MEIPASS.
 datas = [("assets", "assets")]
 
 # Dash and its component libraries ship JavaScript bundles alongside a
@@ -128,7 +128,7 @@ if WINDOWS:
 runtime_hooks = ["rthook_clear_motw.py"] if WINDOWS else []
 
 a = Analysis(
-    ["desktop.py"],
+    ["hexapod_link.py"],
     pathex=[],
     binaries=[],
     datas=datas,
@@ -156,7 +156,7 @@ if ONEFILE:
         strip=False,
         upx=False,
         runtime_tmpdir=None,
-        # No console window; desktop.py writes nothing to stdout in normal use.
+        # No console window; hexapod_link.py writes nothing to stdout in normal use.
         console=False,
         disable_windowed_traceback=False,
         icon=ICON,

@@ -259,17 +259,17 @@ def capture_gif(browser, profile_dir, layouts, url, out_path):
 
 
 def main():
-    import index  # noqa: E402  (imported late; it builds the whole app)
+    import hexapod_link  # noqa: E402  (imported late; it builds the whole app)
 
     seen = set()
-    for layout in index.PAGES.values():
+    for layout in hexapod_link.PAGES.values():
         apply_values(layout, POSED_WIDGETS, seen)
     missing = sorted(set(POSED_WIDGETS) - seen)
     if missing:
         print(f"warning: no such widget(s), left at default: {', '.join(missing)}")
 
     os.makedirs(OUT_DIR, exist_ok=True)
-    server = make_server("127.0.0.1", PORT, index.app.server, threaded=True)
+    server = make_server("127.0.0.1", PORT, hexapod_link.app.server, threaded=True)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
 
@@ -298,7 +298,7 @@ def main():
             size = capture_gif(
                 browser,
                 profile_dir,
-                list(index.PAGES.values()),
+                list(hexapod_link.PAGES.values()),
                 f"http://127.0.0.1:{PORT}/kinematics",
                 out_path,
             )

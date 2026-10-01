@@ -5,11 +5,10 @@ same routes its built-in calibration page uses (hexapod/robot_http.py).
 """
 
 import dash_bootstrap_components as dbc
-from dash import ctx, html, no_update
+from dash import callback, ctx, html, no_update
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
-from app import app
 from hexapod import robot_http
 from hexapod.robot_http import RobotHttpError
 from hexapod.robot_link import ROBOT_LINK
@@ -86,7 +85,7 @@ def _error(text):
 # ......................
 
 
-@app.callback(
+@callback(
     [Output(input_id, "value") for input_id in OFFSET_INPUT_IDS]
     + [
         Output(CALIBRATION_MESSAGE_ID, "children"),
@@ -156,7 +155,7 @@ def handle_calibration_buttons(*args):
 # ......................
 
 
-@app.callback(
+@callback(
     [
         Output(CALIBRATION_CONTROLS_ID, "className"),
         Output(CALIBRATION_STATUS_ID, "children"),

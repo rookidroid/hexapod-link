@@ -69,8 +69,8 @@ jobs:
       - name: Compile all sources
         run: python -m compileall -q hexapod pages widgets tests tools *.py
 
-      # Importing index.py builds app.layout and registers every page callback,
+      # Importing hexapod_link builds app.layout and registers every page callback,
       # so this catches a broken widget or a duplicate Dash element id that
       # compiling alone would not.
       - name: Import the full app
-        run: python -c "import index; assert index.app.layout is not None"
+        run: python -c "import hexapod_link; assert hexapod_link.app.layout is not None"

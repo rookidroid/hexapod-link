@@ -13,10 +13,9 @@ the internet.
 from copy import deepcopy
 
 import dash_bootstrap_components as dbc
-from dash import dcc, html
+from dash import callback, dcc, html
 from dash.dependencies import Output, Input
 
-from app import app
 from hexapod.const import BASE_FIGURE
 from hexapod.robot_link import ROBOT_LINK
 from pages import shared
@@ -268,7 +267,7 @@ layout = shared.make_scrollable_page(
 shared.register_open_panel_button(LANDING_OPEN_PANEL_BTN_ID)
 
 
-@app.callback(
+@callback(
     Output(LANDING_STATUS_ID, "children"),
     Output(LANDING_STATUS_ID, "className"),
     Output(LANDING_STATE_ID, "children"),

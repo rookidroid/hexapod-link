@@ -1,7 +1,6 @@
 import json
-from dash import html
+from dash import callback, html
 from dash.dependencies import Output
-from app import app
 from settings import RECOMPUTE_HEXAPOD
 from hexapod.models import VirtualHexapod
 from hexapod.const import BASE_PLOTTER
@@ -42,7 +41,7 @@ outputs, inputs, states = shared.make_standard_page_callback_params(
 )
 
 
-@app.callback(outputs, inputs, states)
+@callback(outputs, inputs, states)
 def update_inverse_page(dimensions_json, ik_parameters_json, relayout_data, figure):
 
     dimensions = helpers.load_params(dimensions_json, "dims")
@@ -80,7 +79,7 @@ output_parameter = Output(PARAMETERS_SECTION_ID, "children")
 input_parameters = IK_CALLBACK_INPUTS
 
 
-@app.callback(output_parameter, input_parameters)
+@callback(output_parameter, input_parameters)
 def update_ik_parameters(
     hip_stance, leg_stance, percent_x, percent_y, percent_z, rot_x, rot_y, rot_z
 ):

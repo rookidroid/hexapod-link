@@ -57,12 +57,14 @@ change rather than editing the images by hand.
 
 ```bash
 $ pip install -r requirements.txt
-$ python index.py
-Running on http://127.0.0.1:8050/
+$ python hexapod_link.py --no-window --port 8050
+serving on http://127.0.0.1:8050 (ctrl-c to stop)
 ```
 
+Then open the printed URL in a browser.
+
 - Modify default settings with [`settings.py`](./settings.py) — joint limits, robot link ports/rates, UI resolution, etc.
-- Modify page styles/theme with [`style_settings.py`](./style_settings.py) (light mode is the default; set `DARKMODE = True` to switch).
+- Modify page styles/theme with [`style_settings.py`](./style_settings.py).
 
 ## Desktop app
 
@@ -72,7 +74,7 @@ window. No browser chrome, no dev-server warnings, and it works offline.
 
 ```bash
 $ pip install -r requirements-desktop.txt
-$ python desktop.py
+$ python hexapod_link.py
 ```
 
 Useful flags: `--port` to pin the port, `--debug` for the webview developer

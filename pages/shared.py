@@ -1,9 +1,8 @@
 import json
 import dash_bootstrap_components as dbc
-from dash import dcc, html, no_update
+from dash import callback, dcc, html, no_update
 from dash.dependencies import Output, Input, State
 from dash.exceptions import PreventUpdate
-from app import app
 from widgets.dimensions_ui import (
     DIMENSION_CALLBACK_INPUTS,
     DIMENSION_WIDGET_IDS,
@@ -40,7 +39,7 @@ DIMS_JSON_CALLBACK_INPUT = Input(DIMENSIONS_HIDDEN_SECTION_ID, "children")
 DIMS_JSON_CALLBACK_OUTPUT = Output(DIMENSIONS_HIDDEN_SECTION_ID, "children")
 
 
-@app.callback(DIMS_JSON_CALLBACK_OUTPUT, DIMENSION_CALLBACK_INPUTS)
+@callback(DIMS_JSON_CALLBACK_OUTPUT, DIMENSION_CALLBACK_INPUTS)
 def update_dimensions(front, side, middle, coxia, femur, tibia):
     dimensions = {
         "front": front or 0,
@@ -205,7 +204,7 @@ GLOBAL_CONTROLS_PANEL = html.Div(
 )
 
 
-@app.callback(
+@callback(
     Output(GLOBAL_PANEL_ID, "className"),
     Input(GLOBAL_PANEL_TOGGLE_ID, "n_clicks"),
     Input(GLOBAL_PANEL_CLOSE_ID, "n_clicks"),
@@ -227,7 +226,7 @@ def register_open_panel_button(button_id):
     there would stop the navbar handle working on every other page.
     """
 
-    @app.callback(
+    @callback(
         Output(GLOBAL_PANEL_ID, "className", allow_duplicate=True),
         Input(button_id, "n_clicks"),
         prevent_initial_call=True,
@@ -249,7 +248,7 @@ def register_open_panel_button(button_id):
 # ......................
 
 
-@app.callback(
+@callback(
     Output(ROBOT_CONNECT_BTN_ID, "children"),
     Output(ROBOT_CONNECT_BTN_ID, "color"),
     Output(ROBOT_CONFIG_STORE_ID, "data"),
@@ -277,7 +276,7 @@ def toggle_robot_connection(_n_clicks, ip, config_store):
     return "Connect", "primary", store
 
 
-@app.callback(
+@callback(
     [Output(widget_id, "value") for widget_id in DIMENSION_WIDGET_IDS]
     + [Output(ROBOT_INFO_ID, "children")],
     Input(ROBOT_CONFIG_STORE_ID, "data"),
@@ -323,7 +322,7 @@ def link_status_text(status):
     return text, "text-success" if status["streaming"] else "text-info"
 
 
-@app.callback(
+@callback(
     Output(ROBOT_STATUS_ID, "children"),
     Output(ROBOT_STATUS_ID, "className"),
     Output(ROBOT_FIRMWARE_ID, "children"),
@@ -375,7 +374,7 @@ def make_stream_controls(page_key):
     ids = make_stream_control_ids(page_key)
     section = make_stream_controls_section(ids)
 
-    @app.callback(
+    @callback(
         Output(ids["switch"], "value"),
         Input(ids["switch"], "value"),
         prevent_initial_call=True,
@@ -386,7 +385,7 @@ def make_stream_controls(page_key):
         # disconnected, so the switch must not appear on in that case.
         return ROBOT_LINK.streaming
 
-    @app.callback(
+    @callback(
         Output(ids["max_step"], "value"),
         Input(ids["max_step"], "value"),
         prevent_initial_call=True,
@@ -395,7 +394,7 @@ def make_stream_controls(page_key):
         ROBOT_LINK.set_max_step(max_step)
         return max_step
 
-    @app.callback(
+    @callback(
         Output(ids["switch"], "value", allow_duplicate=True),
         Input(ids["relax"], "n_clicks"),
         prevent_initial_call=True,
@@ -404,7 +403,7 @@ def make_stream_controls(page_key):
         ROBOT_LINK.relax()
         return False
 
-    @app.callback(
+    @callback(
         Output(ids["status"], "children"),
         Output(ids["status"], "className"),
         Output(ids["controls"], "className"),
