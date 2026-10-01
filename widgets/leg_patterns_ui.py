@@ -2,7 +2,6 @@
 import dash_bootstrap_components as dbc
 from dash import html
 from dash.dependencies import Input
-import dash_daq
 from hexapod.naming import JOINT_ANGLE_NAMES, joint_label
 from texts import PATTERNS_WIDGETS_HEADER
 from settings import (
@@ -12,31 +11,19 @@ from settings import (
     UPDATE_MODE,
     SLIDER_ANGLE_RESOLUTION,
 )
-from style_settings import SLIDER_THEME, SLIDER_HANDLE_COLOR, SLIDER_COLOR
+from widgets.section_maker import make_slider_field
 
 
 def make_slider(slider_id, name, max_angle):
-
-    handle_style = {
-        "showCurrentValue": True,
-        "color": SLIDER_HANDLE_COLOR,
-        "label": name,
-    }
-
-    daq_slider = dash_daq.Slider(  # pylint: disable=not-callable
-        id=slider_id,
-        min=-max_angle,
-        max=max_angle,
-        value=1.5,
-        step=SLIDER_ANGLE_RESOLUTION,
-        size=300,
+    return make_slider_field(
+        slider_id,
+        f"{name} (°)",
+        -max_angle,
+        max_angle,
+        SLIDER_ANGLE_RESOLUTION,
+        1.5,
         updatemode=UPDATE_MODE,
-        handleLabel=handle_style,
-        color={"default": SLIDER_COLOR},
-        theme=SLIDER_THEME,
     )
-
-    return html.Div(daq_slider, className="py-3")
 
 
 # ................................

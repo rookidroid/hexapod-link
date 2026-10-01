@@ -1,23 +1,143 @@
-# Used to make html divisions using Bootstrap components
+# Building blocks shared by the sidebar sections, so every page lays out its
+# controls the same way. Sizing is left to the CSS (see SIDEBAR FIELDS in
+# assets/industrial.css): each block adapts to whatever width the panel has
+# rather than to Bootstrap column counts.
 import dash_bootstrap_components as dbc
+from dash import dcc, html
+
+from hexapod.naming import JOINT_NAMES, joint_short_label, leg_label
 
 
-def make_section_type3(div1, div2, div3, name1="", name2="", name3=""):
-    return dbc.Row(
+def field_label(text):
+    return html.Label(text, className="ind-field-label")
+
+
+def group_header(text):
+    """A small header over a group of fields within one card."""
+    return html.Div(text, className="ind-group-header")
+
+
+def make_slider_field(
+    slider_id,
+    label,
+    min_value,
+    max_value,
+    step,
+    value,
+    marks=None,
+    disabled=False,
+    updatemode="mouseup",
+):
+    """A label on its own line, then the slider with its value box.
+
+    The same two rows whatever the label or the width of the panel. The box at
+    the right end is Dash's own direct input, so a value can be typed as well
+    as dragged to. Marks default to the two ends of the range, so every slider
+    shows its limits the same way.
+    """
+    if marks is None:
+        marks = {min_value: _mark(min_value), max_value: _mark(max_value)}
+
+    return html.Div(
         [
-            dbc.Col([div1, name1], width=4),
-            dbc.Col([div2, name2], width=4),
-            dbc.Col([div3, name3], width=4),
+            field_label(label),
+            dcc.Slider(
+                id=slider_id,
+                min=min_value,
+                max=max_value,
+                step=step,
+                value=value,
+                marks=marks,
+                disabled=disabled,
+                updatemode=updatemode,
+                allow_direct_input=True,
+            ),
         ],
-        className="g-2",
+        className="ind-slider-field",
     )
 
 
-def make_section_type2(div1, div2):
-    return dbc.Row(
+def _mark(number):
+    return f"{number:g}"
+
+
+def make_number_field(input_id, label, **input_props):
+    """A number input with its label above it, for use in make_field_grid()."""
+    return html.Div(
         [
-            dbc.Col(div1, width=6),
-            dbc.Col(div2, width=6),
+            field_label(label),
+            dbc.Input(id=input_id, type="number", size="sm", **input_props),
         ],
-        className="g-2",
+        className="ind-number-field",
     )
+
+
+def make_field_grid(fields):
+    """Lays fields out in as many columns as the panel has room for."""
+    return html.Div(fields, className="ind-field-grid")
+
+
+def make_joint_grid(rows, column_labels, make_cell, class_name=""):
+    """A table of one input per (row, joint): rows of legs, columns of joints.
+
+    `rows` is a list of (key, label) pairs and `make_cell(key, column_index)`
+    builds the input for one cell. The joint names are printed once, in the
+    header, instead of under every input.
+    """
+    header = html.Tr(
+        [html.Th("")]
+        + [html.Th(label, className="text-center") for label in column_labels]
+    )
+    body = [
+        html.Tr(
+            [html.Th(label, className="text-nowrap align-middle")]
+            + [html.Td(make_cell(key, j)) for j in range(len(column_labels))]
+        )
+        for key, label in rows
+    ]
+    return dbc.Table(
+        [html.Thead(header), html.Tbody(body)],
+        borderless=True,
+        size="sm",
+        className=f"ind-joint-grid {class_name}".strip(),
+    )
+
+
+# One block per side, front to back, left beside right as on the robot.
+LEG_SIDES = (
+    ("Left", ("left-front", "left-middle", "left-back")),
+    ("Right", ("right-front", "right-middle", "right-back")),
+)
+
+
+def short_leg_label(leg_name):
+    # "Right Leg 1" -> "R1". The block it sits in already says which side;
+    # the full name is kept as a tooltip.
+    full = leg_label(leg_name)
+    side, _, number = full.split()
+    return html.Span(f"{side[0]}{number}", title=full)
+
+
+def make_leg_sides(make_cell):
+    """A Left and a Right joint grid, side by side when the panel has room.
+
+    `make_cell(leg_name, joint_index)` builds one cell. Left above right when
+    they do not fit together -- never interleaved. See SIDEBAR FIELDS in
+    assets/industrial.css.
+    """
+    blocks = [
+        html.Div(
+            [
+                group_header(side),
+                make_joint_grid(
+                    [(name, short_leg_label(name)) for name in legs],
+                    [joint_short_label(joint) for joint in JOINT_NAMES],
+                    make_cell,
+                    class_name="mb-0",
+                ),
+            ],
+            className="ind-joint-side",
+        )
+        for side, legs in LEG_SIDES
+    ]
+    return html.Div(blocks, className="ind-joint-sides")

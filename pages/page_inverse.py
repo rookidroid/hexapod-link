@@ -1,5 +1,5 @@
 import json
-from dash import callback, html
+from dash import callback
 from dash.dependencies import Output
 from settings import RECOMPUTE_HEXAPOD
 from hexapod.models import VirtualHexapod
@@ -21,12 +21,11 @@ PARAMETERS_SECTION_ID = "parameters-inverse"
 
 # The solved pose is streamed from this page, so the stream switch belongs
 # beside the controls that produce it rather than in the global panel.
-widgets_section = html.Div(
-    [IK_WIDGETS_SECTION, shared.make_stream_controls("inverse")]
-)
-
 sidebar = shared.make_standard_page_sidebar(
-    MESSAGE_SECTION_ID, PARAMETERS_SECTION_ID, widgets_section
+    MESSAGE_SECTION_ID,
+    PARAMETERS_SECTION_ID,
+    IK_WIDGETS_SECTION,
+    robot_section=shared.make_stream_controls("inverse"),
 )
 
 layout = shared.make_standard_page_layout(GRAPH_ID, sidebar)

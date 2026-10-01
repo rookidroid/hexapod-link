@@ -6,24 +6,16 @@ from texts import DIMENSIONS_WIDGETS_HEADER
 from settings import INPUT_DIMENSIONS_RESOLUTION
 from hexapod.robot_config import get_simulator_dimensions
 from hexapod.robot_link import ROBOT_LINK
-from widgets.section_maker import make_section_type3
+from widgets.section_maker import group_header, make_field_grid, make_number_field
 
 
-def make_number_widget(_name, _value):
-    return dbc.Input(
-        id=_name,
-        type="number",
-        value=_value,
+def make_number_widget(widget_id, name, value):
+    return make_number_field(
+        widget_id,
+        name.capitalize(),
+        value=value,
         min=0,
         step=INPUT_DIMENSIONS_RESOLUTION,
-        className="mb-2",
-    )
-
-
-def _code(name):
-    return html.Small(
-        name.upper(),
-        className="d-block text-center ind-label",
     )
 
 
@@ -41,33 +33,17 @@ DIMENSION_CALLBACK_INPUTS = [Input(id, "value") for id in DIMENSION_WIDGET_IDS]
 # from then on.
 _DEFAULT_DIMENSIONS = get_simulator_dimensions(ROBOT_LINK.robot_config)
 widgets = [
-    make_number_widget(widget_id, _DEFAULT_DIMENSIONS[name])
+    make_number_widget(widget_id, name, _DEFAULT_DIMENSIONS[name])
     for widget_id, name in zip(DIMENSION_WIDGET_IDS, WIDGET_NAMES)
 ]
-sections = dbc.Container(
-    [
-        make_section_type3(
-            widgets[0],
-            widgets[1],
-            widgets[2],
-            _code(WIDGET_NAMES[0]),
-            _code(WIDGET_NAMES[1]),
-            _code(WIDGET_NAMES[2]),
-        ),
-        make_section_type3(
-            widgets[3],
-            widgets[4],
-            widgets[5],
-            _code(WIDGET_NAMES[3]),
-            _code(WIDGET_NAMES[4]),
-            _code(WIDGET_NAMES[5]),
-        ),
-    ],
-    fluid=True,
-    className="p-0",
-)
+sections = [
+    group_header("Body"),
+    make_field_grid(widgets[:3]),
+    group_header("Leg"),
+    make_field_grid(widgets[3:]),
+]
 
 DIMENSIONS_WIDGETS_SECTION = dbc.Card(
-    dbc.CardBody([HEADER, sections]),
+    dbc.CardBody([HEADER, *sections]),
     className="mb-3 ind-card",
 )

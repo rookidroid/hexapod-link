@@ -14,6 +14,7 @@ from dash import dcc, html
 from settings import ROBOT_DEFAULT_IP, ROBOT_DEFAULT_MAX_STEP
 from hexapod.robot_config import describe
 from hexapod.robot_link import ROBOT_LINK
+from widgets.section_maker import make_slider_field
 
 # --- Element IDs ---
 ROBOT_INFO_ID = "robot-info"
@@ -69,29 +70,26 @@ robot_firmware = html.Div(
     className="small text-muted font-monospace text-center mb-2",
 )
 
-connection_row = dbc.Row(
+# The ind-wrap-row pieces share a line while there is room for both and stack
+# when there is not; see SIDEBAR FIELDS in industrial.css.
+connection_row = html.Div(
     [
-        dbc.Col(
-            dbc.Input(
-                id=ROBOT_IP_INPUT_ID,
-                type="text",
-                value=ROBOT_DEFAULT_IP,
-                debounce=True,
-                placeholder=ROBOT_DEFAULT_IP,
-            ),
-            width=7,
+        dbc.Input(
+            id=ROBOT_IP_INPUT_ID,
+            type="text",
+            value=ROBOT_DEFAULT_IP,
+            debounce=True,
+            placeholder=ROBOT_DEFAULT_IP,
+            className="ind-wrap-main",
         ),
-        dbc.Col(
-            dbc.Button(
-                "Connect",
-                id=ROBOT_CONNECT_BTN_ID,
-                color="primary",
-                className="w-100 fw-bold",
-            ),
-            width=5,
+        dbc.Button(
+            "Connect",
+            id=ROBOT_CONNECT_BTN_ID,
+            color="primary",
+            className="fw-bold ind-wrap-side",
         ),
     ],
-    className="mb-3 g-2",
+    className="ind-wrap-row mb-3",
 )
 
 status_display = html.Div(
@@ -119,7 +117,7 @@ hidden_components = html.Div(
 ROBOT_LINK_WIDGETS_SECTION = dbc.Card(
     dbc.CardBody(
         [
-            html.H6("ROBOT LINK", className="mb-2"),
+            html.H6("Robot link", className="mb-2"),
             html.P(
                 "Join the robot's WiFi access point, then connect. The robot "
                 "reports its own size and gaits, and the simulator follows. "
@@ -163,53 +161,40 @@ def make_stream_control_ids(page_key):
 def make_stream_controls_section(ids):
     # Everything starts disabled because the app starts with no session; the
     # sync callback in pages/shared.py opens them up once one is connected.
-    stream_row = dbc.Row(
+    stream_row = html.Div(
         [
-            dbc.Col(
-                dbc.Switch(
-                    id=ids["switch"],
-                    label="Stream pose to robot",
-                    value=False,
-                    disabled=True,
-                    className="fw-bold mb-0",
-                ),
-                width=7,
+            dbc.Switch(
+                id=ids["switch"],
+                label="Stream pose to robot",
+                value=False,
+                disabled=True,
+                className="fw-bold mb-0 ind-wrap-main",
             ),
-            dbc.Col(
-                dbc.Button(
-                    "RELAX",
-                    id=ids["relax"],
-                    color="danger",
-                    disabled=True,
-                    className="w-100 fw-bold",
-                ),
-                width=5,
+            dbc.Button(
+                "Relax",
+                id=ids["relax"],
+                color="danger",
+                disabled=True,
+                className="fw-bold ind-wrap-side",
             ),
         ],
-        className="mb-3 g-2 align-items-center",
+        className="ind-wrap-row mb-3",
     )
 
-    max_step_slider = html.Div(
-        [
-            html.Label("Max joint speed (ticks/cycle)", className="fw-bold mb-1"),
-            dcc.Slider(
-                id=ids["max_step"],
-                min=1,
-                max=30,
-                step=1,
-                value=ROBOT_DEFAULT_MAX_STEP,
-                disabled=True,
-                marks={1: "1", 8: "8", 15: "15", 30: "30"},
-                tooltip={"placement": "bottom", "always_visible": False},
-            ),
-        ],
-        className="mb-3",
+    max_step_slider = make_slider_field(
+        ids["max_step"],
+        "Max joint speed (ticks/cycle)",
+        1,
+        30,
+        1,
+        ROBOT_DEFAULT_MAX_STEP,
+        disabled=True,
     )
 
     return dbc.Card(
         dbc.CardBody(
             [
-                html.H6("STREAM TO ROBOT", className="mb-2"),
+                html.H6("Stream to robot", className="mb-2"),
                 html.P(
                     "Put the hexapod on a stand before streaming.",
                     className="text-muted small mb-3",
@@ -264,53 +249,40 @@ motion_loop = dcc.Checklist(
 # Gait playback speed, as a percent of the robot's tuned frame rate. Its range
 # and value are re-seeded from the connected robot by the motion page.
 _speed = ROBOT_LINK.robot_config["speed"]
-motion_speed = html.Div(
-    [
-        html.Label("Gait speed (%)", className="fw-bold mb-1"),
-        dcc.Slider(
-            id=ROBOT_MOTION_SPEED_ID,
-            min=_speed["min"],
-            max=_speed["max"],
-            step=5,
-            value=ROBOT_LINK.speed_pct,
-            disabled=True,
-            marks={_speed["min"]: str(_speed["min"]), _speed["max"]: str(_speed["max"])},
-            tooltip={"placement": "bottom", "always_visible": False},
-        ),
-    ],
-    className="mb-3",
+motion_speed = make_slider_field(
+    ROBOT_MOTION_SPEED_ID,
+    "Gait speed (%)",
+    _speed["min"],
+    _speed["max"],
+    5,
+    ROBOT_LINK.speed_pct,
+    disabled=True,
 )
 
-motion_buttons = dbc.Row(
+motion_buttons = html.Div(
     [
-        dbc.Col(
-            dbc.Button(
-                "▶ Run on Robot",
-                id=ROBOT_MOTION_RUN_BTN_ID,
-                color="success",
-                disabled=True,
-                className="w-100 fw-bold",
-            ),
-            width=7,
+        dbc.Button(
+            "▶ Run on robot",
+            id=ROBOT_MOTION_RUN_BTN_ID,
+            color="success",
+            disabled=True,
+            className="fw-bold ind-wrap-main",
         ),
-        dbc.Col(
-            dbc.Button(
-                "■ Standby",
-                id=ROBOT_MOTION_STOP_BTN_ID,
-                color="secondary",
-                disabled=True,
-                className="w-100 fw-bold",
-            ),
-            width=5,
+        dbc.Button(
+            "■ Standby",
+            id=ROBOT_MOTION_STOP_BTN_ID,
+            color="secondary",
+            disabled=True,
+            className="fw-bold ind-wrap-side",
         ),
     ],
-    className="g-2",
+    className="ind-wrap-row",
 )
 
 ROBOT_MOTION_WIDGETS_SECTION = dbc.Card(
     dbc.CardBody(
         [
-            html.H6("RUN ON ROBOT", className="mb-2"),
+            html.H6("Run on robot", className="mb-2"),
             html.P(
                 "Runs the motion selected above on the hardware.",
                 className="text-muted small mb-3",

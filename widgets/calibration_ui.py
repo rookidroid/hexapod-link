@@ -9,6 +9,7 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html
 
 from hexapod.naming import JOINT_NAMES, LEG_LABELS, joint_label
+from widgets.section_maker import make_joint_grid
 
 # Offsets are servo ticks (~0.44 deg each); the firmware rejects anything wider.
 CALIBRATION_MAX_OFFSET = 100
@@ -52,24 +53,11 @@ def _offset_input(leg_id, joint_index):
     )
 
 
-_header = html.Tr(
-    [html.Th("")]
-    + [html.Th(joint_label(joint), className="text-center small") for joint in JOINT_NAMES]
-)
-
-_rows = [
-    html.Tr(
-        [html.Th(label, className="small text-nowrap align-middle")]
-        + [html.Td(_offset_input(leg_id, j)) for j in range(len(JOINT_NAMES))]
-    )
-    for leg_id, label in enumerate(LEG_LABELS)
-]
-
-offset_table = dbc.Table(
-    [html.Thead(_header), html.Tbody(_rows)],
-    borderless=True,
-    size="sm",
-    className="mb-3 calibration-table",
+offset_table = make_joint_grid(
+    list(enumerate(LEG_LABELS)),
+    [joint_label(joint) for joint in JOINT_NAMES],
+    _offset_input,
+    class_name="mb-3",
 )
 
 
@@ -104,7 +92,7 @@ offset_buttons = dbc.Row(
 CALIBRATION_WIDGETS_SECTION = dbc.Card(
     dbc.CardBody(
         [
-            html.H6("SERVO CALIBRATION", className="mb-2"),
+            html.H6("Servo calibration", className="mb-2"),
             html.P(
                 [
                     "Trims each servo so the legs match the robot's calibration "
