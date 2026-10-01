@@ -119,8 +119,8 @@ hero = dbc.Row(
 #
 # Each card says what the page does on screen and what it does to the hardware,
 # because those are different questions and the second one is easy to get
-# wrong: two of these stream continuously, one commands the robot's own gait,
-# and one never touches it.
+# wrong: three of these stream continuously and one commands the robot's own
+# gait.
 # ......................
 
 
@@ -173,9 +173,8 @@ tools = html.Div(
                     3,
                     "Leg Patterns",
                     "Sweep all six legs together through one set of angles.",
-                    "Simulator only",
+                    "Streams every pose to the servos",
                     PATTERNS_PAGE_PATH,
-                    on_hardware=False,
                 ),
                 _tool(
                     4,

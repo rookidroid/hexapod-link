@@ -43,7 +43,6 @@ from texts import (
     MOTION_PAGE_PATH,
     PATTERNS_PAGE_PATH,
     ROOT_PATH,
-    URL_REPO,
 )
 
 
@@ -94,8 +93,6 @@ NAVBAR = dbc.Navbar(
                     dbc.NavItem(dbc.NavLink("Inverse Kinematics", href=IK_PAGE_PATH)),
                     dbc.NavItem(dbc.NavLink("Leg Patterns", href=PATTERNS_PAGE_PATH)),
                     dbc.NavItem(dbc.NavLink("Motion", href=MOTION_PAGE_PATH)),
-                    dbc.NavItem(dbc.NavLink("Calibration", href=CALIBRATION_PAGE_PATH)),
-                    dbc.NavItem(dbc.NavLink("👾 Source", href=URL_REPO, target="_blank")),
                 ],
                 navbar=True,
             ),
