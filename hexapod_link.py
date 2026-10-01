@@ -37,6 +37,7 @@ from pages.shared import (
 from style_settings import EXTERNAL_STYLESHEETS, GLOBAL_PAGE_STYLE
 from texts import (
     APP_TITLE,
+    APP_VERSION,
     CALIBRATION_PAGE_PATH,
     IK_PAGE_PATH,
     KINEMATICS_PAGE_PATH,
@@ -85,10 +86,15 @@ server = app.server
 NAVBAR = dbc.Navbar(
     dbc.Container(
         [
-            dbc.NavbarBrand("Hexapod Link", href=ROOT_PATH),
+            dbc.NavbarBrand(
+                [
+                    APP_TITLE,
+                    html.Span(f"v{APP_VERSION}", className="navbar-version"),
+                ],
+                href=ROOT_PATH,
+            ),
             dbc.Nav(
                 [
-                    dbc.NavItem(dbc.NavLink("Home", href=ROOT_PATH)),
                     dbc.NavItem(dbc.NavLink("Kinematics", href=KINEMATICS_PAGE_PATH)),
                     dbc.NavItem(dbc.NavLink("Inverse Kinematics", href=IK_PAGE_PATH)),
                     dbc.NavItem(dbc.NavLink("Leg Patterns", href=PATTERNS_PAGE_PATH)),

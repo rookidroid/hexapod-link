@@ -185,6 +185,20 @@ body {
     color: var(--ind-accent);
 }
 
+/* Release stamp beside the brand: small, muted, and in its original case. */
+.ind-navbar .navbar-version {
+    margin-left: 0.6rem;
+    padding: 0.1rem 0.4rem;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: none;
+    vertical-align: middle;
+    color: var(--ind-text-muted);
+    border: 1px solid var(--ind-border-light);
+}
+
 .ind-navbar .nav-link {
     font-weight: 700;
     font-size: 0.95rem;
