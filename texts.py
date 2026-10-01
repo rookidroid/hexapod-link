@@ -12,7 +12,7 @@ MOTION_PAGE_PATH = "/motion-animations"
 CALIBRATION_PAGE_PATH = "/calibration"
 ROOT_PATH = "/"
 
-DIMENSIONS_WIDGETS_HEADER = "robot dimensions".upper()
-PATTERNS_WIDGETS_HEADER = "leg patterns".upper()
-IK_WIDGETS_HEADER = "inverse kinematics".upper()
-KINEMATICS_WIDGETS_HEADER = "kinematics".upper()
+DIMENSIONS_WIDGETS_HEADER = "Robot dimensions"
+PATTERNS_WIDGETS_HEADER = "Leg patterns"
+IK_WIDGETS_HEADER = "Inverse kinematics"
+KINEMATICS_WIDGETS_HEADER = "Kinematics"

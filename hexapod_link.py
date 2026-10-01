@@ -96,8 +96,8 @@ NAVBAR = dbc.Navbar(
             dbc.Nav(
                 [
                     dbc.NavItem(dbc.NavLink("Kinematics", href=KINEMATICS_PAGE_PATH)),
-                    dbc.NavItem(dbc.NavLink("Inverse Kinematics", href=IK_PAGE_PATH)),
-                    dbc.NavItem(dbc.NavLink("Leg Patterns", href=PATTERNS_PAGE_PATH)),
+                    dbc.NavItem(dbc.NavLink("Inverse kinematics", href=IK_PAGE_PATH)),
+                    dbc.NavItem(dbc.NavLink("Leg patterns", href=PATTERNS_PAGE_PATH)),
                     dbc.NavItem(dbc.NavLink("Motion", href=MOTION_PAGE_PATH)),
                 ],
                 navbar=True,
@@ -115,6 +115,11 @@ NAVBAR = dbc.Navbar(
     ),
     className="mb-3 ind-navbar",
     sticky="top",
+    # Always laid out horizontally: there is no collapse toggler, so the
+    # default (collapse below `md`) would just stack the links into a tall
+    # list. Narrow windows wrap them onto a second row instead -- see NAVBAR
+    # in industrial.css.
+    expand=True,
 )
 
 app.layout = dbc.Container(

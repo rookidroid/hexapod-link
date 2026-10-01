@@ -46,7 +46,7 @@ _link_state = html.Div(
     [
         html.Div(
             [
-                html.Span("LINK", className="landing-status-label"),
+                html.Span("Link", className="landing-status-label"),
                 html.Span("OFFLINE", id=LANDING_STATE_ID, className="landing-state is-offline"),
             ],
             className="d-flex align-items-center gap-2 mb-2",
@@ -58,7 +58,7 @@ _link_state = html.Div(
         ),
         html.Div(id=LANDING_FIRMWARE_ID, className="landing-status-line text-muted"),
         dbc.Button(
-            "OPEN ROBOT PANEL",
+            "Open robot panel",
             id=LANDING_OPEN_PANEL_BTN_ID,
             color="primary",
             className="fw-bold mt-3",
@@ -152,7 +152,7 @@ def _tool(index, title, desc, hardware, href, on_hardware=True):
 
 tools = html.Div(
     [
-        html.H5("CONTROL SURFACES", className="landing-section-title"),
+        html.H5("Control surfaces", className="landing-section-title"),
         dbc.Row(
             [
                 _tool(
@@ -164,14 +164,14 @@ tools = html.Div(
                 ),
                 _tool(
                     2,
-                    "Inverse Kinematics",
+                    "Inverse kinematics",
                     "Translate and rotate the body; the solver finds the joints.",
                     "Streams once the pose is reachable",
                     IK_PAGE_PATH,
                 ),
                 _tool(
                     3,
-                    "Leg Patterns",
+                    "Leg patterns",
                     "Sweep all six legs together through one set of angles.",
                     "Streams every pose to the servos",
                     PATTERNS_PAGE_PATH,
@@ -201,7 +201,7 @@ build_link = html.A(
         [
             html.Div(
                 [
-                    html.Div("BUILD ONE", className="build-title"),
+                    html.Div("Build one", className="build-title"),
                     html.Div(
                         "Frames, parts, firmware and the story of how the "
                         "hexapod got here — every revision, on rookidroid.com.",
@@ -221,11 +221,11 @@ build_link = html.A(
 
 hardware = html.Div(
     [
-        html.H5("DRIVING A REAL HEXAPOD", className="landing-section-title"),
+        html.H5("Driving a real hexapod", className="landing-section-title"),
         build_link,
         html.Div(
             [
-                html.Div("⚠ BEFORE YOU STREAM", className="safety-title"),
+                html.Div("⚠ Before you stream", className="safety-title"),
                 html.Ul(
                     [
                         html.Li(
