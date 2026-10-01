@@ -617,6 +617,110 @@ input[type="number"]:focus,
 }
 
 /* ===========================================
+   BUTTONS — Machine Controls
+
+   Every dbc.Button, restyled to match the cards and the navbar status button:
+   square, heavy border, hard offset shadow, lifting on hover and pressing flat
+   on click. Colours go through Bootstrap's own --bs-btn-* variables, so the
+   hover, active and disabled states all follow without restating them.
+   Link buttons (the drawer's ✕) are text, not machinery, and are left alone.
+   =========================================== */
+
+.btn:not(.btn-link) {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-width: 2px;
+    border-radius: 0;
+    box-shadow: var(--shadow-hard);
+    transition: transform 0.1s ease, box-shadow 0.1s ease,
+                background-color 0.1s ease, border-color 0.1s ease;
+}
+
+.btn:not(.btn-link):hover {
+    transform: translate(-2px, -2px);
+    box-shadow: var(--shadow-hover);
+}
+
+.btn:not(.btn-link):active {
+    transform: translate(0, 0);
+    box-shadow: none;
+}
+
+.btn:not(.btn-link):disabled,
+.btn:not(.btn-link).disabled {
+    box-shadow: none;
+    transform: none;
+}
+
+.btn-primary {
+    --bs-btn-color: #fff;
+    --bs-btn-bg: var(--ind-accent);
+    --bs-btn-border-color: var(--ind-text);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: #c2410c;
+    --bs-btn-hover-border-color: var(--ind-text);
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: #9a3412;
+    --bs-btn-active-border-color: var(--ind-text);
+    --bs-btn-disabled-color: #fff;
+    --bs-btn-disabled-bg: var(--ind-accent);
+    --bs-btn-disabled-border-color: var(--ind-text);
+    --bs-btn-focus-shadow-rgb: 234, 88, 12;
+}
+
+.btn-secondary,
+.btn-outline-secondary {
+    --bs-btn-color: var(--ind-text);
+    --bs-btn-bg: var(--ind-surface-alt);
+    --bs-btn-border-color: var(--ind-border);
+    --bs-btn-hover-color: var(--ind-text);
+    --bs-btn-hover-bg: #f3f4f6;
+    --bs-btn-hover-border-color: var(--ind-text);
+    --bs-btn-active-color: var(--ind-text);
+    --bs-btn-active-bg: var(--ind-bg);
+    --bs-btn-active-border-color: var(--ind-text);
+    --bs-btn-disabled-color: var(--ind-text-muted);
+    --bs-btn-disabled-bg: var(--ind-surface-alt);
+    --bs-btn-disabled-border-color: var(--ind-border-light);
+    --bs-btn-focus-shadow-rgb: 75, 85, 99;
+}
+
+/* Same green and red as the ONLINE and FAULT indicators. */
+.btn-success {
+    --bs-btn-color: #fff;
+    --bs-btn-bg: #16a34a;
+    --bs-btn-border-color: var(--ind-text);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: #15803d;
+    --bs-btn-hover-border-color: var(--ind-text);
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: #166534;
+    --bs-btn-active-border-color: var(--ind-text);
+    --bs-btn-disabled-color: #fff;
+    --bs-btn-disabled-bg: #16a34a;
+    --bs-btn-disabled-border-color: var(--ind-text);
+    --bs-btn-focus-shadow-rgb: 22, 163, 74;
+}
+
+.btn-danger {
+    --bs-btn-color: #fff;
+    --bs-btn-bg: #dc2626;
+    --bs-btn-border-color: var(--ind-text);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: #b91c1c;
+    --bs-btn-hover-border-color: var(--ind-text);
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: #991b1b;
+    --bs-btn-active-border-color: var(--ind-text);
+    --bs-btn-disabled-color: #fff;
+    --bs-btn-disabled-bg: #dc2626;
+    --bs-btn-disabled-border-color: var(--ind-text);
+    --bs-btn-focus-shadow-rgb: 220, 38, 38;
+}
+
+/* ===========================================
    GLOBAL DRAWER — app-wide robot controls
 
    Slid out of view rather than hidden with `display: none`, so its widgets
