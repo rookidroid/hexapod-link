@@ -3,7 +3,8 @@
     python tools/make_screenshots.py
 
 Serves the app on a loopback port, drives headless Chrome over it once per
-page, and writes the results to docs/images/. The screenshots are therefore
+page and theme, and writes the results to docs/images/: <page>.png in the
+light theme and <page>-dark.png in the dark one. The screenshots are therefore
 always of the current UI -- rerun this after a theme or layout change rather
 than editing the PNGs by hand.
 
@@ -42,6 +43,11 @@ PAGES = [
     ("leg-patterns", "/leg-patterns", 1400, 1000),
     ("motion", "/motion-animations", 1400, 1150),
 ]
+
+# Every page is captured once per theme, with this suffix on the file name.
+# The README picks between the two with a <picture> element, so readers see
+# the one matching their GitHub colour mode.
+THEMES = [("light", ""), ("dark", "-dark")]
 
 # Widget values applied before serving, so each page is captured showing off
 # what it does instead of the neutral start-up pose. Keyed by widget id, which
@@ -84,9 +90,10 @@ POSED_WIDGETS = {
 }
 
 # The animated hero on the README: one gait cycle, played on the kinematics
-# page because that page takes its pose straight from the widget values.
+# page because that page takes its pose straight from the widget values. The
+# gait is generated for the robot the app is modelling, so it fits the body
+# drawn in the plot.
 GIF_MOTION = "walk_0"
-GIF_PROFILE = "mochi"
 GIF_FRAME_STEP = 2
 GIF_WIDTH = 640
 GIF_FRAME_MS = 90
@@ -216,8 +223,9 @@ def capture(browser, profile_dir, url, out_path, width, height):
 def capture_gif(browser, profile_dir, layouts, url, out_path):
     """Walk the hexapod through one gait cycle, one browser shot per frame."""
     from hexapod.path_generator import generate_poses
+    from hexapod.robot_link import ROBOT_LINK
 
-    poses = generate_poses(GIF_MOTION, GIF_PROFILE)[::GIF_FRAME_STEP]
+    poses = generate_poses(GIF_MOTION, ROBOT_LINK.robot_config)[::GIF_FRAME_STEP]
     frames = []
     box = None
     with tempfile.TemporaryDirectory() as frame_dir:
@@ -259,6 +267,15 @@ def capture_gif(browser, profile_dir, layouts, url, out_path):
 
 
 def main():
+    # The app serves whatever theme is saved in the preferences file, so point
+    # that at a throwaway file and switch it per capture. The real one, from
+    # sessions on this machine, is neither read nor overwritten.
+    prefs_dir = tempfile.mkdtemp(prefix="hexapod-link-shots-")
+    from settings import PREFERENCES_ENV
+
+    os.environ[PREFERENCES_ENV] = os.path.join(prefs_dir, "preferences.json")
+    from hexapod.preferences import save_theme
+
     import hexapod_link  # noqa: E402  (imported late; it builds the whole app)
 
     seen = set()
@@ -278,21 +295,28 @@ def main():
     print(f"browser: {browser}")
     try:
         with tempfile.TemporaryDirectory() as profile_dir:
-            for name, path, width, height in ([] if gif_only else PAGES):
-                out_path = os.path.join(OUT_DIR, f"{name}.png")
-                size = capture(
-                    browser,
-                    profile_dir,
-                    f"http://127.0.0.1:{PORT}{path}",
-                    out_path,
-                    width,
-                    height,
-                )
-                kb = os.path.getsize(out_path) // 1024
-                print(f"  docs/images/{name}.png  {size[0]}x{size[1]}  {kb} KB")
+            for theme, suffix in ([] if gif_only else THEMES):
+                save_theme(theme)
+                for name, path, width, height in PAGES:
+                    file_name = f"{name}{suffix}.png"
+                    out_path = os.path.join(OUT_DIR, file_name)
+                    size = capture(
+                        browser,
+                        profile_dir,
+                        f"http://127.0.0.1:{PORT}{path}",
+                        out_path,
+                        width,
+                        height,
+                    )
+                    kb = os.path.getsize(out_path) // 1024
+                    print(f"  docs/images/{file_name}  {size[0]}x{size[1]}  {kb} KB")
 
             if "--no-gif" in sys.argv:
                 return
+            # The GIF is cropped to the 3D plot, which looks the same in both
+            # themes; find_plot_box() needs the light page around it to find
+            # the plot's edges.
+            save_theme("light")
             print(f"  rendering {GIF_MOTION} ...")
             out_path = os.path.join(OUT_DIR, "walk.gif")
             size = capture_gif(
@@ -306,6 +330,7 @@ def main():
             print(f"  docs/images/walk.gif  {size[0]}x{size[1]}  {kb} KB")
     finally:
         server.shutdown()
+        shutil.rmtree(prefs_dir, ignore_errors=True)
 
 
 if __name__ == "__main__":
