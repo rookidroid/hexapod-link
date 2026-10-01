@@ -1,6 +1,6 @@
 import json
 import dash_bootstrap_components as dbc
-from dash import callback, dcc, html, no_update
+from dash import callback, clientside_callback, dcc, html, no_update
 from dash.dependencies import Output, Input, State
 from dash.exceptions import PreventUpdate
 from widgets.dimensions_ui import (
@@ -24,6 +24,7 @@ from widgets.robot_link_ui import (
 )
 from hexapod.const import BASE_FIGURE
 from hexapod.robot_link import ROBOT_LINK
+from hexapod.preferences import save_theme
 from hexapod.robot_config import describe, describe_firmware, get_simulator_dimensions
 
 
@@ -243,6 +244,69 @@ def register_open_panel_button(button_id):
         if not n_clicks:
             raise PreventUpdate
         return _PANEL_CLASS_OPEN
+
+
+# ......................
+# Light / dark theme
+#
+# The theme is a data-theme attribute on <html> (plus data-bs-theme for
+# Bootstrap's own components); industrial.css swaps its colour tokens on it.
+# hexapod_link.py writes the saved theme into the page before it is served, so
+# a dark start never flashes light; these callbacks handle switching after that.
+# ......................
+
+THEME_TOGGLE_ID = "theme-toggle"
+THEME_STORE_ID = "theme-store"
+
+# What the button offers is the other theme, so it shows that one's icon.
+_THEME_TOGGLE_ICON = {"light": "☾", "dark": "☀"}
+_THEME_TOGGLE_TITLE = {"light": "Switch to dark theme", "dark": "Switch to light theme"}
+
+
+def make_theme_toggle(theme):
+    """The navbar button and the store it drives, rendered for `theme`."""
+    return html.Div(
+        [
+            dcc.Store(id=THEME_STORE_ID, data=theme),
+            html.Button(
+                _THEME_TOGGLE_ICON[theme],
+                id=THEME_TOGGLE_ID,
+                className="ind-theme-btn",
+                title=_THEME_TOGGLE_TITLE[theme],
+            ),
+        ],
+        className="d-flex",
+    )
+
+
+@callback(
+    Output(THEME_STORE_ID, "data"),
+    Input(THEME_TOGGLE_ID, "n_clicks"),
+    State(THEME_STORE_ID, "data"),
+    prevent_initial_call=True,
+)
+def toggle_theme(_n_clicks, theme):
+    theme = "light" if theme == "dark" else "dark"
+    save_theme(theme)
+    return theme
+
+
+clientside_callback(
+    """
+    function (theme) {
+        var root = document.documentElement;
+        root.setAttribute("data-theme", theme);
+        root.setAttribute("data-bs-theme", theme);
+        return [ICONS[theme], TITLES[theme]];
+    }
+    """.replace("ICONS", json.dumps(_THEME_TOGGLE_ICON)).replace(
+        "TITLES", json.dumps(_THEME_TOGGLE_TITLE)
+    ),
+    Output(THEME_TOGGLE_ID, "children"),
+    Output(THEME_TOGGLE_ID, "title"),
+    Input(THEME_STORE_ID, "data"),
+    prevent_initial_call=True,
+)
 
 
 # ......................

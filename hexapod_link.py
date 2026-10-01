@@ -19,6 +19,7 @@ import dash_bootstrap_components as dbc
 import waitress
 from dash import Dash, Input, Output, callback, dcc, html
 
+from hexapod.preferences import load_theme
 from hexapod.robot_link import ROBOT_LINK
 from pages import (
     page_calibration,
@@ -33,6 +34,7 @@ from pages.shared import (
     GLOBAL_PANEL_TOGGLE_CLASS,
     GLOBAL_PANEL_TOGGLE_ID,
     GLOBAL_PANEL_TOGGLE_LABEL,
+    make_theme_toggle,
 )
 from style_settings import EXTERNAL_STYLESHEETS, GLOBAL_PAGE_STYLE
 from texts import (
@@ -69,7 +71,25 @@ ASSETS_PATH = os.path.join(resource_root(), "assets")
 # served as application/octet-stream.
 mimetypes.add_type("font/woff2", ".woff2")
 
-app = Dash(
+
+class HexapodDash(Dash):
+    """Dash, with the saved colour theme written into the served page.
+
+    The theme lives on the <html> element, which Dash's layout cannot reach;
+    setting it from a callback would only happen after the first paint, so a
+    dark start would flash light. Putting it into the index page itself avoids
+    that. See the theme section of pages/shared.py.
+    """
+
+    def interpolate_index(self, **kwargs):
+        index = super().interpolate_index(**kwargs)
+        theme = load_theme()
+        return index.replace(
+            "<html>", f'<html data-theme="{theme}" data-bs-theme="{theme}">', 1
+        )
+
+
+app = HexapodDash(
     __name__,
     assets_folder=ASSETS_PATH,
     external_stylesheets=EXTERNAL_STYLESHEETS,
@@ -83,66 +103,85 @@ server = app.server
 # Layout
 # ....................
 
-NAVBAR = dbc.Navbar(
-    dbc.Container(
-        [
-            dbc.NavbarBrand(
-                [
-                    APP_TITLE,
-                    html.Span(f"v{APP_VERSION}", className="navbar-version"),
-                ],
-                href=ROOT_PATH,
-            ),
-            dbc.Nav(
-                [
-                    dbc.NavItem(dbc.NavLink("Kinematics", href=KINEMATICS_PAGE_PATH)),
-                    dbc.NavItem(dbc.NavLink("Inverse kinematics", href=IK_PAGE_PATH)),
-                    dbc.NavItem(dbc.NavLink("Leg patterns", href=PATTERNS_PAGE_PATH)),
-                    dbc.NavItem(dbc.NavLink("Motion", href=MOTION_PAGE_PATH)),
-                ],
-                navbar=True,
-            ),
-            # Doubles as the app's status readout and as the handle for the
-            # global robot panel. ONLINE means the link to the hexapod is up.
-            html.Button(
-                GLOBAL_PANEL_TOGGLE_LABEL,
-                id=GLOBAL_PANEL_TOGGLE_ID,
-                className=GLOBAL_PANEL_TOGGLE_CLASS,
-                title="Robot link and dimensions",
-            ),
-        ],
-        fluid=True,
-    ),
-    className="mb-3 ind-navbar",
-    sticky="top",
-    # Always laid out horizontally: there is no collapse toggler, so the
-    # default (collapse below `md`) would just stack the links into a tall
-    # list. Narrow windows wrap them onto a second row instead -- see NAVBAR
-    # in industrial.css.
-    expand=True,
+NAV_LINKS = dbc.Nav(
+    [
+        dbc.NavItem(dbc.NavLink("Kinematics", href=KINEMATICS_PAGE_PATH)),
+        dbc.NavItem(dbc.NavLink("Inverse kinematics", href=IK_PAGE_PATH)),
+        dbc.NavItem(dbc.NavLink("Leg patterns", href=PATTERNS_PAGE_PATH)),
+        dbc.NavItem(dbc.NavLink("Motion", href=MOTION_PAGE_PATH)),
+    ],
+    navbar=True,
 )
 
-app.layout = dbc.Container(
-    [
-        NAVBAR,
-        dcc.Location(id="url", refresh=False),
-        GLOBAL_CONTROLS_PANEL,
-        # Sizing and scrolling live in the PAGE LAYOUT block of industrial.css: it
-        # takes a media query to say that this scrolls only once the columns
-        # have stacked, and an inline style cannot carry one.
-        html.Div(id="page-content", className="flex-grow-1"),
-    ],
-    fluid=True,
-    style={
-        **GLOBAL_PAGE_STYLE,
-        "height": "100vh",
-        "display": "flex",
-        "flexDirection": "column",
-        "overflow": "hidden",
-        # Breathing room under the content now that there is no footer bar.
-        "paddingBottom": "1rem",
-    },
-)
+
+def make_navbar(theme):
+    return dbc.Navbar(
+        dbc.Container(
+            [
+                dbc.NavbarBrand(
+                    [
+                        APP_TITLE,
+                        html.Span(f"v{APP_VERSION}", className="navbar-version"),
+                    ],
+                    href=ROOT_PATH,
+                ),
+                NAV_LINKS,
+                html.Div(
+                    [
+                        make_theme_toggle(theme),
+                        # Doubles as the app's status readout and as the handle
+                        # for the global robot panel. ONLINE means the link to
+                        # the hexapod is up.
+                        html.Button(
+                            GLOBAL_PANEL_TOGGLE_LABEL,
+                            id=GLOBAL_PANEL_TOGGLE_ID,
+                            className=GLOBAL_PANEL_TOGGLE_CLASS,
+                            title="Robot link and dimensions",
+                        ),
+                    ],
+                    className="navbar-actions",
+                ),
+            ],
+            fluid=True,
+        ),
+        className="mb-3 ind-navbar",
+        sticky="top",
+        # Always laid out horizontally: there is no collapse toggler, so the
+        # default (collapse below `md`) would just stack the links into a tall
+        # list. Narrow windows wrap them onto a second row instead -- see NAVBAR
+        # in industrial.css.
+        expand=True,
+    )
+
+
+def serve_layout():
+    """Built per page load, so the navbar's theme button matches the saved
+    theme (see HexapodDash above)."""
+    return dbc.Container(
+        [
+            make_navbar(load_theme()),
+            dcc.Location(id="url", refresh=False),
+            GLOBAL_CONTROLS_PANEL,
+            # Sizing and scrolling live in the PAGE LAYOUT block of
+            # industrial.css: it takes a media query to say that this scrolls
+            # only once the columns have stacked, and an inline style cannot
+            # carry one.
+            html.Div(id="page-content", className="flex-grow-1"),
+        ],
+        fluid=True,
+        style={
+            **GLOBAL_PAGE_STYLE,
+            "height": "100vh",
+            "display": "flex",
+            "flexDirection": "column",
+            "overflow": "hidden",
+            # Breathing room under the content now that there is no footer bar.
+            "paddingBottom": "1rem",
+        },
+    )
+
+
+app.layout = serve_layout
 
 PAGES = {
     IK_PAGE_PATH: page_inverse.layout,
