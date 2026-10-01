@@ -26,25 +26,42 @@ streaming control, and a rebuilt CI/test suite.
 | 🎉 | Inverse Kinematics | What are the angles of each joint to make the robot look the way I want? Is it even possible? Why or why not? |
 | 🎉 | Leg Patterns & Motion | Preview predefined gaits and leg-pattern animations frame by frame. |
 | 🎉 | Customizability | Set the dimensions and shape of the robot's body and legs. |
-| 🎉 | Real-time Robot Control | Drive a physical ESP32 hexapod over WiFi, from single joints to whole-body gaits. Supports both the `mochi` and `macaroon` robots. |
+| 🎉 | Real-time Robot Control | Drive a physical ESP32 hexapod over WiFi, from single joints to whole-body gaits. Works with any robot in the family (Nougat, Mochi, Macaroon, ...): each one serves its own config. |
 | 🎉 | Desktop App | Runs as a native window (Windows/Linux) via PyInstaller + pywebview, no browser required. |
+| 🎉 | Light & Dark Themes | Switch from the navigation bar; the choice is remembered between launches. |
 | 🎉 | Simplicity | Minimal dependencies. Numpy for calculations, Plotly Dash for the 3D view and UI. |
 
 ## Preview
 
-![The landing page](docs/images/home.png)
+The screenshots follow your GitHub colour mode: light here shows the light
+theme, dark shows the dark one.
 
-| | |
-|---|---|
-| ![The kinematics page](docs/images/kinematics.png) | ![The inverse kinematics page](docs/images/inverse-kinematics.png) |
-| **Kinematics** — set all 18 joint angles by hand and watch the body follow. | **Inverse Kinematics** — translate and rotate the body; the solver finds the joints. |
-| ![The leg patterns page](docs/images/leg-patterns.png) | ![The motion page](docs/images/motion.png) |
-| **Leg Patterns** — sweep all six legs together through one set of angles. | **Motion** — play the generated gaits frame by frame and scrub them. |
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/home-dark.png"><img src="docs/images/home.png" alt="The landing page"></picture>
+
+<table>
+  <tr>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/kinematics-dark.png"><img src="docs/images/kinematics.png" alt="The kinematics page"></picture></td>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/inverse-kinematics-dark.png"><img src="docs/images/inverse-kinematics.png" alt="The inverse kinematics page"></picture></td>
+  </tr>
+  <tr>
+    <td><b>Kinematics</b> — set all 18 joint angles by hand and watch the body follow.</td>
+    <td><b>Inverse Kinematics</b> — translate and rotate the body; the solver finds the joints.</td>
+  </tr>
+  <tr>
+    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/leg-patterns-dark.png"><img src="docs/images/leg-patterns.png" alt="The leg patterns page"></picture></td>
+    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/motion-dark.png"><img src="docs/images/motion.png" alt="The motion page"></picture></td>
+  </tr>
+  <tr>
+    <td><b>Leg Patterns</b> — sweep all six legs together through one set of angles.</td>
+    <td><b>Motion</b> — play the generated gaits frame by frame and scrub them.</td>
+  </tr>
+</table>
 
 Everything above is generated from the running app by
-[`tools/make_screenshots.py`](./tools/make_screenshots.py), and the app icon by
-[`tools/make_icon.py`](./tools/make_icon.py). Rerun those after a UI or theme
-change rather than editing the images by hand.
+[`tools/make_screenshots.py`](./tools/make_screenshots.py), which captures every
+page in both themes (`<page>.png` and `<page>-dark.png` in `docs/images/`), and
+the app icon by [`tools/make_icon.py`](./tools/make_icon.py). Rerun those after
+a UI or theme change rather than editing the images by hand.
 
 ## Requirements
 
@@ -64,7 +81,16 @@ serving on http://127.0.0.1:8050 (ctrl-c to stop)
 Then open the printed URL in a browser.
 
 - Modify default settings with [`settings.py`](./settings.py) — joint limits, robot link ports/rates, UI resolution, etc.
-- Modify page styles/theme with [`style_settings.py`](./style_settings.py).
+- Modify the UI colours in [`assets/industrial.css`](./assets/industrial.css): the light theme's tokens are on `:root`, and the dark theme overrides them under `:root[data-theme="dark"]`.
+- Modify the 3D plot's colours and sizes with [`style_settings.py`](./style_settings.py). The plot is a dark CAD-style view in both themes.
+
+### Light and dark themes
+
+The ☾ / ☀ button in the navigation bar, next to the robot status button,
+switches between the light and dark themes. The choice is saved to
+`~/.hexapod-link/preferences.json` (set `HEXAPOD_LINK_PREFERENCES` to move it)
+and applied before the first paint on the next launch, so the app opens in
+whichever theme you left it in. Light is the default.
 
 ## Desktop app
 
@@ -211,11 +237,11 @@ $ pip install -r requirements-dev.txt
 $ pytest
 ```
 
-The suite (~1200 lines across [`tests/`](./tests)) covers forward/inverse
+The suite (~1700 lines across [`tests/`](./tests)) covers forward/inverse
 kinematics, leg patterns, path/motion generation, leg-naming conversions, the
-robot-link streaming protocol, and reading each robot's config (against
-`tools/fake_robot.py`) — all without needing a display, a browser, or a physical
-robot.
+robot-link streaming protocol, reading each robot's config (against
+`tools/fake_robot.py`), and the saved UI preferences — all without needing a
+display, a browser, or a physical robot.
 
 ## CI/CD
 
