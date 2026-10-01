@@ -29,14 +29,18 @@ from hexapod.robot_link import (
     MAGIC_MOTION,
     MAGIC_POSE,
     MAGIC_SESSION,
+    MAGIC_VERSION,
     MOTION_COMMANDS,
     STANDBY_POSE,
     RobotLink,
     _FMT_MOTION,
     _FMT_POSE,
     _FMT_SESSION,
+    _FMT_VERSION_REPLY,
+    _FMT_VERSION_REQUEST,
     clamp_pose_angles,
     joint_angles_to_servo_angles,
+    parse_version_reply,
     pose_to_ticks,
     servo_angle_to_ticks,
 )
@@ -257,6 +261,26 @@ def test_packet_layouts_match_the_firmware_structs():
     assert struct.calcsize(_FMT_MOTION) == 7
     assert struct.calcsize(_FMT_POSE) == 44
     assert struct.calcsize(_FMT_SESSION) == 6
+    # UdpVersionRequest, and the fixed head of UdpVersionReply
+    assert struct.calcsize(_FMT_VERSION_REQUEST) == 5
+    assert struct.calcsize(_FMT_VERSION_REPLY) == 9
+
+
+def test_a_version_reply_decodes():
+    """The build tag runs to the end of the datagram, unterminated."""
+    reply = struct.pack(_FMT_VERSION_REPLY, MAGIC_VERSION, 7, 1, 3, 2, 0) + b"v3.2.0"
+    assert parse_version_reply(reply, 7) == {
+        "version": "3.2.0",
+        "build": "v3.2.0",
+        "protocol": 1,
+    }
+
+
+def test_a_reply_to_another_query_is_ignored():
+    reply = struct.pack(_FMT_VERSION_REPLY, MAGIC_VERSION, 6, 1, 3, 2, 0) + b"dev"
+    assert parse_version_reply(reply, 7) is None
+    assert parse_version_reply(reply[:8], 6) is None
+    assert parse_version_reply(b"Got 5 bytes of data", 6) is None
 
 
 def test_a_pose_packet_round_trips():

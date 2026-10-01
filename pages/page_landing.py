@@ -32,6 +32,7 @@ from texts import (
 LANDING_GRAPH_ID = "landing-graph"
 LANDING_STATUS_ID = "landing-link-status"
 LANDING_STATE_ID = "landing-link-state"
+LANDING_FIRMWARE_ID = "landing-link-firmware"
 LANDING_OPEN_PANEL_BTN_ID = "landing-open-robot-panel"
 LANDING_POLL_INTERVAL_ID = "landing-poll-interval"
 
@@ -56,6 +57,7 @@ _link_state = html.Div(
             id=LANDING_STATUS_ID,
             className="landing-status-line text-muted",
         ),
+        html.Div(id=LANDING_FIRMWARE_ID, className="landing-status-line text-muted"),
         dbc.Button(
             "OPEN ROBOT PANEL",
             id=LANDING_OPEN_PANEL_BTN_ID,
@@ -271,6 +273,7 @@ shared.register_open_panel_button(LANDING_OPEN_PANEL_BTN_ID)
     Output(LANDING_STATUS_ID, "className"),
     Output(LANDING_STATE_ID, "children"),
     Output(LANDING_STATE_ID, "className"),
+    Output(LANDING_FIRMWARE_ID, "children"),
     Input(LANDING_POLL_INTERVAL_ID, "n_intervals"),
 )
 def update_landing_status(_n_intervals):
@@ -297,4 +300,5 @@ def update_landing_status(_n_intervals):
         "landing-status-line " + colour_class,
         state,
         "landing-state " + modifier,
+        shared.firmware_status_text(status),
     )

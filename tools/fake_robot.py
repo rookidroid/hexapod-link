@@ -4,9 +4,10 @@
     python tools/fake_robot.py mochi --port 8081
 
 Serves the firmware's HTTP routes -- /robot_config, the speed routes and the
-calibration routes -- with the same replies and refusals as the ESP32, and
-prints every UDP packet sent to it on port 1234. In the app, connect to
-127.0.0.1:8080: the port goes to HTTP, UDP always goes to 1234.
+calibration routes -- with the same replies and refusals as the ESP32, answers
+firmware version queries on UDP port 1234, and prints every other UDP packet
+sent there. In the app, connect to 127.0.0.1:8080: the port goes to HTTP, UDP
+always goes to 1234.
 
 The config it reports is one of the fixtures in tests/fixtures/robot_config,
 which are the firmware's own replies. The tests use FakeRobot directly.
@@ -27,22 +28,51 @@ FIXTURES = Path(__file__).resolve().parent.parent / "tests" / "fixtures" / "robo
 UDP_PORT = 1234
 MAX_OFFSET = 100
 
+MAGIC_VERSION = 0xA8
+
+
+def version_reply(request, payload):
+    """The firmware's answer to a version query, or None if `request` is not one.
+
+    The version is the one the payload reports, so UDP and HTTP agree.
+    """
+    if len(request) != 5 or request[0] != MAGIC_VERSION:
+        return None
+    _, seq = struct.unpack("<BI", request)
+    firmware = payload.get("firmware") or {}
+    major, minor, patch = (int(n) for n in firmware.get("version", "0.0.0").split("."))
+    head = struct.pack("<BIBBBB", MAGIC_VERSION, seq, payload["protocol"], major, minor, patch)
+    return head + firmware.get("build", "fake").encode("utf-8")
+
 
 class FakeRobot:
-    """HTTP side of a robot, on a background thread.
+    """A robot on background threads: HTTP, and UDP when `udp_port` is given.
 
-    `requests` records (method, path, body) for each request, for the tests.
+    `requests` records (method, path, body) for each request and `packets` each
+    UDP datagram other than a version query, for the tests. `on_packet` is
+    called with each of those datagrams as well. `answer_version` False plays
+    firmware that predates the version query.
     """
 
-    def __init__(self, payload, host="127.0.0.1", port=0):
+    def __init__(self, payload, host="127.0.0.1", port=0, udp_port=None,
+                 on_packet=None, answer_version=True):
         self.payload = payload
         self.speed = payload.get("speed", {}).get("current", 60)
         self.calibrating = False
         self.offsets = {"left": [[0] * 3 for _ in range(3)], "right": [[0] * 3 for _ in range(3)]}
         self.saved_offsets = None
         self.requests = []
+        self.packets = []
+        self.on_packet = on_packet
+        self.answer_version = answer_version
         self._server = ThreadingHTTPServer((host, port), self._handler())
         self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
+
+        self._udp = None
+        if udp_port is not None:
+            self._udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self._udp.bind((host, udp_port))
+            self._udp_thread = threading.Thread(target=self._serve_udp, daemon=True)
 
     @classmethod
     def from_fixture(cls, name, **kwargs):
@@ -54,13 +84,40 @@ class FakeRobot:
         host, port = self._server.server_address[:2]
         return f"{host}:{port}"
 
+    @property
+    def udp_port(self):
+        return self._udp.getsockname()[1] if self._udp else None
+
     def start(self):
         self._thread.start()
+        if self._udp:
+            self._udp_thread.start()
         return self
 
     def stop(self):
         self._server.shutdown()
         self._server.server_close()
+        if self._udp:
+            self._udp.close()
+
+    def _serve_udp(self):
+        while True:
+            try:
+                data, sender = self._udp.recvfrom(2048)
+            except OSError:
+                # Closed by stop(); on Windows also an ICMP error from a reply
+                # whose sender has gone, which is not worth stopping for.
+                if self._udp.fileno() == -1:
+                    return
+                continue
+            reply = version_reply(data, self.payload)
+            if reply is not None:
+                if self.answer_version:
+                    self._udp.sendto(reply, sender)
+                continue
+            self.packets.append(data)
+            if self.on_packet:
+                self.on_packet(data)
 
     def __enter__(self):
         return self.start()
@@ -175,22 +232,23 @@ def main():
     parser.add_argument("--quiet-pings", action="store_true", help="hide RT_PING packets")
     args = parser.parse_args()
 
-    robot = FakeRobot.from_fixture(args.robot, host=args.host, port=args.port).start()
-    print(f"Fake {args.robot} serving HTTP on {robot.address}, UDP on {args.host}:{UDP_PORT}")
-
-    udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    udp.bind((args.host, UDP_PORT))
-    try:
-        while True:
-            data, _ = udp.recvfrom(2048)
-            text = _describe_packet(data)
-            if args.quiet_pings and text.startswith("SESSION PING"):
-                continue
+    def print_packet(data):
+        text = _describe_packet(data)
+        if not (args.quiet_pings and text.startswith("SESSION PING")):
             print(text, flush=True)
+
+    robot = FakeRobot.from_fixture(
+        args.robot, host=args.host, port=args.port, udp_port=UDP_PORT,
+        on_packet=print_packet,
+    ).start()
+    firmware = robot.payload.get("firmware", {}).get("version", "0.0.0")
+    print(f"Fake {args.robot} (firmware {firmware}) serving HTTP on {robot.address}, "
+          f"UDP on {args.host}:{UDP_PORT}")
+    try:
+        threading.Event().wait()
     except KeyboardInterrupt:
         pass
     finally:
-        udp.close()
         robot.stop()
 
 

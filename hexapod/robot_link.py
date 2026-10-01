@@ -27,7 +27,8 @@
 #
 # The robot's config -- geometry, servo range, frame delay, speed limits and
 # command list -- is read from the robot itself when connecting; see
-# hexapod/robot_config.py.
+# hexapod/robot_config.py. The firmware version is asked for over UDP at the
+# same time, which also shows that the robot hears the motion channel.
 
 import socket
 import struct
@@ -41,6 +42,8 @@ from settings import (
     ROBOT_PING_HZ,
     ROBOT_DEFAULT_MAX_STEP,
     ROBOT_SEQUENCE_MAX_STEP,
+    ROBOT_VERSION_TIMEOUT_S,
+    ROBOT_VERSION_ATTEMPTS,
 )
 from hexapod import robot_http
 from hexapod.robot_config import (
@@ -61,6 +64,7 @@ from hexapod.robot_http import RobotHttpError, split_address
 MAGIC_MOTION = 0xA5
 MAGIC_POSE = 0xA6
 MAGIC_SESSION = 0xA7
+MAGIC_VERSION = 0xA8
 
 POSE_FLAG_SNAP = 0x01
 
@@ -76,6 +80,10 @@ RT_PING = 3
 _FMT_MOTION = "<BBIB"
 _FMT_POSE = "<BBHI" + "h" * 18
 _FMT_SESSION = "<BBI"
+# Version query (5 bytes) and the fixed head of its reply (9 bytes); the build
+# tag follows the reply's head as UTF-8, running to the end of the datagram.
+_FMT_VERSION_REQUEST = "<BI"
+_FMT_VERSION_REPLY = "<BIBBBB"
 
 # Motion command ids of the current firmware, mirrors the RobotCommand enum. The
 # link resolves ids from the connected robot's own command list instead (see
@@ -101,6 +109,27 @@ MOTION_COMMANDS = {
     "rotate_z": 17,
     "twist": 18,
 }
+
+
+def parse_version_reply(data, seq):
+    """Decode the robot's answer to version query `seq`.
+
+    Returns {"version": "MAJOR.MINOR.PATCH", "build", "protocol"}, or None when
+    `data` is not that answer.
+    """
+    head = struct.calcsize(_FMT_VERSION_REPLY)
+    if len(data) < head or data[0] != MAGIC_VERSION:
+        return None
+    _, reply_seq, protocol, major, minor, patch = struct.unpack_from(
+        _FMT_VERSION_REPLY, data
+    )
+    if reply_seq != seq:
+        return None
+    return {
+        "version": f"{major}.{minor}.{patch}",
+        "build": data[head:].decode("utf-8", errors="replace"),
+        "protocol": protocol,
+    }
 
 
 def joint_angles_to_servo_angles(leg_sign, coxia, femur, tibia):
@@ -185,8 +214,9 @@ class RobotLink:
     keeps the session alive and turns sporadic UI events into a smooth stream.
     """
 
-    def __init__(self, robot_config=None):
+    def __init__(self, robot_config=None, udp_port=ROBOT_UDP_PORT):
         self._lock = threading.Lock()
+        self._udp_port = udp_port
         self._socket = None
         self._thread = None
         self._stop_event = threading.Event()
@@ -196,6 +226,7 @@ class RobotLink:
         self._config_version = 0
         self._ip = ROBOT_DEFAULT_IP
         self._connected = False
+        self._firmware = None
         self._streaming = False
         self._max_step = ROBOT_DEFAULT_MAX_STEP
         self._speed_pct = robot_config["speed"]["default"]
@@ -243,6 +274,12 @@ class RobotLink:
             return self._ip
 
     @property
+    def firmware(self):
+        """The connected robot's {"version", "build", "protocol"}, else None."""
+        with self._lock:
+            return self._firmware
+
+    @property
     def speed_pct(self):
         with self._lock:
             return self._speed_pct
@@ -261,6 +298,7 @@ class RobotLink:
                 "robot_label": self._robot_config["label"],
                 "config_source": self._robot_config["source"],
                 "config_version": self._config_version,
+                "firmware": self._firmware,
             }
 
     # ------------------------------------------------------------ connection
@@ -285,8 +323,13 @@ class RobotLink:
         save_cached_config(robot_config)
         self._load_config(robot_config)
 
+        # /robot_config carries the version too, so an unanswered query still
+        # leaves something to show; it only means the UDP side is unconfirmed.
+        firmware = self.query_firmware(ip) or robot_config["firmware"]
+
         with self._lock:
             self._ip = ip
+            self._firmware = firmware
             if self._socket is None:
                 try:
                     self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -300,6 +343,45 @@ class RobotLink:
         self._send_session(RT_ENTER)
         self._start_thread()
         return True
+
+    def query_firmware(self, ip=None):
+        """Ask the robot for its firmware version over UDP.
+
+        Returns what parse_version_reply() decodes, or None if no answer came.
+        The query has a socket of its own: the streaming socket never reads, and
+        the reply would only queue up on it. The firmware does not count the
+        query as control input, so it neither feeds nor trips the failsafe.
+        """
+        host, _ = split_address(ip or self.ip)
+        with self._lock:
+            self._seq += 1
+            seq = self._seq
+        request = struct.pack(_FMT_VERSION_REQUEST, MAGIC_VERSION, seq)
+
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        except OSError:
+            return None
+
+        with sock:
+            for _ in range(ROBOT_VERSION_ATTEMPTS):
+                deadline = time.monotonic() + ROBOT_VERSION_TIMEOUT_S
+                try:
+                    sock.sendto(request, (host, self._udp_port))
+                    # Skip anything that is not the answer, e.g. a late reply
+                    # to an earlier query.
+                    while (remaining := deadline - time.monotonic()) > 0:
+                        sock.settimeout(remaining)
+                        data, _ = sock.recvfrom(512)
+                        reply = parse_version_reply(data, seq)
+                        if reply is not None:
+                            return reply
+                except socket.timeout:
+                    continue
+                except OSError:
+                    # Unreachable; Windows also reports a closed port this way.
+                    return None
+        return None
 
     def _load_config(self, robot_config):
         """Switch the link to a newly read robot config."""
@@ -323,6 +405,7 @@ class RobotLink:
 
         with self._lock:
             self._connected = False
+            self._firmware = None
             self._streaming = False
             self._sequence = None
             self._sequence_index = 0
@@ -516,7 +599,7 @@ class RobotLink:
                 return False
 
         try:
-            sock.sendto(packet, (host, ROBOT_UDP_PORT))
+            sock.sendto(packet, (host, self._udp_port))
         except OSError as error:
             with self._lock:
                 self._last_error = str(error)

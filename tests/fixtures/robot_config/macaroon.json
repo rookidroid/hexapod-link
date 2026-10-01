@@ -1,5 +1,9 @@
 {
   "protocol": 1,
+  "firmware": {
+    "version": "3.2.0",
+    "build": "dev"
+  },
   "name": "macaroon",
   "ssid": "hexapod_macaroon",
   "delay_ms": 25,

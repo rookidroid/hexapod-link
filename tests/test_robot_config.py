@@ -18,6 +18,7 @@ from hexapod.robot_config import (
     cache_path,
     command_id,
     describe,
+    describe_firmware,
     fetch_robot_config,
     get_simulator_dimensions,
     load_cached_config,
@@ -40,8 +41,13 @@ def cache_file(tmp_path, monkeypatch):
 
 @pytest.fixture
 def nougat():
-    with FakeRobot.from_fixture("nougat") as robot:
+    with FakeRobot.from_fixture("nougat", udp_port=0) as robot:
         yield robot
+
+
+def _link_to(robot):
+    """A link that sends its UDP to `robot` rather than the real port 1234."""
+    return RobotLink(GENERIC_CONFIG, udp_port=robot.udp_port)
 
 
 # ................................................................ parsing
@@ -232,7 +238,7 @@ def test_calibration_routes(nougat):
 
 
 def test_connecting_loads_the_robots_config(nougat, cache_file):
-    link = RobotLink(GENERIC_CONFIG)
+    link = _link_to(nougat)
     try:
         assert link.connect(nougat.address)
         assert link.connected
@@ -247,7 +253,7 @@ def test_connecting_loads_the_robots_config(nougat, cache_file):
 
 def test_connecting_picks_up_the_robots_speed(nougat, cache_file):
     nougat.speed = 45
-    link = RobotLink(GENERIC_CONFIG)
+    link = _link_to(nougat)
     try:
         link.connect(nougat.address)
         assert link.speed_pct == 45
@@ -267,3 +273,63 @@ def test_a_robot_that_does_not_answer_is_not_connected(cache_file):
     assert link.robot_config is GENERIC_CONFIG
     assert link.config_version == 0
     assert not cache_file.exists()
+
+
+# .............................................................. firmware
+
+
+def test_the_payload_reports_the_firmware():
+    robot = parse_robot_config(load_payload("nougat"))
+    assert robot["firmware"] == {"version": "3.2.0", "build": "dev", "protocol": 1}
+
+
+def test_firmware_that_predates_reporting_it_parses():
+    payload = load_payload("nougat")
+    del payload["firmware"]
+    assert parse_robot_config(payload)["firmware"] is None
+    assert GENERIC_CONFIG["firmware"] is None
+
+
+def test_describe_firmware():
+    firmware = {"version": "3.2.0", "build": "v3.2.0-4-gabc", "protocol": 1}
+    assert describe_firmware(firmware) == "Firmware 3.2.0 (v3.2.0-4-gabc) · protocol 1"
+    assert describe_firmware(dict(firmware, build="")) == "Firmware 3.2.0 · protocol 1"
+    assert describe_firmware(None) == "Firmware version not reported"
+
+
+def test_connecting_queries_the_firmware_over_udp(nougat, cache_file):
+    # With no version in the payload, the fake's UDP answer is the only source:
+    # its stand-in version shows the query went out and the reply was decoded.
+    del nougat.payload["firmware"]
+    link = _link_to(nougat)
+    try:
+        assert link.connect(nougat.address)
+        assert link.robot_config["firmware"] is None
+        assert link.firmware == {"version": "0.0.0", "build": "fake", "protocol": 1}
+        assert link.status()["firmware"] == link.firmware
+    finally:
+        link.disconnect()
+    assert link.firmware is None
+
+
+def test_without_a_udp_answer_the_firmware_comes_from_the_config(cache_file):
+    with FakeRobot.from_fixture("nougat", udp_port=0, answer_version=False) as robot:
+        link = _link_to(robot)
+        try:
+            assert link.connect(robot.address)
+            assert link.firmware == {"version": "3.2.0", "build": "dev", "protocol": 1}
+        finally:
+            link.disconnect()
+
+
+def test_older_firmware_connects_without_a_version(cache_file):
+    payload = load_payload("nougat")
+    del payload["firmware"]
+    with FakeRobot(payload, udp_port=0, answer_version=False) as robot:
+        link = _link_to(robot)
+        try:
+            assert link.connect(robot.address)
+            assert link.connected
+            assert link.firmware is None
+        finally:
+            link.disconnect()

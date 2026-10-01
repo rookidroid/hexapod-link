@@ -17,6 +17,7 @@ from hexapod.robot_link import ROBOT_LINK
 
 # --- Element IDs ---
 ROBOT_INFO_ID = "robot-info"
+ROBOT_FIRMWARE_ID = "robot-firmware"
 ROBOT_CONFIG_STORE_ID = "robot-config-store"
 ROBOT_IP_INPUT_ID = "robot-ip-input"
 ROBOT_CONNECT_BTN_ID = "robot-connect-btn"
@@ -60,6 +61,12 @@ robot_info = html.Div(
     describe(ROBOT_LINK.robot_config),
     id=ROBOT_INFO_ID,
     className="small fw-bold text-center mb-2",
+)
+
+# Filled in by the status poll while a robot is connected.
+robot_firmware = html.Div(
+    id=ROBOT_FIRMWARE_ID,
+    className="small text-muted font-monospace text-center mb-2",
 )
 
 connection_row = dbc.Row(
@@ -120,6 +127,7 @@ ROBOT_LINK_WIDGETS_SECTION = dbc.Card(
                 className="text-muted small mb-3",
             ),
             robot_info,
+            robot_firmware,
             connection_row,
             status_display,
             hidden_components,

@@ -70,6 +70,12 @@ ROBOT_UDP_PORT = 1234
 ROBOT_HTTP_PORT = 80
 ROBOT_HTTP_TIMEOUT_S = 2.0
 
+# Firmware version query, sent over UDP on connect (MAGIC_VERSION in the
+# firmware's protocol.h). UDP may drop the request or the answer, so it is
+# retried; a robot that never answers costs at most the product of the two.
+ROBOT_VERSION_TIMEOUT_S = 0.3
+ROBOT_VERSION_ATTEMPTS = 3
+
 # Where the last robot's config is kept, so the app still models that robot when
 # started offline. The environment variable overrides it (the tests use this).
 ROBOT_CONFIG_CACHE_ENV = "HEXAPOD_LINK_CONFIG_CACHE"

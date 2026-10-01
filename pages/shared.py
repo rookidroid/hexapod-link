@@ -12,6 +12,7 @@ from widgets.dimensions_ui import (
 from widgets.robot_link_ui import (
     ROBOT_LINK_WIDGETS_SECTION,
     ROBOT_INFO_ID,
+    ROBOT_FIRMWARE_ID,
     ROBOT_CONFIG_STORE_ID,
     ROBOT_IP_INPUT_ID,
     ROBOT_CONNECT_BTN_ID,
@@ -24,7 +25,7 @@ from widgets.robot_link_ui import (
 )
 from hexapod.const import BASE_FIGURE
 from hexapod.robot_link import ROBOT_LINK
-from hexapod.robot_config import describe, get_simulator_dimensions
+from hexapod.robot_config import describe, describe_firmware, get_simulator_dimensions
 
 
 # ......................
@@ -301,6 +302,11 @@ def follow_robot_config(_config_store):
     ]
 
 
+def firmware_status_text(status):
+    """The connected robot's firmware, or nothing while offline."""
+    return describe_firmware(status["firmware"]) if status["connected"] else ""
+
+
 def link_status_text(status):
     """One line describing the link, shared by the panel and the page sections."""
     if status["last_error"]:
@@ -320,6 +326,7 @@ def link_status_text(status):
 @app.callback(
     Output(ROBOT_STATUS_ID, "children"),
     Output(ROBOT_STATUS_ID, "className"),
+    Output(ROBOT_FIRMWARE_ID, "children"),
     Output(GLOBAL_PANEL_TOGGLE_ID, "children"),
     Output(GLOBAL_PANEL_TOGGLE_ID, "className"),
     Input(ROBOT_POLL_INTERVAL_ID, "n_intervals"),
@@ -329,7 +336,8 @@ def update_robot_status(_n_intervals):
 
     The navbar carries the summary -- whether the robot is reachable -- so link
     state is legible from any page without opening the drawer; the detail line
-    inside the drawer carries the address, mode and packet count.
+    inside the drawer carries the address, mode and packet count, with the
+    robot's firmware version on its own line.
     """
     status = ROBOT_LINK.status()
     text, colour_class = link_status_text(status)
@@ -347,6 +355,7 @@ def update_robot_status(_n_intervals):
     return (
         text,
         base_class + colour_class,
+        firmware_status_text(status),
         _toggle_label(state[0]),
         _toggle_class(state[1]),
     )

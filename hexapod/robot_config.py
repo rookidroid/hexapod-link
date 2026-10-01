@@ -14,6 +14,7 @@
 # A payload is parsed into the dict the rest of the app works with:
 #
 #   name, label, ssid, protocol, source ("robot", "cache" or "generic")
+#   firmware          {"version", "build", "protocol"}, or None if not reported
 #   delay_ms          LUT frame period at 100 % speed
 #   servo_min/max     PWM tick range
 #   speed             {"min", "max", "default", "current"} in percent
@@ -203,6 +204,18 @@ def _parse_gait(geometry):
     return parsed
 
 
+def _parse_firmware(firmware, protocol):
+    """The payload's {"version", "build"} block, or None for firmware that
+    predates reporting it. Shaped like robot_link.parse_version_reply()."""
+    if not isinstance(firmware, dict) or not isinstance(firmware.get("version"), str):
+        return None
+    return {
+        "version": firmware["version"],
+        "build": str(firmware.get("build") or ""),
+        "protocol": protocol,
+    }
+
+
 def parse_robot_config(payload, source="robot"):
     """Turn a GET /robot_config payload into the app's robot config dict."""
     if not isinstance(payload, dict):
@@ -249,6 +262,7 @@ def parse_robot_config(payload, source="robot"):
         "label": label,
         "ssid": str(payload.get("ssid") or ""),
         "protocol": protocol,
+        "firmware": _parse_firmware(payload.get("firmware"), protocol),
         "source": source,
         "delay_ms": delay_ms,
         "servo_min": servo_min,
@@ -384,3 +398,11 @@ def describe(robot_config):
     if robot_config["source"] == "cache":
         return f"{robot_config['label']}{ssid} (last connected)"
     return f"{robot_config['label']}{ssid}"
+
+
+def describe_firmware(firmware):
+    """One line naming the connected robot's firmware (RobotLink.firmware)."""
+    if not firmware:
+        return "Firmware version not reported"
+    build = f" ({firmware['build']})" if firmware["build"] else ""
+    return f"Firmware {firmware['version']}{build} · protocol {firmware['protocol']}"
