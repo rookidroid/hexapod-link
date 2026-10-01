@@ -10,25 +10,8 @@ GLOBAL_PAGE_STYLE = {
     "background": "#e5e7eb",  # Concrete grey
     "color": "#111827",       # Near black text
     "padding": "0em",
-    "fontFamily": "'Rajdhani', sans-serif"
+    "fontFamily": "'Chakra Petch', sans-serif"
 }
-
-
-# ***************************************
-# DAQ SLIDER INPUT WIDGET
-# ***************************************
-
-IK_SLIDER_SIZE = 120
-
-SLIDER_THEME = {
-    "dark": False,
-    "detail": "#ffffff",
-    "primary": "#ffffff",
-    "secondary": "#ffffff",
-}
-
-SLIDER_HANDLE_COLOR = "#ea580c"  # Warning Orange handle
-SLIDER_COLOR = "#4b5563"         # Heavy grey track
 
 
 # ***************************************

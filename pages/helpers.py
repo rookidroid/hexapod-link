@@ -1,6 +1,7 @@
 from copy import deepcopy
 import json
-from dash import dcc
+import dash_bootstrap_components as dbc
+from dash import html
 from hexapod.const import (
     BASE_PLOTTER,
     BASE_POSE,
@@ -9,24 +10,10 @@ from hexapod.const import (
     NAMES_JOINT,
     NAMES_LEG,
 )
-from hexapod.naming import joint_label, leg_label
+from hexapod.naming import leg_label
+from widgets.section_maker import make_leg_sides
 
 NEW_POSES = deepcopy(BASE_POSE)
-
-# Legs and joints are named the way the robot firmware names them, so a row of
-# this table can be read straight onto the robot's calibration page.
-_LEG_COLUMN_WIDTH = 13
-_JOINT_COLUMN_WIDTH = 15
-_POSES_MSG_RULE = "\n+{}+{}+".format(
-    "-" * (_LEG_COLUMN_WIDTH + 2),
-    "+".join(["-" * (_JOINT_COLUMN_WIDTH + 2)] * len(NAMES_JOINT)),
-)
-_POSES_MSG_COLUMNS = "\n| {} | {} |".format(
-    f"{'leg':{_LEG_COLUMN_WIDTH}}",
-    " | ".join(f"{joint_label(name):{_JOINT_COLUMN_WIDTH}}" for name in NAMES_JOINT),
-)
-POSES_MSG_HEADER = _POSES_MSG_RULE + _POSES_MSG_COLUMNS + _POSES_MSG_RULE
-POSES_MSG_LAST_ROW = _POSES_MSG_RULE
 
 
 def make_pose(alpha, beta, gamma, poses=NEW_POSES):
@@ -70,31 +57,34 @@ def load_params(params_json, params_type):
     return params
 
 
-def make_monospace(text):
-    return dcc.Markdown(f" ```{text}")
-
-
 def make_poses_message(poses, legs_off_ground=()):
-    message = POSES_MSG_HEADER
+    """The solved joint angles, laid out like the kinematics inputs.
 
-    for pose in poses.values():
-        label = leg_label(pose["id"])
-        angles = " | ".join(
-            f"{pose[name]:<+{_JOINT_COLUMN_WIDTH}.2f}" for name in NAMES_JOINT
-        )
-        message += f"\n| {label:{_LEG_COLUMN_WIDTH}} | {angles} |"
+    Legs and joints are named the way the robot firmware names them, so a row
+    can be read straight onto the robot's calibration page.
+    """
+    by_name = {pose["name"]: pose for pose in poses.values()}
 
-    message += POSES_MSG_LAST_ROW
+    def angle_cell(leg_name, joint_index):
+        angle = by_name[leg_name][NAMES_JOINT[joint_index]]
+        return html.Div(f"{angle:+.2f}", className="ind-readout")
+
+    body = [
+        html.H6("Solved joint angles (°)", className="mb-3"),
+        make_leg_sides(angle_cell),
+    ]
 
     # The pose is reachable, but these legs came up short of the ground point
     # they were aimed at and are stretched straight out in the air instead.
     # Worth saying, otherwise the robot just looks wrong for no stated reason.
     if legs_off_ground:
         labels = ", ".join(leg_label(leg) for leg in legs_off_ground)
-        message += f"\n\n⚠️ Not reaching the ground: {labels}"
+        body.append(
+            html.Div(f"⚠ Not reaching the ground: {labels}", className="ind-alert mt-2")
+        )
 
-    return make_monospace(message)
+    return dbc.Card(dbc.CardBody(body), className="mb-3 ind-card")
 
 
 def make_alert_message(alert):
-    return make_monospace(f"❗❗❗ALERT❗❗❗\n⚠️ {alert} 🔴")
+    return html.Div(f"⚠ {alert}", className="ind-alert mb-3")

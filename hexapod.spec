@@ -37,7 +37,7 @@ datas = [("assets", "assets")]
 # PyInstaller's analysis only follows Python imports, so the data files and the
 # dist-info metadata (Dash checks component package versions) must be collected
 # explicitly or the app starts to a blank window.
-for package in ("dash", "dash_daq", "dash_bootstrap_components", "plotly"):
+for package in ("dash", "dash_bootstrap_components", "plotly"):
     datas += collect_data_files(package)
     datas += copy_metadata(package)
 

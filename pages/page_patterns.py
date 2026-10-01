@@ -1,5 +1,5 @@
 import json
-from dash import callback, html
+from dash import callback
 from dash.dependencies import Output
 from hexapod.models import VirtualHexapod
 from hexapod.const import BASE_PLOTTER
@@ -18,12 +18,11 @@ PARAMETERS_SECTION_ID = "parameters-pattens"
 
 # The pattern's joint angles are streamed straight to the servos, so the stream
 # switch belongs on this page rather than in the global panel.
-widgets_section = html.Div(
-    [PATTERNS_WIDGETS_SECTION, shared.make_stream_controls("patterns")]
-)
-
 sidebar = shared.make_standard_page_sidebar(
-    MESSAGE_SECTION_ID, PARAMETERS_SECTION_ID, widgets_section
+    MESSAGE_SECTION_ID,
+    PARAMETERS_SECTION_ID,
+    PATTERNS_WIDGETS_SECTION,
+    robot_section=shared.make_stream_controls("patterns"),
 )
 
 layout = shared.make_standard_page_layout(GRAPH_ID, sidebar)

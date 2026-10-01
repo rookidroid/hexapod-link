@@ -116,26 +116,30 @@ def make_scrollable_page(children):
 
 
 def make_standard_page_sidebar(
-    message_section_id, params_hidden_section_id, params_widgets_section
+    message_section_id,
+    params_hidden_section_id,
+    params_widgets_section,
+    robot_section=None,
 ):
     """Sidebar holding only what is specific to one page.
 
     Robot dimensions and the link to the hardware are deliberately absent: they
     describe the robot rather than the page, so they live in
     GLOBAL_CONTROLS_PANEL, mounted once for the whole app. Controls that act on
-    what this page is showing -- streaming its pose, running its motion -- are
-    part of `params_widgets_section`.
+    what this page is showing -- streaming its pose, running its motion -- go
+    in `robot_section`, below the page's message, so a solved pose or an alert
+    sits right under the controls that produced it.
     """
     params_hidden_section = html.Div(
         id=params_hidden_section_id, style={"display": "none"}
     )
     message_section = html.Div(id=message_section_id)
 
-    return [
-        params_widgets_section,
-        message_section,
-        params_hidden_section,
-    ]
+    sections = [params_widgets_section, message_section]
+    if robot_section is not None:
+        sections.append(robot_section)
+    sections.append(params_hidden_section)
+    return sections
 
 
 # ......................
@@ -166,7 +170,7 @@ _TOGGLE_BASE_CLASS = "ind-status-btn"
 
 
 def _toggle_label(state):
-    return f"ROBOT: {state}"
+    return f"Robot: {state}"
 
 
 def _toggle_class(state):
@@ -181,7 +185,7 @@ _PANEL_CLASS_OPEN = "global-drawer global-drawer-open"
 
 _panel_header = html.Div(
     [
-        html.H6("ROBOT", className="mb-0"),
+        html.H6("Robot", className="mb-0"),
         dbc.Button(
             "✕",
             id=GLOBAL_PANEL_CLOSE_ID,

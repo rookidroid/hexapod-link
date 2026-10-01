@@ -9,35 +9,67 @@
    Dash requests_pathname_prefix. */
 
 @font-face {
-    font-family: 'Rajdhani';
-    font-style: normal;
-    font-weight: 500;
-    font-display: swap;
-    src: url('fonts/rajdhani-500-latin.woff2') format('woff2');
-}
-
-@font-face {
-    font-family: 'Rajdhani';
-    font-style: normal;
-    font-weight: 600;
-    font-display: swap;
-    src: url('fonts/rajdhani-600-latin.woff2') format('woff2');
-}
-
-@font-face {
-    font-family: 'Rajdhani';
-    font-style: normal;
-    font-weight: 700;
-    font-display: swap;
-    src: url('fonts/rajdhani-700-latin.woff2') format('woff2');
-}
-
-@font-face {
-    font-family: 'Share Tech Mono';
+    font-family: 'Chakra Petch';
     font-style: normal;
     font-weight: 400;
     font-display: swap;
-    src: url('fonts/share-tech-mono-400-latin.woff2') format('woff2');
+    src: url('fonts/chakra-petch-400-latin.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Chakra Petch';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('fonts/chakra-petch-500-latin.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Chakra Petch';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('fonts/chakra-petch-600-latin.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Chakra Petch';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('fonts/chakra-petch-700-latin.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'IBM Plex Mono';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('fonts/ibm-plex-mono-400-latin.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'IBM Plex Mono';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('fonts/ibm-plex-mono-500-latin.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'IBM Plex Mono';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('fonts/ibm-plex-mono-600-latin.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'IBM Plex Mono';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('fonts/ibm-plex-mono-700-latin.woff2') format('woff2');
 }
 
 /* ---- CSS Variables ---- */
@@ -52,8 +84,8 @@
     --ind-text: #111827; /* Near black */
     --ind-text-muted: #4b5563;
     
-    --font-heading: 'Rajdhani', sans-serif;
-    --font-mono: 'Share Tech Mono', 'Courier New', monospace;
+    --font-heading: 'Chakra Petch', sans-serif;
+    --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
     
     --shadow-hard: 4px 4px 0px rgba(17, 24, 39, 0.15);
     --shadow-hover: 6px 6px 0px rgba(17, 24, 39, 0.2);
@@ -203,8 +235,7 @@ body {
     font-weight: 700;
     font-size: 0.95rem;
     color: var(--ind-text-muted) !important;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.3px;
     padding: 0.4rem 0.8rem;
     margin: 0 0.2rem;
     border: 2px solid transparent;
@@ -215,6 +246,49 @@ body {
     color: var(--ind-text) !important;
     border-color: var(--ind-border-light);
     background: #f3f4f6;
+}
+
+/* Below `lg` there is no room for brand, links and status button on one line.
+   The links drop to a row of their own under the other two, rather than the
+   status button being pushed off on its own. */
+@media (max-width: 991.98px) {
+    .ind-navbar .container-fluid {
+        flex-wrap: wrap;
+        row-gap: 0.4rem;
+    }
+
+    .ind-navbar .navbar-nav {
+        order: 3;
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .ind-navbar .nav-link {
+        padding: 0.25rem 0.6rem;
+        margin: 0;
+    }
+
+    .ind-navbar .nav-item:first-child .nav-link {
+        padding-left: 0;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .ind-navbar .navbar-brand {
+        font-size: 1.2rem;
+        letter-spacing: 1px;
+    }
+
+    .ind-status-btn {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.6rem 0.25rem 0.5rem;
+    }
+
+    /* Otherwise the status button no longer fits beside the brand and drops
+       onto a line of its own. */
+    .ind-navbar .navbar-version {
+        display: none;
+    }
 }
 
 /* ===========================================
@@ -267,8 +341,7 @@ body {
 .ind-card label {
     color: var(--ind-text) !important;
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.3px;
     font-size: 1rem;
     margin-bottom: 0.75rem;
     border-bottom: 2px solid var(--ind-border-light);
@@ -304,28 +377,6 @@ input[type="number"]:focus,
 /* ===========================================
    LABELS & BADGES
    =========================================== */
-
-.ind-label {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    color: var(--ind-text-muted);
-    font-weight: 600;
-    text-transform: uppercase;
-    margin-top: 0.2rem;
-    margin-bottom: 0.5rem;
-}
-
-.ind-leg-header {
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    color: var(--ind-text);
-    background: var(--ind-bg);
-    padding: 4px 8px;
-    border-left: 4px solid var(--ind-accent);
-    text-transform: uppercase;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-}
 
 .badge {
     font-family: var(--font-mono) !important;
@@ -460,8 +511,7 @@ input[type="number"]:focus,
 .landing-section-title {
     font-family: var(--font-heading);
     font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 2px;
+    letter-spacing: 0.3px;
     color: var(--ind-text);
     border-bottom: 4px solid var(--ind-accent);
     display: inline-block;
@@ -504,8 +554,7 @@ input[type="number"]:focus,
 .tool-title {
     font-family: var(--font-heading);
     font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.3px;
     color: var(--ind-text);
     font-size: 1.15rem;
     border-bottom: 2px solid var(--ind-border-light);
@@ -525,8 +574,7 @@ input[type="number"]:focus,
 .tool-hardware {
     font-family: var(--font-mono);
     font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
     color: var(--ind-accent);
     border-top: 2px solid var(--ind-border-light);
     padding-top: 8px;
@@ -567,8 +615,7 @@ input[type="number"]:focus,
 .build-title {
     font-family: var(--font-heading);
     font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.3px;
     color: var(--ind-text);
     font-size: 1.15rem;
     margin-bottom: 4px;
@@ -603,8 +650,7 @@ input[type="number"]:focus,
 .safety-title {
     font-family: var(--font-heading);
     font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 2px;
+    letter-spacing: 0.3px;
     color: var(--ind-accent);
     margin-bottom: 0.5rem;
 }
@@ -629,8 +675,7 @@ input[type="number"]:focus,
 .btn:not(.btn-link) {
     font-family: var(--font-heading);
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.3px;
     border-width: 2px;
     border-radius: 0;
     box-shadow: var(--shadow-hard);
@@ -754,8 +799,7 @@ input[type="number"]:focus,
 .global-drawer h6 {
     font-family: var(--font-heading);
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.3px;
 }
 
 /* ===========================================
@@ -794,8 +838,7 @@ input[type="number"]:focus,
     font-family: var(--font-mono);
     font-weight: 700;
     font-size: 0.9rem;
-    letter-spacing: 1px;
-    text-transform: uppercase;
+    letter-spacing: 0.3px;
     color: var(--ind-text);
     background: var(--ind-surface-alt);
     border: 2px solid var(--ind-border);
@@ -854,52 +897,257 @@ input[type="number"]:focus,
 }
 
 /* ===========================================
-   DAQ SLIDER HANDLE LABELS
+   SIDEBAR FIELDS
 
-   dash_daq pins the label box a fixed distance from the handle, which assumes
-   a one-line label. Ours wrap to two lines ("Joint 1" / "(alpha)") and
-   sometimes three, so on the horizontal sliders the box grew back down over
-   the handle and the current value was drawn on top of the marker.
-
-   Anchoring the box by the edge that faces the handle makes it grow away
-   from it instead, so the clearance is the same whatever the label wraps to.
-   The library's own transform still does the centring on the other axis --
-   only the one anchor changes here.
+   The sidebar is a third of the window above `lg` and the full width below
+   it, so how much room a control gets has little to do with the viewport.
+   Every block here sizes itself from the width it is given -- wrapping,
+   auto-fill grids, full-width sliders -- instead of from Bootstrap column
+   counts, so there are no per-widget breakpoints to keep in step.
    =========================================== */
 
-/* Horizontal (leg patterns): label above the handle, so anchor the bottom. */
-.rc-slider:not(.rc-slider-vertical) .rc-slider-handle > div.rc-slider-handle {
-    top: auto;
-    /* Negative because the library's -44px transform applies on top of this;
-       together they leave ~13px between the box and the marker. */
-    bottom: -24px;
+/* Dash's own components read their colours from these. Scoped to the two
+   places that hold controls, so nothing else in the app changes. */
+.page-panel,
+.global-drawer,
+.page-scroll {
+    --Dash-Fill-Interactive-Strong: var(--ind-accent);
+    --Dash-Fill-Interactive-Weak: rgba(234, 88, 12, 0.15);
+    --Dash-Fill-Primary-Hover: #c2410c;
+    --Dash-Fill-Primary-Active: #9a3412;
+    --Dash-Stroke-Strong: var(--ind-border);
+    --Dash-Stroke-Weak: var(--ind-border-light);
+    --Dash-Text-Strong: var(--ind-text);
+    --Dash-Text-Primary: var(--ind-text);
+    --Dash-Text-Weak: var(--ind-text-muted);
 }
 
-/* Vertical (inverse kinematics): label to the left, so anchor the right. */
-.rc-slider-vertical .rc-slider-handle > div.rc-slider-handle {
-    left: auto;
-    right: 12px;
+/* The `.ind-card label` rule styles section headers; the labels that belong
+   to a checkbox, radio or switch are part of their control and keep to one
+   line beside it. */
+.ind-card label.form-check-label,
+.ind-card label.dash-options-list-option {
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 0;
+    font-size: 0.9rem;
 }
 
-/* The box is sized by its contents, so it used to grow and shrink under the
-   cursor as the value went 0 -> 1.5 -> -178.5 (33px to 51px, re-centred on
-   every render). Reserving the width of the longest value any of these
-   sliders can reach -- "-178.5", 4.3 characters wide -- pins the box at one
-   width for the whole drag. Tabular figures keep the digits from shifting
-   inside it. */
-.rc-slider-handle > div.rc-slider-handle .value {
-    min-width: 4.5ch;
-    text-align: center;
-    font-variant-numeric: tabular-nums;
+.ind-card label.dash-options-list-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    cursor: pointer;
 }
 
-/* dash_daq sets the handle label in 8px, well under the 0.75rem this theme
-   uses for every other small label (.ind-label), and unreadable next to the
-   20px value under it. The names wrap to two lines at this size, which the
-   anchoring above already accounts for. */
-.rc-slider-handle > div.rc-slider-handle .label {
+.ind-card .dash-options-list-option-checkbox {
+    accent-color: var(--ind-accent);
+}
+
+/* Field captions: a quiet one-line label over its control. More specific
+   than the `.ind-card label` section-header rule, which they must not look
+   like. */
+.ind-card label.ind-field-label,
+.ind-field-label {
+    display: block;
+    font-family: var(--font-mono);
     font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    color: var(--ind-text-muted) !important;
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 0.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* A run of fields inside one card, e.g. Translate / Rotate. */
+.ind-group-header {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--ind-text);
+    background: var(--ind-bg);
+    padding: 4px 8px;
+    border-left: 4px solid var(--ind-accent);
+    margin: 0.25rem 0 0.75rem;
+}
+
+/* Label, then the slider with its value box: always the same two rows. */
+.ind-slider-field {
+    margin-bottom: 1rem;
+}
+
+.ind-slider-field .dash-slider-container {
+    width: 100%;
+    gap: 0.75rem;
+}
+
+/* The direct-input box. Dash hides it once the slider is under 300px wide,
+   which in this sidebar is most of the time; the value is half of what the
+   field shows, so it stays. A fixed width -- room for "-178.5" -- keeps the
+   track from changing length as the value changes. */
+.ind-slider-field .dash-slider-container .dash-range-slider-input {
+    display: block;
+    box-sizing: border-box;
+    height: auto;
+    max-width: none;
+    width: 7ch !important;
+    flex: 0 0 auto;
+    font-family: var(--font-mono) !important;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    font-size: 0.85rem;
+    padding: 0.2rem 0.35rem;
+}
+
+.ind-slider-field .dash-slider-mark {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--ind-text-muted);
+}
+
+/* Label-above number inputs, as many to a row as fit. */
+.ind-field-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+    gap: 0.25rem 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+/* One input per leg and joint; joint names once, in the header. */
+.ind-joint-grid {
+    --bs-table-bg: transparent;
+    table-layout: fixed;
+    width: 100%;
+}
+
+.ind-joint-grid th,
+.ind-joint-grid td {
+    padding: 0.15rem 0.2rem;
+}
+
+/* "J1 coxia" wraps to "J1" over "coxia" when the columns are narrow; all
+   three columns are the same width, so they always wrap together. */
+.ind-joint-grid thead th {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 600;
     line-height: 1.15;
+    color: var(--ind-text-muted);
+    vertical-align: bottom;
+}
+
+/* Row labels. Sized on the header cell too: a fixed-layout table takes its
+   column widths from the first row. */
+.ind-joint-grid tr > th:first-child {
+    width: 5.5rem;
+}
+
+.ind-joint-grid tbody th {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 700;
+    border-left: 3px solid var(--ind-accent);
+    padding-left: 0.4rem;
+}
+
+/* Sized so "-178.5", the widest value a joint takes, fits in the narrowest
+   column the side-by-side layout below allows. */
+.ind-joint-grid input {
+    width: 100%;
+    min-width: 0;
+    padding-inline: 0.2rem;
+    font-size: 0.8rem;
+    text-align: right;
+}
+
+/* Spinner arrows eat a third of an input this narrow. */
+.ind-joint-grid input::-webkit-outer-spin-button,
+.ind-joint-grid input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.ind-joint-grid input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+/* Kinematics: a Left and a Right block, side by side when both fit with a
+   full value in every input, left above right when they do not. The basis
+   is that width -- "L1" plus three inputs of "-178.5" -- so the wrap happens
+   exactly when the values would start to clip. */
+.ind-joint-sides {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 0.75rem;
+}
+
+.ind-joint-sides > .ind-joint-side {
+    flex: 1 1 12rem;
+    min-width: 0;
+}
+
+/* Two characters ("L1"); the group header above already carries the side
+   and the accent bar. */
+.ind-joint-side .ind-joint-grid tr > th:first-child {
+    width: 1.75rem;
+}
+
+.ind-joint-side .ind-joint-grid tbody th {
+    border-left: none;
+    padding-left: 0.1rem;
+}
+
+.ind-joint-side .ind-joint-grid th,
+.ind-joint-side .ind-joint-grid td {
+    padding-inline: 0.1rem;
+}
+
+/* A read-only value in a joint grid (the solved IK angles): the same box
+   as an input, minus the field look. */
+.ind-readout {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    padding: 0.2rem 0.3rem;
+    background: var(--ind-bg);
+    white-space: nowrap;
+}
+
+/* Solver warnings. Wraps, unlike the code block it replaced. */
+.ind-alert {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #9a3412;
+    background: #fff7ed;
+    border-left: 4px solid var(--ind-accent);
+    padding: 0.5rem 0.75rem;
+    /* Solver messages put their list of legs on a line of its own. */
+    white-space: pre-line;
+}
+
+/* A main control and a button that share a line while both fit, and stack
+   (both full width) when they do not. */
+.ind-wrap-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.ind-wrap-row > .ind-wrap-main {
+    flex: 1 1 11rem;
+    min-width: 0;
+}
+
+.ind-wrap-row > .ind-wrap-side {
+    flex: 1 1 6rem;
 }
 
 /* ===========================================
