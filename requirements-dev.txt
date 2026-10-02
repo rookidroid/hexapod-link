@@ -7,7 +7,7 @@ pytest>=9.1.1
 
 # Linting and formatting
 flake8>=7.3.0
-pylint>=4.0.8
+pylint>=4.0.10
 isort>=9.0.1
 pycodestyle>=2.14.0
 pyflakes>=3.4.0
