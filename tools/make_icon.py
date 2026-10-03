@@ -9,7 +9,8 @@ Writes assets/icon.png (512 master), assets/app.ico (the icon PyInstaller
 embeds in the Windows exe) and assets/favicon.ico (the browser tab icon).
 Both .ico files are real multi-resolution ICOs.
 
-The palette is the app's own light-industrial theme, kept in sync with
+The palette is the app's own RX-78-2 theme -- the 3D plot's navy monitor
+with the robot in white, blue, red and yellow -- kept in sync with
 style_settings.py and assets/industrial.css by hand.
 """
 
@@ -27,13 +28,13 @@ ICO_SIZES = [(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128),
 W = MASTER * SUPERSAMPLE
 CENTER = W / 2
 
-PLATE = (17, 24, 39, 255)        # #111827 near-black CAD background
-PLATE_EDGE = (75, 85, 99, 255)   # #4b5563 heavy grey border
-BODY_FILL = (51, 65, 85, 255)    # #334155 industrial metal
-BODY_LINE = (249, 115, 22, 255)  # #f97316 orange body outline
-LEG = (203, 213, 225, 255)       # #cbd5e1 light metallic legs
-JOINT = (249, 115, 22, 255)      # orange joints
-COG = (34, 197, 94, 255)         # #22c55e green centre of gravity
+PLATE = (10, 20, 40, 255)        # #0a1428 monitor navy background
+PLATE_EDGE = (29, 79, 163, 255)  # #1d4fa3 Federation blue border
+BODY_FILL = (232, 236, 242, 255) # #e8ecf2 white armour
+BODY_LINE = (59, 123, 255, 255)  # #3b7bff blue body outline
+LEG = (223, 230, 239, 255)       # #dfe6ef white armour legs
+JOINT = (247, 198, 0, 255)       # #f7c600 V-fin yellow joints
+COG = (230, 57, 70, 255)         # #e63946 red core block
 
 # Every dimension below is a fraction of the icon's width, so the geometry
 # survives any change to MASTER or SUPERSAMPLE.

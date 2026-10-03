@@ -16,6 +16,9 @@ from style_settings import (
     GROUND_COLOR,
     LEGEND_FONT_COLOR,
     HEAD_COLOR,
+    AXIS_X_COLOR,
+    AXIS_Y_COLOR,
+    AXIS_Z_COLOR,
 )
 
 # The six leg traces below are drawn in leg-index order and named the way the
@@ -155,7 +158,7 @@ data = [
         "z": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
     },
     {
-        "line": {"color": "#2f3640", "width": 2},
+        "line": {"color": AXIS_X_COLOR, "width": 2},
         "name": "hexapod x",
         "mode": "lines",
         "showlegend": False,
@@ -167,7 +170,7 @@ data = [
         "z": [100.0, 100.0],
     },
     {
-        "line": {"color": "#e67e22", "width": 2},
+        "line": {"color": AXIS_Y_COLOR, "width": 2},
         "name": "hexapod y",
         "mode": "lines",
         "showlegend": False,
@@ -179,7 +182,7 @@ data = [
         "z": [100.0, 100.0],
     },
     {
-        "line": {"color": "#0097e6", "width": 2},
+        "line": {"color": AXIS_Z_COLOR, "width": 2},
         "name": "hexapod z",
         "mode": "lines",
         "showlegend": False,
@@ -191,7 +194,7 @@ data = [
         "z": [100.0, 150.0],
     },
     {
-        "line": {"color": "#2f3640", "width": 2},
+        "line": {"color": AXIS_X_COLOR, "width": 2},
         "name": "x direction",
         "showlegend": False,
         "mode": "lines",
@@ -203,7 +206,7 @@ data = [
         "z": [0, 0],
     },
     {
-        "line": {"color": "#e67e22", "width": 2},
+        "line": {"color": AXIS_Y_COLOR, "width": 2},
         "name": "y direction",
         "showlegend": False,
         "mode": "lines",
@@ -215,7 +218,7 @@ data = [
         "z": [0, 0],
     },
     {
-        "line": {"color": "#0097e6", "width": 2},
+        "line": {"color": AXIS_Z_COLOR, "width": 2},
         "name": "z direction",
         "showlegend": False,
         "mode": "lines",
