@@ -19,20 +19,27 @@ GLOBAL_PAGE_STYLE = {
 # HEXAPOD GRAPH
 # ***************************************
 
-BODY_MESH_COLOR = "#475569"       # Dark industrial metal
+# The plot is the cockpit's panoramic monitor in both themes: a navy screen
+# with the robot in RX-78-2 colours and HUD-cyan overlays.
+
+BODY_MESH_COLOR = "#e8ecf2"       # White armour
 BODY_MESH_OPACITY = 0.8
-BODY_COLOR = "#f97316"            # Industrial orange body outline
+BODY_COLOR = "#3b7bff"            # Federation blue body outline
 BODY_OUTLINE_WIDTH = 10
-COG_COLOR = "#22c55e"             # Green COG indicator
+COG_COLOR = "#e63946"             # Red core block
 COG_SIZE = 15
-HEAD_COLOR = "#ef4444"            # Red head
+HEAD_COLOR = "#f7c600"            # V-fin yellow head
 HEAD_SIZE = 12
-LEG_COLOR = "#cbd5e1"             # Light metallic legs for contrast
+LEG_COLOR = "#dfe6ef"             # White armour legs
 LEG_OUTLINE_WIDTH = 10
-SUPPORT_POLYGON_MESH_COLOR = "#f97316"  # Orange support polygon
+SUPPORT_POLYGON_MESH_COLOR = "#4cc9f0"  # HUD cyan support polygon
 SUPPORT_POLYGON_MESH_OPACITY = 0.15
-LEGENDS_BG_COLOR = "rgba(17, 24, 39, 0.85)"  # Dark glass legend
-AXIS_ZERO_LINE_COLOR = "#4ade80"  # CRT green axis lines
-PAPER_BG_COLOR = "#111827"        # Very dark gray background (CAD style)
-GROUND_COLOR = "#1f2937"          # Dark gray ground floor
-LEGEND_FONT_COLOR = "#f8fafc"     # Light legend text
+LEGENDS_BG_COLOR = "rgba(10, 20, 40, 0.85)"  # Navy glass legend
+AXIS_ZERO_LINE_COLOR = "#4cc9f0"  # HUD cyan axis lines
+PAPER_BG_COLOR = "#0a1428"        # Monitor navy background
+GROUND_COLOR = "#13213f"          # Navy ground floor
+LEGEND_FONT_COLOR = "#e4eeff"     # Light legend text
+# Direction arrows on the body and at the origin.
+AXIS_X_COLOR = "#e63946"          # Red
+AXIS_Y_COLOR = "#f7c600"          # Yellow
+AXIS_Z_COLOR = "#4cc9f0"          # Cyan

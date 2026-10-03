@@ -1,5 +1,9 @@
 /* =============================================
-   HEXAPOD LINK — INDUSTRIAL THEME (LIGHT / DARK)
+   HEXAPOD LINK — MOBILE SUIT THEME (LIGHT / DARK)
+
+   RX-78-2 colours: white armour plates framed in navy, Federation blue as the
+   main accent, red and V-fin yellow as trim. Light is the armour itself; dark
+   is the cockpit, the same tricolour on deep navy with a cyan monitor glow.
 
    Every colour that differs between the themes is a token on :root. The dark
    values override them when <html> carries data-theme="dark"; the attribute is
@@ -7,7 +11,7 @@
    ============================================= */
 
 /* Fonts are bundled locally (assets/fonts) rather than pulled from Google
-   Fonts, so the desktop build renders correctly with no network. Both
+   Fonts, so the desktop build renders correctly with no network. All three
    families are SIL Open Font License 1.1. Latin subset only.
    Paths are relative to this file, which keeps them correct under any
    Dash requests_pathname_prefix. */
@@ -44,6 +48,17 @@
     src: url('fonts/chakra-petch-700-latin.woff2') format('woff2');
 }
 
+/* Display face for the brand and headings: wide and squared, in the
+   Microgramma / Eurostile line of the mobile suits' own markings. It has one
+   weight only, so headings set in it stay at 400 rather than be faux-bolded. */
+@font-face {
+    font-family: 'Michroma';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('fonts/michroma-400-latin.woff2') format('woff2');
+}
+
 @font-face {
     font-family: 'IBM Plex Mono';
     font-style: normal;
@@ -78,59 +93,90 @@
 
 /* ---- CSS Variables ---- */
 :root {
-    --ind-bg: #e5e7eb; /* Concrete grey */
-    --ind-surface: #f9fafb; /* Off-white machinery */
+    --ind-bg: #dde3ec; /* Panel-line grey */
+    --ind-surface: #f3f5f9; /* White armour */
     --ind-surface-alt: #ffffff;
-    --ind-border: #4b5563; /* Heavy grey */
-    --ind-border-light: #9ca3af;
-    --ind-accent: #ea580c; /* Warning orange */
-    --ind-accent-alt: #ca8a04; /* Industrial yellow */
-    --ind-text: #111827; /* Near black */
-    --ind-text-muted: #4b5563;
-    --ind-hover: #f3f4f6; /* Hovered nav links and secondary buttons */
-    --ind-input-bg: #f3f4f6;
+    --ind-border: #1b2a4a; /* Navy frame */
+    --ind-border-light: #a9b6cc;
+    --ind-accent: #1d4fa3; /* Federation blue */
+    --ind-accent-hover: #163f84;
+    --ind-accent-active: #10306a;
+    --ind-accent-rgb: 29, 79, 163;
+    --ind-accent-alt: #f2b705; /* V-fin yellow */
+    --ind-red: #d62828; /* Chest and shield red */
+    --ind-ok: #16a34a; /* ONLINE LED */
+    --ind-text: #0f1a30; /* Navy black */
+    --ind-text-muted: #4a5875;
+    --ind-hover: #e8eef8; /* Hovered nav links and secondary buttons */
+    --ind-input-bg: #eef2f8;
     --ind-input-focus-bg: #ffffff;
-    --ind-outline: #111827; /* Heavy outline on the solid buttons */
-    --ind-stripe: #111827; /* Dark band of the hazard stripe */
-    --ind-alert-text: #9a3412;
-    --ind-alert-bg: #fff7ed;
+    --ind-outline: #0f1a30; /* Heavy outline on the solid buttons */
+    --ind-stripe: #d62828; /* Second colour of the navbar trim */
+    --ind-alert-text: #9b1c1c;
+    --ind-alert-bg: #fdecec;
+    --ind-plate: #ffffff; /* Light band of the tricolour trim */
+
+    /* Focus ring: a plain blue halo on the armour, a HUD glow in the cockpit. */
+    --ind-glow: 0 0 0 2px rgba(29, 79, 163, 0.25);
 
     --font-heading: 'Chakra Petch', sans-serif;
+    --font-display: 'Michroma', 'Chakra Petch', sans-serif;
     --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
     
-    --shadow-hard: 4px 4px 0px rgba(17, 24, 39, 0.15);
-    --shadow-hover: 6px 6px 0px rgba(17, 24, 39, 0.2);
-    --shadow-soft: 0 2px 10px rgba(0, 0, 0, 0.1);
-    --shadow-drawer: -4px 0 16px rgba(0, 0, 0, 0.18);
+    --shadow-hard: 4px 4px 0px rgba(15, 26, 48, 0.18);
+    --shadow-hover: 6px 6px 0px rgba(15, 26, 48, 0.24);
+    --shadow-soft: 0 2px 10px rgba(15, 26, 48, 0.12);
+    --shadow-drawer: -4px 0 16px rgba(15, 26, 48, 0.2);
+
+    /* Mecha corners: the top-right and bottom-left cut off at 45 degrees. */
+    --chamfer: 8px;
+    --chamfer-clip: polygon(
+        0 0,
+        calc(100% - var(--chamfer)) 0,
+        100% var(--chamfer),
+        100% 100%,
+        var(--chamfer) 100%,
+        0 calc(100% - var(--chamfer))
+    );
 }
 
-/* Night shift: the same machinery under low light. Gunmetal plates, light
-   text, and the warning orange lifted a step so it still reads on dark. The 3D
-   plot is a dark CAD view in both themes and does not change. */
+/* Cockpit: the same tricolour under the panoramic monitor's light. Deep navy
+   plates, the blue and yellow lifted a step so they read on dark, and a cyan
+   HUD glow on whatever has focus. The 3D plot is the same monitor view in both
+   themes and does not change. */
 :root[data-theme="dark"] {
     color-scheme: dark;
 
-    --ind-bg: #0f141b;
-    --ind-surface: #18202a;
-    --ind-surface-alt: #1f2833;
-    --ind-border: #64748b;
-    --ind-border-light: #3b4655;
-    --ind-accent: #f97316;
-    --ind-accent-alt: #eab308;
-    --ind-text: #e5e7eb;
-    --ind-text-muted: #9ca3af;
-    --ind-hover: #2a3441;
-    --ind-input-bg: #111820;
-    --ind-input-focus-bg: #0b1016;
-    --ind-outline: #05070a;
-    --ind-stripe: #05070a;
-    --ind-alert-text: #fdba74;
-    --ind-alert-bg: rgba(249, 115, 22, 0.12);
+    --ind-bg: #060c18;
+    --ind-surface: #0c1730;
+    --ind-surface-alt: #11203f;
+    --ind-border: #2f5fb3;
+    --ind-border-light: #1e3563;
+    --ind-accent: #3d7cf0;
+    --ind-accent-hover: #2f68d6;
+    --ind-accent-active: #2455b4;
+    --ind-accent-rgb: 61, 124, 240;
+    --ind-accent-alt: #ffd23f;
+    --ind-red: #ff4d4d;
+    --ind-ok: #22c55e;
+    --ind-text: #e4eeff;
+    --ind-text-muted: #8aa2c8;
+    --ind-hover: #18294d;
+    --ind-input-bg: #08122a;
+    --ind-input-focus-bg: #050c1e;
+    --ind-outline: #02060f;
+    --ind-stripe: #ff4d4d;
+    --ind-alert-text: #ffb4b4;
+    --ind-alert-bg: rgba(255, 77, 77, 0.12);
+    --ind-plate: #e4eeff;
 
-    --shadow-hard: 4px 4px 0px rgba(0, 0, 0, 0.45);
-    --shadow-hover: 6px 6px 0px rgba(0, 0, 0, 0.55);
-    --shadow-soft: 0 2px 10px rgba(0, 0, 0, 0.5);
-    --shadow-drawer: -4px 0 16px rgba(0, 0, 0, 0.6);
+    --ind-glow: 0 0 0 1px rgba(76, 201, 240, 0.45),
+                0 0 14px rgba(76, 201, 240, 0.25);
+
+    --shadow-hard: 4px 4px 0px rgba(0, 0, 0, 0.5);
+    --shadow-hover: 6px 6px 0px rgba(0, 0, 0, 0.6);
+    --shadow-soft: 0 2px 10px rgba(0, 0, 0, 0.55);
+    --shadow-drawer: -4px 0 16px rgba(0, 0, 0, 0.65);
 }
 
 /* ---- Global Reset ---- */
@@ -227,19 +273,21 @@ body {
     padding: 0.8rem 0;
 }
 
-/* Hazard striping effect on navbar bottom */
+/* Chest trim under the blue border: a red block, then yellow vent slats on
+   blue, the way the colours sit on the RX-78's torso. */
 .ind-navbar::after {
     content: '';
     display: block;
     height: 4px;
     width: 100%;
-    background: repeating-linear-gradient(
-      45deg,
-      var(--ind-accent),
-      var(--ind-accent) 10px,
-      var(--ind-stripe) 10px,
-      var(--ind-stripe) 20px
-    );
+    background:
+      linear-gradient(90deg, var(--ind-stripe) 0 160px, transparent 160px),
+      repeating-linear-gradient(
+        90deg,
+        var(--ind-accent-alt) 0 14px,
+        transparent 14px 22px
+      ),
+      var(--ind-accent);
     position: absolute;
     bottom: -4px;
     left: 0;
@@ -247,11 +295,13 @@ body {
 
 .ind-navbar .navbar-brand {
     font-weight: 700;
-    font-size: 1.6rem;
+    font-size: 1.35rem;
     color: var(--ind-text) !important;
     text-transform: uppercase;
     letter-spacing: 2px;
-    font-family: var(--font-heading);
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-synthesis: none;
 }
 
 .ind-navbar .navbar-brand::before {
@@ -281,6 +331,7 @@ body {
     padding: 0.4rem 0.8rem;
     margin: 0 0.2rem;
     border: 2px solid transparent;
+    white-space: nowrap;
     transition: all 0.1s ease;
 }
 
@@ -288,6 +339,22 @@ body {
     color: var(--ind-text) !important;
     border-color: var(--ind-border-light);
     background: var(--ind-hover);
+}
+
+/* From `lg` to `xl` everything still shares one line, but only just: the wide
+   display face of the brand plus four links and the status button come to
+   about 1100px at full size. Tighten the brand and the link padding until
+   there is room again. */
+@media (min-width: 992px) and (max-width: 1199.98px) {
+    .ind-navbar .navbar-brand {
+        font-size: 1rem;
+        letter-spacing: 1px;
+    }
+
+    .ind-navbar .nav-link {
+        padding: 0.4rem 0.5rem;
+        margin: 0;
+    }
 }
 
 /* Below `lg` there is no room for brand, links and status button on one line.
@@ -349,12 +416,68 @@ body {
     position: relative;
 }
 
-.ind-card::before, .card::before {
+/* ---- Armour plate details ----
+
+   Every plate (the cards here, and the landing page's tool and build cards)
+   carries the same three markings, all drawn by pseudo-elements so no layout
+   code knows about them:
+   - along the top edge, a red chip, Federation blue, and a set of yellow
+     vent slats at the right-hand end;
+   - in the bottom-right corner, a navy reinforcing plate;
+   - beside it, a small stencilled unit marking.
+   The marking sits inside the card's bottom padding, clear of its content. */
+
+.ind-card::before, .card::before, .glass-panel-light::before,
+.tool-card::before, .build-card::before {
     content: '';
     position: absolute;
     top: 0; left: 0;
     width: 100%; height: 4px;
-    background: var(--ind-border);
+    pointer-events: none;
+    background:
+        repeating-linear-gradient(
+            90deg,
+            var(--ind-accent-alt) 0 5px,
+            transparent 5px 9px
+        ) right 6px top / 32px 100% no-repeat,
+        linear-gradient(
+            90deg,
+            var(--ind-red) 0 28px,
+            var(--ind-accent) 28px calc(100% - 44px),
+            transparent calc(100% - 44px)
+        );
+}
+
+.ind-card::after, .card::after, .glass-panel-light::after,
+.tool-card::after, .build-card::after {
+    content: 'RX-78-2';
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    padding: 0 20px 3px 0;
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 1.5px;
+    color: color-mix(in srgb, var(--ind-text-muted) 65%, transparent);
+    pointer-events: none;
+    background: linear-gradient(
+        135deg,
+        transparent 50%,
+        var(--ind-border) 50%
+    ) right bottom / 14px 14px no-repeat;
+}
+
+.tool-card, .build-card {
+    position: relative;
+}
+
+/* The page panel scrolls, and an absolutely placed marking would scroll with
+   its content and land on top of a control. The sections inside it carry
+   their own. */
+.page-panel::after {
+    content: none;
 }
 
 .ind-card:hover,
@@ -386,9 +509,19 @@ body {
     letter-spacing: 0.3px;
     font-size: 1rem;
     margin-bottom: 0.75rem;
-    border-bottom: 2px solid var(--ind-border-light);
+    border-bottom: 2px solid var(--ind-accent-alt);
     padding-bottom: 4px;
     display: inline-block;
+}
+
+/* The section titles proper are the h6s: set in the display face, which is
+   wide enough to want a smaller size. Labels keep the body face. */
+.card h6,
+.ind-card h6 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
 }
 
 /* ===========================================
@@ -413,7 +546,7 @@ input[type="number"]:focus,
     border-color: var(--ind-accent) !important;
     background: var(--ind-input-focus-bg) !important;
     outline: none !important;
-    box-shadow: inset 2px 2px 0px rgba(0,0,0,0.05), 0 0 0 2px rgba(234, 88, 12, 0.2) !important;
+    box-shadow: inset 2px 2px 0px rgba(0,0,0,0.05), var(--ind-glow) !important;
 }
 
 /* ===========================================
@@ -427,6 +560,8 @@ input[type="number"]:focus,
     padding: 0.3em 0.6em;
     font-weight: 700;
     border: 1px solid var(--ind-border);
+    --chamfer: 4px;
+    clip-path: var(--chamfer-clip);
 }
 
 /* ===========================================
@@ -434,21 +569,51 @@ input[type="number"]:focus,
    =========================================== */
 
 .graph-container {
-    background: #111827; /* Dark CAD background */
-    border: 4px solid var(--ind-border);
+    background: #0a1428; /* Panoramic monitor navy, as the plot's paper */
+    border: 4px solid var(--ind-accent);
     border-radius: 0;
     padding: 4px;
     box-shadow: var(--shadow-hard);
     position: relative;
 }
 
-/* Screw/rivet details on corners */
+:root[data-theme="dark"] .graph-container {
+    box-shadow: var(--shadow-hard), var(--ind-glow);
+}
+
+/* HUD targeting brackets in the four corners of the monitor. Drawn over the
+   plot (an ::after paints above it) and never in the way of the mouse. */
 .graph-container::after {
+    --hud: rgba(76, 201, 240, 0.75);
+    --arm: 18px;
     content: '';
     position: absolute;
-    top: 8px; left: 8px; width: 6px; height: 6px; background: #374151; border-radius: 50%;
-    box-shadow: calc(100% - 16px) 0 #374151, 0 calc(100% - 16px) #374151, calc(100% - 16px) calc(100% - 16px) #374151;
+    inset: 10px;
     pointer-events: none;
+    background:
+        linear-gradient(var(--hud), var(--hud)) top left / var(--arm) 2px,
+        linear-gradient(var(--hud), var(--hud)) top left / 2px var(--arm),
+        linear-gradient(var(--hud), var(--hud)) top right / var(--arm) 2px,
+        linear-gradient(var(--hud), var(--hud)) top right / 2px var(--arm),
+        linear-gradient(var(--hud), var(--hud)) bottom left / var(--arm) 2px,
+        linear-gradient(var(--hud), var(--hud)) bottom left / 2px var(--arm),
+        linear-gradient(var(--hud), var(--hud)) bottom right / var(--arm) 2px,
+        linear-gradient(var(--hud), var(--hud)) bottom right / 2px var(--arm);
+    background-repeat: no-repeat;
+}
+
+/* In the cockpit the monitor also gets faint scanlines. */
+:root[data-theme="dark"] .graph-container::before {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    z-index: 1;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(76, 201, 240, 0.05) 0 1px,
+        transparent 1px 3px
+    );
 }
 
 .modebar {
@@ -474,13 +639,20 @@ input[type="number"]:focus,
 
 .ind-hero-title {
     color: var(--ind-text);
-    font-weight: 800;
-    letter-spacing: 2px;
+    font-weight: 400;
+    font-size: 2rem;
+    letter-spacing: 3px;
     text-transform: uppercase;
-    font-family: var(--font-heading);
-    border-bottom: 4px solid var(--ind-accent);
+    font-family: var(--font-display);
     display: inline-block;
-    padding-bottom: 5px;
+    padding-bottom: 9px;
+    /* Tricolour underline: blue, then a red and a yellow chip at the end. */
+    background: linear-gradient(
+        90deg,
+        var(--ind-accent) 0 calc(100% - 56px),
+        var(--ind-red) calc(100% - 56px) calc(100% - 24px),
+        var(--ind-accent-alt) calc(100% - 24px)
+    ) bottom / 100% 5px no-repeat;
 }
 
 .ind-hero-hr {
@@ -535,11 +707,11 @@ input[type="number"]:focus,
 }
 
 .landing-state.is-offline { border-left-color: var(--ind-text-muted); }
-.landing-state.is-online  { border-left-color: #16a34a; }
-.landing-state.is-fault   { border-left-color: #dc2626; }
+.landing-state.is-online  { border-left-color: var(--ind-ok); }
+.landing-state.is-fault   { border-left-color: var(--ind-red); }
 
 .landing-state.is-streaming {
-    border-left-color: var(--ind-accent);
+    border-left-color: var(--ind-accent-alt);
     animation: status-led-pulse 1s steps(1, end) infinite;
 }
 
@@ -551,9 +723,11 @@ input[type="number"]:focus,
 /* ---- Tool cards ---- */
 
 .landing-section-title {
-    font-family: var(--font-heading);
-    font-weight: 800;
-    letter-spacing: 0.3px;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 1.05rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
     color: var(--ind-text);
     border-bottom: 4px solid var(--ind-accent);
     display: inline-block;
@@ -594,11 +768,11 @@ input[type="number"]:focus,
 }
 
 .tool-title {
-    font-family: var(--font-heading);
-    font-weight: 800;
+    font-family: var(--font-display);
+    font-weight: 400;
     letter-spacing: 0.3px;
     color: var(--ind-text);
-    font-size: 1.15rem;
+    font-size: 0.95rem;
     border-bottom: 2px solid var(--ind-border-light);
     padding-bottom: 6px;
     margin-bottom: 8px;
@@ -655,11 +829,11 @@ input[type="number"]:focus,
 }
 
 .build-title {
-    font-family: var(--font-heading);
-    font-weight: 800;
+    font-family: var(--font-display);
+    font-weight: 400;
     letter-spacing: 0.3px;
     color: var(--ind-text);
-    font-size: 1.15rem;
+    font-size: 0.95rem;
     margin-bottom: 4px;
 }
 
@@ -683,17 +857,18 @@ input[type="number"]:focus,
 .safety-callout {
     background: var(--ind-surface-alt);
     border: 2px solid var(--ind-border);
-    border-left: 6px solid var(--ind-accent);
+    border-left: 6px solid var(--ind-red);
     box-shadow: var(--shadow-hard);
     padding: 1rem 1.25rem;
     margin-top: 0.5rem;
 }
 
 .safety-title {
-    font-family: var(--font-heading);
-    font-weight: 800;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 0.95rem;
     letter-spacing: 0.3px;
-    color: var(--ind-accent);
+    color: var(--ind-red);
     margin-bottom: 0.5rem;
 }
 
@@ -707,9 +882,10 @@ input[type="number"]:focus,
 /* ===========================================
    BUTTONS — Machine Controls
 
-   Every dbc.Button, restyled to match the cards and the navbar status button:
-   square, heavy border, hard offset shadow, lifting on hover and pressing flat
-   on click. Colours go through Bootstrap's own --bs-btn-* variables, so the
+   Every dbc.Button, restyled to match the navbar status button: heavy
+   border, chamfered mecha corners (--chamfer-clip), lifting and brightening on
+   hover and pressing back on click. The clip cuts off any box-shadow, so
+   these have none. Colours go through Bootstrap's own --bs-btn-* variables, so the
    hover, active and disabled states all follow without restating them.
    Link buttons (the drawer's ✕) are text, not machinery, and are left alone.
    =========================================== */
@@ -717,28 +893,29 @@ input[type="number"]:focus,
 .btn:not(.btn-link) {
     font-family: var(--font-heading);
     font-weight: 700;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.5px;
     border-width: 2px;
     border-radius: 0;
-    box-shadow: var(--shadow-hard);
-    transition: transform 0.1s ease, box-shadow 0.1s ease,
+    box-shadow: none;
+    clip-path: var(--chamfer-clip);
+    transition: transform 0.1s ease, filter 0.1s ease,
                 background-color 0.1s ease, border-color 0.1s ease;
 }
 
 .btn:not(.btn-link):hover {
-    transform: translate(-2px, -2px);
-    box-shadow: var(--shadow-hover);
+    transform: translate(-1px, -1px);
+    filter: brightness(1.08);
 }
 
 .btn:not(.btn-link):active {
-    transform: translate(0, 0);
-    box-shadow: none;
+    transform: translate(1px, 1px);
+    filter: none;
 }
 
 .btn:not(.btn-link):disabled,
 .btn:not(.btn-link).disabled {
-    box-shadow: none;
     transform: none;
+    filter: none;
 }
 
 .btn-primary {
@@ -746,15 +923,15 @@ input[type="number"]:focus,
     --bs-btn-bg: var(--ind-accent);
     --bs-btn-border-color: var(--ind-outline);
     --bs-btn-hover-color: #fff;
-    --bs-btn-hover-bg: #c2410c;
+    --bs-btn-hover-bg: var(--ind-accent-hover);
     --bs-btn-hover-border-color: var(--ind-outline);
     --bs-btn-active-color: #fff;
-    --bs-btn-active-bg: #9a3412;
+    --bs-btn-active-bg: var(--ind-accent-active);
     --bs-btn-active-border-color: var(--ind-outline);
     --bs-btn-disabled-color: #fff;
     --bs-btn-disabled-bg: var(--ind-accent);
     --bs-btn-disabled-border-color: var(--ind-outline);
-    --bs-btn-focus-shadow-rgb: 234, 88, 12;
+    --bs-btn-focus-shadow-rgb: var(--ind-accent-rgb);
 }
 
 .btn-secondary,
@@ -771,10 +948,10 @@ input[type="number"]:focus,
     --bs-btn-disabled-color: var(--ind-text-muted);
     --bs-btn-disabled-bg: var(--ind-surface-alt);
     --bs-btn-disabled-border-color: var(--ind-border-light);
-    --bs-btn-focus-shadow-rgb: 75, 85, 99;
+    --bs-btn-focus-shadow-rgb: var(--ind-accent-rgb);
 }
 
-/* Same green and red as the ONLINE and FAULT indicators. */
+/* Same green as the ONLINE indicator, same red as FAULT and the armour. */
 .btn-success {
     --bs-btn-color: #fff;
     --bs-btn-bg: #16a34a;
@@ -793,18 +970,18 @@ input[type="number"]:focus,
 
 .btn-danger {
     --bs-btn-color: #fff;
-    --bs-btn-bg: #dc2626;
+    --bs-btn-bg: #d62828;
     --bs-btn-border-color: var(--ind-outline);
     --bs-btn-hover-color: #fff;
-    --bs-btn-hover-bg: #b91c1c;
+    --bs-btn-hover-bg: #b51f1f;
     --bs-btn-hover-border-color: var(--ind-outline);
     --bs-btn-active-color: #fff;
-    --bs-btn-active-bg: #991b1b;
+    --bs-btn-active-bg: #8f1818;
     --bs-btn-active-border-color: var(--ind-outline);
     --bs-btn-disabled-color: #fff;
-    --bs-btn-disabled-bg: #dc2626;
+    --bs-btn-disabled-bg: #d62828;
     --bs-btn-disabled-border-color: var(--ind-outline);
-    --bs-btn-focus-shadow-rgb: 220, 38, 38;
+    --bs-btn-focus-shadow-rgb: 214, 40, 40;
 }
 
 /* ===========================================
@@ -839,8 +1016,8 @@ input[type="number"]:focus,
 }
 
 .global-drawer h6 {
-    font-family: var(--font-heading);
-    font-weight: 700;
+    font-family: var(--font-display);
+    font-weight: 400;
     letter-spacing: 0.3px;
 }
 
@@ -870,7 +1047,7 @@ input[type="number"]:focus,
 /* ===========================================
    STATUS BUTTON — link readout and drawer handle
 
-   Same plate-and-hard-shadow treatment as the cards. The state modifier
+   Chamfered like the buttons, so no shadow. The state modifier
    (.is-offline / .is-online / .is-streaming / .is-fault) colours the LED and
    the left accent bar; the label itself stays legible in every state.
    =========================================== */
@@ -879,16 +1056,17 @@ input[type="number"]:focus,
     font-family: var(--font-mono);
     font-weight: 700;
     font-size: 0.9rem;
+    white-space: nowrap;
     letter-spacing: 0.3px;
     color: var(--ind-text);
     background: var(--ind-surface-alt);
     border: 2px solid var(--ind-border);
     border-radius: 0;
-    box-shadow: var(--shadow-hard);
+    clip-path: var(--chamfer-clip);
     padding: 0.35rem 0.9rem 0.35rem 0.75rem;
     border-left-width: 6px;
     border-left-color: var(--ind-text-muted);
-    transition: transform 0.1s ease, box-shadow 0.1s ease,
+    transition: transform 0.1s ease, filter 0.1s ease,
                 border-left-color 0.1s ease;
 }
 
@@ -899,38 +1077,38 @@ input[type="number"]:focus,
 }
 
 .ind-status-btn:hover {
-    transform: translate(-2px, -2px);
-    box-shadow: var(--shadow-hover);
+    transform: translate(-1px, -1px);
+    filter: brightness(1.08);
 }
 
 .ind-status-btn:active {
-    transform: translate(0, 0);
-    box-shadow: none;
+    transform: translate(1px, 1px);
+    filter: none;
 }
 
 .ind-status-btn.is-online {
-    border-left-color: #16a34a;
+    border-left-color: var(--ind-ok);
 }
 
 .ind-status-btn.is-online::after {
-    color: #16a34a;
+    color: var(--ind-ok);
 }
 
 .ind-status-btn.is-streaming {
-    border-left-color: var(--ind-accent);
+    border-left-color: var(--ind-accent-alt);
 }
 
 .ind-status-btn.is-streaming::after {
-    color: var(--ind-accent);
+    color: var(--ind-accent-alt);
     animation: status-led-pulse 1s steps(1, end) infinite;
 }
 
 .ind-status-btn.is-fault {
-    border-left-color: #dc2626;
+    border-left-color: var(--ind-red);
 }
 
 .ind-status-btn.is-fault::after {
-    color: #dc2626;
+    color: var(--ind-red);
 }
 
 @keyframes status-led-pulse {
@@ -945,8 +1123,8 @@ input[type="number"]:focus,
     margin-left: auto;
 }
 
-/* Theme toggle: a square plate in the status button's style, showing the icon
-   of the theme it switches to. */
+/* Theme toggle: a chamfered plate in the status button's style, showing the
+   icon of the theme it switches to. */
 .ind-theme-btn {
     min-width: 2.4rem;
     font-size: 1.1rem;
@@ -955,19 +1133,19 @@ input[type="number"]:focus,
     background: var(--ind-surface-alt);
     border: 2px solid var(--ind-border);
     border-radius: 0;
-    box-shadow: var(--shadow-hard);
-    transition: transform 0.1s ease, box-shadow 0.1s ease, color 0.1s ease;
+    clip-path: var(--chamfer-clip);
+    transition: transform 0.1s ease, filter 0.1s ease, color 0.1s ease;
 }
 
 .ind-theme-btn:hover {
     color: var(--ind-accent);
-    transform: translate(-2px, -2px);
-    box-shadow: var(--shadow-hover);
+    transform: translate(-1px, -1px);
+    filter: brightness(1.08);
 }
 
 .ind-theme-btn:active {
-    transform: translate(0, 0);
-    box-shadow: none;
+    transform: translate(1px, 1px);
+    filter: none;
 }
 
 /* ===========================================
@@ -986,9 +1164,9 @@ input[type="number"]:focus,
 .global-drawer,
 .page-scroll {
     --Dash-Fill-Interactive-Strong: var(--ind-accent);
-    --Dash-Fill-Interactive-Weak: rgba(234, 88, 12, 0.15);
-    --Dash-Fill-Primary-Hover: #c2410c;
-    --Dash-Fill-Primary-Active: #9a3412;
+    --Dash-Fill-Interactive-Weak: rgba(var(--ind-accent-rgb), 0.15);
+    --Dash-Fill-Primary-Hover: var(--ind-accent-hover);
+    --Dash-Fill-Primary-Active: var(--ind-accent-active);
     --Dash-Stroke-Strong: var(--ind-border);
     --Dash-Stroke-Weak: var(--ind-border-light);
     --Dash-Text-Strong: var(--ind-text);
@@ -1201,7 +1379,7 @@ input[type="number"]:focus,
     font-weight: 600;
     color: var(--ind-alert-text);
     background: var(--ind-alert-bg);
-    border-left: 4px solid var(--ind-accent);
+    border-left: 4px solid var(--ind-red);
     padding: 0.5rem 0.75rem;
     /* Solver messages put their list of legs on a line of its own. */
     white-space: pre-line;
