@@ -1,9 +1,9 @@
 import json
-from dash import callback
+from dash import callback, no_update
 from dash.dependencies import Output
 from settings import RECOMPUTE_HEXAPOD
 from hexapod.models import VirtualHexapod
-from hexapod.const import BASE_PLOTTER
+from hexapod.scene import hexapod_to_scene
 from hexapod.robot_link import ROBOT_LINK
 from hexapod.ik_solver.ik_solver2 import solve_inverse_kinematics
 from hexapod.ik_solver.recompute_hexapod import recompute_hexapod
@@ -15,7 +15,7 @@ from pages import helpers, shared
 # Page layout
 # ......................
 
-GRAPH_ID = "graph-inverse"
+VIEW_ID = "view-inverse"
 MESSAGE_SECTION_ID = "message-inverse"
 PARAMETERS_SECTION_ID = "parameters-inverse"
 
@@ -28,20 +28,20 @@ sidebar = shared.make_standard_page_sidebar(
     robot_section=shared.make_stream_controls("inverse"),
 )
 
-layout = shared.make_standard_page_layout(GRAPH_ID, sidebar)
+layout = shared.make_standard_page_layout(VIEW_ID, sidebar)
 
 
 # ......................
 # Update page
 # ......................
 
-outputs, inputs, states = shared.make_standard_page_callback_params(
-    GRAPH_ID, PARAMETERS_SECTION_ID, MESSAGE_SECTION_ID
+outputs, inputs = shared.make_standard_page_callback_params(
+    VIEW_ID, PARAMETERS_SECTION_ID, MESSAGE_SECTION_ID
 )
 
 
-@callback(outputs, inputs, states)
-def update_inverse_page(dimensions_json, ik_parameters_json, relayout_data, figure):
+@callback(outputs, inputs)
+def update_inverse_page(dimensions_json, ik_parameters_json):
 
     dimensions = helpers.load_params(dimensions_json, "dims")
     ik_parameters = helpers.load_params(ik_parameters_json, "ik")
@@ -52,7 +52,7 @@ def update_inverse_page(dimensions_json, ik_parameters_json, relayout_data, figu
             hexapod, ik_parameters
         )
     except Exception as alert:
-        return figure, helpers.make_alert_message(alert)
+        return no_update, helpers.make_alert_message(alert)
 
     # Only sent once the IK solver has produced a reachable pose.
     ROBOT_LINK.send_pose(poses)
@@ -63,11 +63,9 @@ def update_inverse_page(dimensions_json, ik_parameters_json, relayout_data, figu
                 dimensions, ik_parameters, poses, legs_off_ground
             )
         except Exception as alert:
-            return figure, helpers.make_alert_message(alert)
+            return no_update, helpers.make_alert_message(alert)
 
-    BASE_PLOTTER.update(figure, hexapod)
-    helpers.change_camera_view(figure, relayout_data)
-    return figure, helpers.make_poses_message(poses, legs_off_ground)
+    return hexapod_to_scene(hexapod), helpers.make_poses_message(poses, legs_off_ground)
 
 
 # ......................

@@ -1,10 +1,10 @@
 # The pose editor: drag the feet in 3D, collect the poses as keyframes, preview
 # the sequence and run it on the robot.
 #
-# The 3D view is assets/poser.js (three.js), not a Plotly graph -- Plotly's 3D
-# plot cannot drag a point. It reports a dragged foot through the
-# POSER_FOOT_TARGET_ID store and draws whatever lands in POSER_SCENE_STORE_ID;
-# everything in between, the kinematics included, happens here.
+# The 3D view is the one every page uses (assets/hexapod_view.js), switched to
+# editable: it reports a dragged foot through the POSER_FOOT_TARGET_ID store and
+# draws whatever lands in POSER_SCENE_STORE_ID; everything in between, the
+# kinematics included, happens here.
 #
 # What is being edited lives in three session stores, so it survives a visit
 # to another page:
@@ -35,16 +35,6 @@ from hexapod.naming import leg_label
 from hexapod.robot_config import get_sequence_fps
 from hexapod.robot_link import ROBOT_LINK
 from pages import helpers
-from style_settings import (
-    BODY_COLOR,
-    BODY_MESH_COLOR,
-    COG_COLOR,
-    GROUND_COLOR,
-    HEAD_COLOR,
-    LEG_COLOR,
-    PAPER_BG_COLOR,
-    SUPPORT_POLYGON_MESH_COLOR,
-)
 from widgets.poser_ui import (
     MODE_EDIT,
     MODE_PREVIEW,
@@ -97,28 +87,13 @@ from widgets.robot_link_ui import (
     SECTION_CONTROLS_OFFLINE_CLASS,
 )
 
-# The CAD view's colours, the same as the Plotly pages use (style_settings.py).
-VIEWER_COLORS = {
-    "background": PAPER_BG_COLOR,
-    "ground": GROUND_COLOR,
-    "body": BODY_MESH_COLOR,
-    "bodyOutline": BODY_COLOR,
-    "leg": LEG_COLOR,
-    "joint": BODY_COLOR,
-    "foot": SUPPORT_POLYGON_MESH_COLOR,
-    "footSelected": HEAD_COLOR,
-    "head": HEAD_COLOR,
-    "cog": COG_COLOR,
-    "support": SUPPORT_POLYGON_MESH_COLOR,
-}
-
-
 # ......................
 # Page layout
 # ......................
 
-# The same two columns as the other pages (pages/shared.py), with the three.js
-# view where they have their Plotly graph.
+# The same two columns as the other pages (pages/shared.py). The view is not
+# wired up by register_view() like theirs: it switches between an editable pose
+# and the preview's frames, below.
 layout = dbc.Row(
     [
         dbc.Col(
@@ -132,7 +107,7 @@ layout = dbc.Row(
         ),
         dbc.Col(
             html.Div(
-                html.Div(id=POSER_VIEWER_ID, className="poser-viewer"),
+                html.Div(id=POSER_VIEWER_ID, className="hexapod-view"),
                 className="graph-container flex-grow-1",
             ),
             width=12,
@@ -362,7 +337,6 @@ def update_scene(feet_store):
 
     pose, _ = kf.feet_to_pose(feet_store["feet"], robot_config)
     scene = kf.pose_to_scene(pose, robot_config)
-    scene["colors"] = VIEWER_COLORS
     scene["seq"] = feet_store.get("seq", 0)
     return scene, helpers.make_poses_message(pose)
 
@@ -379,20 +353,20 @@ def describe_selection(leg, feet_store):
     return f"{leg_label(leg)} · foot at x {x:+.1f}, y {y:+.1f}, z {z:+.1f} mm"
 
 
-# Hands the scene to assets/poser.js: the pose being edited, or a frame of the
-# sequence while previewing.
+# Hands the scene to the view: the pose being edited, which can be dragged, or
+# a frame of the sequence while previewing, which cannot.
 clientside_callback(
     """
     function(scene, frame, mode, preview) {
-        if (!window.hexapodPoser) {
+        if (!window.hexapodView) {
             return window.dash_clientside.no_update;
         }
         var previewing = mode === "preview" && preview && preview.scenes.length;
         if (previewing) {
             var index = Math.min(Math.max(frame || 0, 0), preview.scenes.length - 1);
-            window.hexapodPoser.render("%s", preview.scenes[index], false);
+            window.hexapodView.render("%s", preview.scenes[index], {editable: false});
         } else if (scene) {
-            window.hexapodPoser.render("%s", scene, true);
+            window.hexapodView.render("%s", scene, {editable: true});
         }
         return window.dash_clientside.no_update;
     }
@@ -407,12 +381,12 @@ clientside_callback(
 clientside_callback(
     """
     function(n_clicks) {
-        if (window.hexapodPoser) {
-            window.hexapodPoser.resetCamera();
+        if (window.hexapodView) {
+            window.hexapodView.resetCamera("%s");
         }
         return window.dash_clientside.no_update;
     }
-    """,
+    """ % POSER_VIEWER_ID,
     Output(POSER_RENDER_ACK_ID, "data", allow_duplicate=True),
     Input(POSER_RESET_VIEW_BTN_ID, "n_clicks"),
     prevent_initial_call=True,

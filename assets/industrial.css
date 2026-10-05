@@ -565,11 +565,11 @@ input[type="number"]:focus,
 }
 
 /* ===========================================
-   PLOTLY GRAPH CONTAINER
+   3D VIEW CONTAINER (the monitor frame round assets/hexapod_view.js)
    =========================================== */
 
 .graph-container {
-    background: #0a1428; /* Panoramic monitor navy, as the plot's paper */
+    background: #0a1428; /* Panoramic monitor navy, as the view's background */
     border: 4px solid var(--ind-accent);
     border-radius: 0;
     padding: 4px;
@@ -614,10 +614,6 @@ input[type="number"]:focus,
         rgba(76, 201, 240, 0.05) 0 1px,
         transparent 1px 3px
     );
-}
-
-.modebar {
-    opacity: 0.8;
 }
 
 /* ===========================================
@@ -1423,14 +1419,29 @@ input[type="number"]:focus,
 }
 
 /* ===========================================
-   POSE EDITOR
-   The three.js view (assets/poser.js) fills the monitor frame the way the
-   Plotly graph does on the other pages.
+   3D VIEW
+   The three.js view (assets/hexapod_view.js) fills the monitor frame.
    =========================================== */
 
-.poser-viewer {
+.hexapod-view-frame,
+.hexapod-view {
     width: 100%;
     height: 100%;
     min-height: 0;
     position: relative;
+}
+
+/* The name of the leg under the pointer, as a HUD tag. */
+.hexapod-view-label {
+    position: absolute;
+    z-index: 2;
+    pointer-events: none;
+    padding: 0.15rem 0.45rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #e4eeff;
+    background: rgba(10, 20, 40, 0.85);
+    border: 1px solid rgba(76, 201, 240, 0.75);
+    white-space: nowrap;
 }

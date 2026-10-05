@@ -1,10 +1,9 @@
-import copy
 from dash.dependencies import Input, Output, State
 from dash import callback, clientside_callback, dcc, html, no_update
 from dash.exceptions import PreventUpdate
 
 from hexapod.models import VirtualHexapod
-from hexapod.const import BASE_PLOTTER, BASE_FIGURE
+from hexapod.scene import hexapod_to_scene
 from widgets.motion_ui import (
     MOTION_WIDGETS_SECTION,
     MOTION_DROPDOWN_ID,
@@ -35,9 +34,9 @@ from widgets.robot_link_ui import (
 
 # --- Page Layout Elements ---
 INTERVAL_ID = "motion-interval"
-ANIMATION_STORE_ID = "motion-figures-store"
+ANIMATION_STORE_ID = "motion-scenes-store"
 PLAY_STATE_STORE_ID = "play-state-store"
-GRAPH_ID = "motion-graph"
+VIEW_ID = "view-motion"
 
 hidden_components = html.Div([
     dcc.Interval(id=INTERVAL_ID, interval=50, n_intervals=0, disabled=True),
@@ -60,11 +59,11 @@ sidebar = shared.make_standard_page_sidebar(
     params_widgets_section=motion_widgets
 )
 
-layout = shared.make_standard_page_layout(GRAPH_ID, sidebar)
+layout = shared.make_standard_page_layout(VIEW_ID, sidebar)
 
 # --- Callbacks ---
 
-# 1. Server-side: Generate pre-rendered figures for smooth client-side playback
+# 1. Server-side: build every frame's scene up front, for smooth client-side playback
 @callback(
     Output(ANIMATION_STORE_ID, "data"),
     Output(MOTION_FRAME_SLIDER_ID, "max"),
@@ -93,20 +92,16 @@ def update_motion_and_dimensions(motion_name, _config_store):
     max_frames = max(len(frames) - 1, 0)
     marks = {0: "0", max_frames: str(max_frames)}
 
-    figures = []
-    base_fig = BASE_FIGURE
+    scenes = []
     for pose in frames:
         hexapod = VirtualHexapod(dimensions)
         try:
             hexapod.update(pose)
         except Exception as e:
+            # Drawn in the base posture instead.
             print(f"Pose unstable for frame, skipping update: {e}")
-            # Fall back to base posture if unstable
-            
-        fig_copy = copy.deepcopy(base_fig)
-        BASE_PLOTTER.update(fig_copy, hexapod)
-        figures.append(fig_copy)
-        
+        scenes.append(hexapod_to_scene(hexapod))
+
     # Reset playback state
     playing = False
     btn_text = "▶ Play"
@@ -114,7 +109,7 @@ def update_motion_and_dimensions(motion_name, _config_store):
     disabled = True
     current_frame = 0
     
-    return figures, max_frames, marks, current_frame, playing, btn_text, btn_color, disabled
+    return scenes, max_frames, marks, current_frame, playing, btn_text, btn_color, disabled
 
 
 # 2. Client-side: Handle Play/Pause button
@@ -186,42 +181,24 @@ clientside_callback(
     prevent_initial_call=True
 )
 
-# 4. Client-side: Sync slider with graph frame
+# 4. Client-side: show the frame the slider is on. The view keeps its camera
+# from frame to frame on its own.
 clientside_callback(
     """
-    function(frame_idx, figures, relayoutData, current_fig) {
-        if (frame_idx === undefined || !figures || figures.length === 0) {
+    function(frame_idx, scenes) {
+        if (frame_idx === undefined || !scenes || scenes.length === 0) {
             return [window.dash_clientside.no_update, window.dash_clientside.no_update];
         }
-        if (frame_idx >= figures.length) {
+        if (frame_idx >= scenes.length) {
             frame_idx = 0;
         }
-        
-        // Clone the figure object to avoid mutating the original store copy
-        let new_fig = JSON.parse(JSON.stringify(figures[frame_idx]));
-        
-        // Preserve user camera view interaction seamlessly
-        let camera = null;
-        if (relayoutData && relayoutData['scene.camera']) {
-            camera = relayoutData['scene.camera'];
-        } else if (current_fig && current_fig.layout && current_fig.layout.scene && current_fig.layout.scene.camera) {
-            camera = current_fig.layout.scene.camera;
-        }
-        
-        if (camera && new_fig.layout && new_fig.layout.scene) {
-            new_fig.layout.scene.camera = camera;
-        }
-        
-        let display = `Frame ${frame_idx}/${figures.length - 1}`;
-        return [new_fig, display];
+        return [scenes[frame_idx], `Frame ${frame_idx}/${scenes.length - 1}`];
     }
     """,
-    Output(GRAPH_ID, "figure"),
+    Output(shared.view_store_id(VIEW_ID), "data"),
     Output(MOTION_FRAME_DISPLAY_ID, "children"),
     Input(MOTION_FRAME_SLIDER_ID, "value"),
-    State(ANIMATION_STORE_ID, "data"),
-    State(GRAPH_ID, "relayoutData"),
-    State(GRAPH_ID, "figure"),
+    Input(ANIMATION_STORE_ID, "data"),
 )
 
 # 5. Server-side: run the selected motion on the physical robot

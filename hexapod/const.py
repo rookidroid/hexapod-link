@@ -1,7 +1,6 @@
 from copy import deepcopy
-from hexapod.plotter import HexapodPlotter
 from hexapod.models import VirtualHexapod, Hexagon, Linkage
-from hexapod.templates.figure_template import HEXAPOD_FIGURE
+from hexapod.scene import hexapod_to_scene
 from hexapod.templates.pose_template import HEXAPOD_POSE
 
 # These identify a leg or joint in code. What the user is shown is built from
@@ -33,9 +32,8 @@ BASE_IK_PARAMS = {
 BASE_POSE = deepcopy(HEXAPOD_POSE)
 
 BASE_HEXAPOD = VirtualHexapod(BASE_DIMENSIONS)
-BASE_PLOTTER = HexapodPlotter()
 
 HEXAPOD = deepcopy(BASE_HEXAPOD)
 HEXAPOD.update(HEXAPOD_POSE)
-BASE_FIGURE = deepcopy(HEXAPOD_FIGURE)
-BASE_PLOTTER.update(BASE_FIGURE, HEXAPOD)
+# The neutral hexapod as the 3D view draws it, for the landing page.
+BASE_SCENE = hexapod_to_scene(HEXAPOD)

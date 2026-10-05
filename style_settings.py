@@ -16,29 +16,22 @@ GLOBAL_PAGE_STYLE = {
 
 
 # ***************************************
-# HEXAPOD GRAPH
+# HEXAPOD VIEW
 # ***************************************
 
-# The plot is the cockpit's panoramic monitor in both themes: a navy screen
-# with the robot in RX-78-2 colours and HUD-cyan overlays.
+# The 3D view (assets/hexapod_view.js) is the cockpit's panoramic monitor in
+# both themes: a navy screen with the robot in RX-78-2 colours and HUD-cyan
+# overlays. hexapod/scene.py hands these to it with every scene.
 
 BODY_MESH_COLOR = "#e8ecf2"       # White armour
-BODY_MESH_OPACITY = 0.8
-BODY_COLOR = "#3b7bff"            # Federation blue body outline
-BODY_OUTLINE_WIDTH = 10
+BODY_COLOR = "#3b7bff"            # Federation blue body outline and joints
 COG_COLOR = "#e63946"             # Red core block
-COG_SIZE = 15
-HEAD_COLOR = "#f7c600"            # V-fin yellow head
-HEAD_SIZE = 12
+HEAD_COLOR = "#f7c600"            # V-fin yellow head; also a picked-up foot
 LEG_COLOR = "#dfe6ef"             # White armour legs
-LEG_OUTLINE_WIDTH = 10
-SUPPORT_POLYGON_MESH_COLOR = "#4cc9f0"  # HUD cyan support polygon
-SUPPORT_POLYGON_MESH_OPACITY = 0.15
-LEGENDS_BG_COLOR = "rgba(10, 20, 40, 0.85)"  # Navy glass legend
-AXIS_ZERO_LINE_COLOR = "#4cc9f0"  # HUD cyan axis lines
+SUPPORT_POLYGON_MESH_COLOR = "#4cc9f0"  # HUD cyan support polygon and feet
 PAPER_BG_COLOR = "#0a1428"        # Monitor navy background
 GROUND_COLOR = "#13213f"          # Navy ground floor
-LEGEND_FONT_COLOR = "#e4eeff"     # Light legend text
+GRID_COLOR = "#24406e"            # Grid lines on the floor
 # Direction arrows on the body and at the origin.
 AXIS_X_COLOR = "#e63946"          # Red
 AXIS_Y_COLOR = "#f7c600"          # Yellow

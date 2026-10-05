@@ -30,7 +30,7 @@ streaming control, and a rebuilt CI/test suite.
 | 🎉 | Real-time Robot Control | Drive a physical ESP32 hexapod over WiFi, from single joints to whole-body gaits. Works with any robot in the family (Nougat, Mochi, Macaroon, ...): each one serves its own config. |
 | 🎉 | Desktop App | Runs as a native window (Windows/Linux) via PyInstaller + pywebview, no browser required. |
 | 🎉 | Light & Dark Themes | Switch from the navigation bar; the choice is remembered between launches. |
-| 🎉 | Simplicity | Minimal dependencies. Numpy for calculations, Plotly Dash for the 3D view and UI, and a bundled copy of three.js for the pose editor. |
+| 🎉 | Simplicity | Minimal dependencies. Numpy for calculations, Dash for the UI, and a bundled copy of three.js for the 3D view. |
 
 ## Preview
 
@@ -75,7 +75,7 @@ a UI or theme change rather than editing the images by hand.
 ## Requirements
 
 - [x] Python 3.13+ (CI runs 3.13 and 3.14)
-- [x] See [`requirements.txt`](./requirements.txt) for runtime dependencies (Dash, Plotly, Numpy, Flask)
+- [x] See [`requirements.txt`](./requirements.txt) for runtime dependencies (Dash, Numpy, Flask)
 - [x] See [`requirements-dev.txt`](./requirements-dev.txt) for linting/test tools
 - [x] See [`requirements-desktop.txt`](./requirements-desktop.txt) for the desktop app (adds waitress, pywebview, PyInstaller)
 
@@ -91,8 +91,8 @@ Then open the printed URL in a browser.
 
 - Modify default settings with [`settings.py`](./settings.py) — joint limits, robot link ports/rates, UI resolution, etc.
 - Modify the UI colours in [`assets/industrial.css`](./assets/industrial.css): the light theme's tokens are on `:root`, and the dark theme overrides them under `:root[data-theme="dark"]`.
-- Modify the 3D plot's colours and sizes with [`style_settings.py`](./style_settings.py). The plot is a dark CAD-style view in both themes.
-- The pose editor draws with three.js instead of Plotly, since Plotly's 3D plot cannot drag a point. Its view is [`assets/poser.js`](./assets/poser.js); the bundled three.js in `assets/vendor/` is rebuilt (with Node) by [`tools/build_three_bundle.sh`](./tools/build_three_bundle.sh).
+- Modify the 3D view's colours with [`style_settings.py`](./style_settings.py). The view is a dark CAD-style monitor in both themes.
+- Every page draws the robot with one three.js view, [`assets/hexapod_view.js`](./assets/hexapod_view.js), fed scenes built by [`hexapod/scene.py`](./hexapod/scene.py). Left-drag orbits, the wheel zooms and right-drag pans; on the pose editor the feet can also be picked up. The bundled three.js in `assets/vendor/` is rebuilt (with Node) by [`tools/build_three_bundle.sh`](./tools/build_three_bundle.sh).
 
 ### Light and dark themes
 
@@ -163,7 +163,7 @@ over WiFi in real time, from a single joint up to a full gait.
 ### Leg and joint numbering
 
 Legs and joints are named the way the robot's firmware names them, so a leg
-picked out in the 3D plot is the leg the calibration page calls by that name.
+picked out in the 3D view is the leg the calibration page calls by that name.
 Legs are numbered per side, front to back; joints are numbered outward from the
 body.
 

@@ -1,24 +1,29 @@
-// The pose editor's 3D view (pages/page_poser.py).
+// The 3D view of the hexapod, on every page that shows one.
 //
-// Plotly's 3D plot cannot drag a point, so this page draws the robot with
-// three.js instead and lets each foot be picked up and moved. The server stays
-// in charge of the kinematics: this only draws the scene it is given and turns
-// a drag into a foot target. A target goes back through the "poser-foot-target"
-// store; the server solves the leg's joints and, if the foot can get there,
-// sends back the new scene, which is drawn here. A foot that cannot get there
-// springs back to where the server last put it.
+// It draws a scene the server builds (hexapod/scene.py) and nothing else: the
+// kinematics all happen in Python. Each page puts the scene in a dcc.Store and
+// a clientside callback hands it to hexapodView.render() -- see
+// register_view() in pages/shared.py.
 //
-// Coordinates are the robot's body frame, as the server sends them: x right,
-// y forward, z up, millimetres, origin at the centre of the body.
+// On the pose editor (pages/page_poser.py) the view is also editable: a foot
+// can be clicked to pick it up and dragged with the arrows. A drag becomes a
+// foot target in the "poser-foot-target" store; the server solves the leg's
+// joints and, if the foot can get there, sends back the new scene. A foot that
+// cannot get there springs back to where the server last put it.
+//
+// Coordinates are millimetres, z up, in whatever frame the page uses: the
+// settled robot standing on the floor at z = 0 on most pages, the robot's own
+// body frame in the pose editor.
 //
 // Dash loads every .js file in assets/ on its own, so this is a plain script.
 // three.js comes from assets/vendor/three.bundle.min.js (window.HexapodThree);
-// see tools/build_three_bundle.sh. It is only looked up when the view is first
+// see tools/build_three_bundle.sh. It is only looked up when a view is first
 // drawn, so the order the two files load in does not matter.
 
 (function () {
     "use strict";
 
+    // The pose editor's stores, written while editing.
     var FOOT_TARGET_ID = "poser-foot-target";
     var SELECTED_LEG_ID = "poser-selected-leg";
 
@@ -29,8 +34,7 @@
     // A press that moves further than this (px) is an orbit, not a click.
     var CLICK_SLOP = 5;
 
-    // Colours of the CAD view, as style_settings.py gives them for the Plotly
-    // pages; the server sends the actual values with each scene.
+    // Fallbacks only; every scene carries style_settings.py's colours.
     var DEFAULT_COLORS = {
         background: "#0a1428",
         ground: "#13213f",
@@ -44,10 +48,16 @@
         head: "#f7c600",
         cog: "#e63946",
         support: "#4cc9f0",
+        axisX: "#e63946",
+        axisY: "#f7c600",
+        axisZ: "#4cc9f0",
     };
 
-    var view = null;
-    var lastCamera = null;
+    // One view per container id. A page is built anew on every visit, so the
+    // element a view was mounted in can disappear; the camera it was left at
+    // is kept here by id, so coming back to a page finds the same view.
+    var views = {};
+    var cameras = {};
 
     function three() {
         return window.HexapodThree;
@@ -85,7 +95,7 @@
 
     // ------------------------------------------------------------- building
 
-    function createView(container) {
+    function createView(id, container) {
         var T = three();
         var renderer = new T.WebGLRenderer({ antialias: true });
         renderer.setPixelRatio(window.devicePixelRatio || 1);
@@ -94,6 +104,12 @@
         renderer.domElement.style.height = "100%";
         renderer.domElement.style.touchAction = "none";
         container.appendChild(renderer.domElement);
+
+        // Names the leg under the pointer, as the firmware numbers it.
+        var label = document.createElement("div");
+        label.className = "hexapod-view-label";
+        label.style.display = "none";
+        container.appendChild(label);
 
         var scene = new T.Scene();
         var camera = new T.PerspectiveCamera(40, 1, 1, 100000);
@@ -113,6 +129,7 @@
         scene.add(gizmo.getHelper());
 
         var v = {
+            id: id,
             container: container,
             renderer: renderer,
             scene: scene,
@@ -125,7 +142,7 @@
             colors: DEFAULT_COLORS,
             size: 0,
             data: null,
-            editable: true,
+            editable: false,
             selected: null,
             dragging: false,
             seq: 0,
@@ -133,10 +150,13 @@
             sendTimer: null,
             frameRequested: false,
             pointerDown: null,
+            label: label,
+            hoverFrame: false,
         };
         scene.add(v.root);
 
         orbit.addEventListener("change", function () {
+            cameras[id] = cameraState(v);
             requestFrame(v);
         });
         gizmo.addEventListener("change", function () {
@@ -156,6 +176,19 @@
         var canvas = renderer.domElement;
         canvas.addEventListener("pointerdown", function (event) {
             v.pointerDown = { x: event.clientX, y: event.clientY };
+        });
+        canvas.addEventListener("pointermove", function (event) {
+            if (v.hoverFrame) {
+                return;
+            }
+            v.hoverFrame = true;
+            window.requestAnimationFrame(function () {
+                v.hoverFrame = false;
+                hover(v, event);
+            });
+        });
+        canvas.addEventListener("pointerleave", function () {
+            label.style.display = "none";
         });
         canvas.addEventListener("pointerup", function (event) {
             var start = v.pointerDown;
@@ -178,18 +211,39 @@
     }
 
     function disposeView(v) {
-        if (!v) {
-            return;
-        }
-        lastCamera = cameraState(v);
         v.resizeObserver.disconnect();
+        if (v.sendTimer) {
+            window.clearTimeout(v.sendTimer);
+        }
         v.gizmo.detach();
         v.gizmo.dispose();
         v.orbit.dispose();
+        v.root.traverse(function (o) {
+            if (o.geometry) {
+                o.geometry.dispose();
+            }
+        });
         v.renderer.dispose();
+        // Browsers allow only a handful of live WebGL contexts; give this one
+        // back now rather than whenever the canvas is collected.
+        v.renderer.forceContextLoss();
         if (v.renderer.domElement.parentNode) {
             v.renderer.domElement.parentNode.removeChild(v.renderer.domElement);
         }
+        if (v.label.parentNode) {
+            v.label.parentNode.removeChild(v.label);
+        }
+    }
+
+    // Views whose page has been navigated away from.
+    function disposeDetached() {
+        Object.keys(views).forEach(function (id) {
+            var v = views[id];
+            if (!v.container.isConnected || document.getElementById(id) !== v.container) {
+                disposeView(v);
+                delete views[id];
+            }
+        });
     }
 
     function cameraState(v) {
@@ -216,14 +270,14 @@
         v.frameRequested = true;
         window.requestAnimationFrame(function () {
             v.frameRequested = false;
-            if (view === v && v.container.isConnected) {
+            if (views[v.id] === v && v.container.isConnected) {
                 v.renderer.render(v.scene, v.camera);
             }
         });
     }
 
-    // Everything that depends on the robot's size is rebuilt when it changes
-    // (another robot connected); otherwise the meshes are only moved.
+    // Everything sized to the robot is rebuilt when its size changes (other
+    // dimensions, another robot); otherwise the meshes are only moved.
     function buildParts(v, data) {
         var T = three();
         var c = v.colors;
@@ -252,7 +306,7 @@
         cylinder.rotateX(Math.PI / 2); // along z, so lookAt() aims it
         var sphere = new T.SphereGeometry(1, 24, 16);
 
-        var parts = { legs: [], joints: [], feet: [] };
+        var parts = { legs: [], joints: [], feet: [], axes: [] };
 
         // The floor: a large tile and a grid on it.
         var groundSize = size * 3;
@@ -297,11 +351,28 @@
         parts.cog.scale.setScalar(jointRadius * 1.2);
         v.root.add(parts.head, parts.cog);
 
+        // Up to six axis arrows: the body's own three and the world's three.
+        // Drawn on top of everything, as a HUD overlay.
+        var axisColors = { x: c.axisX, y: c.axisY, z: c.axisZ };
+        for (var a = 0; a < 6; a++) {
+            var axis = new T.Mesh(
+                cylinder,
+                new T.MeshBasicMaterial({ color: c.axisX, transparent: true, depthTest: false })
+            );
+            axis.renderOrder = 10;
+            axis.visible = false;
+            parts.axes.push(axis);
+            v.root.add(axis);
+        }
+        parts.axisColors = axisColors;
+        parts.axisRadius = legRadius * 0.45;
+
         for (var i = 0; i < 6; i++) {
             var segments = [];
             for (var s = 0; s < 3; s++) {
                 var seg = new T.Mesh(cylinder, mat(c.leg));
                 seg.userData.radius = legRadius;
+                seg.userData.leg = i;
                 segments.push(seg);
                 v.root.add(seg);
             }
@@ -311,6 +382,7 @@
             for (var j = 0; j < 3; j++) {
                 var joint = new T.Mesh(sphere, mat(c.joint));
                 joint.scale.setScalar(jointRadius);
+                joint.userData.leg = i;
                 joints.push(joint);
                 v.root.add(joint);
             }
@@ -321,6 +393,11 @@
             foot.userData.leg = i;
             parts.feet.push(foot);
             v.root.add(foot);
+        }
+
+        parts.legParts = [];
+        for (var k = 0; k < 6; k++) {
+            parts.legParts = parts.legParts.concat(parts.legs[k], parts.joints[k], [parts.feet[k]]);
         }
 
         v.parts = parts;
@@ -363,7 +440,7 @@
         parts.ground.position.z = data.ground - 0.5;
 
         parts.support.geometry.dispose();
-        parts.support.geometry = polygonGeometry(T, data.support, data.ground + 0.5);
+        parts.support.geometry = polygonGeometry(T, data.support || [], data.ground + 0.5);
 
         // Body outline in the order that walks round the hexagon: the vertices
         // come in leg order, right side front to back then left side.
@@ -376,7 +453,21 @@
             placeSegment(T, parts.bodyEdges[e], ring[e], ring[(e + 1) % 6]);
         }
         parts.head.position.copy(vec(T, data.head));
-        parts.cog.position.set(0, 0, 0);
+        parts.cog.position.copy(vec(T, data.cog || [0, 0, 0]));
+
+        var axes = data.axes || [];
+        for (var a = 0; a < parts.axes.length; a++) {
+            var mesh = parts.axes[a];
+            var axis = axes[a];
+            if (!axis) {
+                mesh.visible = false;
+                continue;
+            }
+            mesh.material.color.set(parts.axisColors[axis.axis]);
+            mesh.material.opacity = axis.world ? 0.55 : 1;
+            mesh.userData.radius = parts.axisRadius * (axis.world ? 0.7 : 1);
+            placeSegment(T, mesh, axis.from, axis.to);
+        }
 
         for (var i = 0; i < 6; i++) {
             var points = data.legs[i];
@@ -394,19 +485,22 @@
             var selected = v.editable && v.selected === i;
             parts.feet[i].material.color.set(selected ? v.colors.footSelected : v.colors.foot);
             parts.feet[i].material.emissive.set(selected ? v.colors.footSelected : v.colors.foot);
-            parts.feet[i].visible = true;
         }
         requestFrame(v);
     }
 
-    function frameCamera(v, data) {
+    function frameCamera(v, data, saved) {
         var size = data.size;
-        if (lastCamera && Math.abs(lastCamera.size - size) < 1e-6) {
-            v.camera.position.copy(lastCamera.position);
-            v.orbit.target.copy(lastCamera.target);
+        // A camera from an earlier visit is only reused for a robot of about
+        // the same size; framed for another, it could be inside it.
+        if (saved && Math.abs(saved.size - size) <= 0.25 * size) {
+            v.camera.position.copy(saved.position);
+            v.orbit.target.copy(saved.target);
         } else {
-            v.camera.position.set(size * 0.9, -size * 1.5, size * 0.9);
-            v.orbit.target.set(0, 0, data.ground * 0.5);
+            var cog = data.cog || [0, 0, 0];
+            var targetZ = (cog[2] + data.ground) / 2;
+            v.orbit.target.set(0, 0, targetZ);
+            v.camera.position.set(size * 0.9, -size * 1.5, targetZ + size * 0.9);
         }
         v.orbit.update();
     }
@@ -432,10 +526,8 @@
         }
     }
 
-    function pick(v, event) {
-        if (!v.editable || !v.parts) {
-            return;
-        }
+    // The first of `objects` under the pointer, or null.
+    function hit(v, event, objects) {
         var T = three();
         var rect = v.renderer.domElement.getBoundingClientRect();
         var pointer = new T.Vector2(
@@ -443,8 +535,33 @@
             -((event.clientY - rect.top) / rect.height) * 2 + 1
         );
         v.raycaster.setFromCamera(pointer, v.camera);
-        var hits = v.raycaster.intersectObjects(v.parts.feet, false);
-        select(v, hits.length ? hits[0].object.userData.leg : null);
+        var hits = v.raycaster.intersectObjects(objects, false);
+        return hits.length ? hits[0].object : null;
+    }
+
+    function pick(v, event) {
+        if (!v.editable || !v.parts) {
+            return;
+        }
+        var foot = hit(v, event, v.parts.feet);
+        select(v, foot ? foot.userData.leg : null);
+    }
+
+    function hover(v, event) {
+        var labels = v.data && v.data.labels;
+        var over = v.parts && labels && !v.dragging ? hit(v, event, v.parts.legParts) : null;
+        if (!over) {
+            v.label.style.display = "none";
+            v.renderer.domElement.style.cursor = "";
+            return;
+        }
+        var rect = v.container.getBoundingClientRect();
+        v.label.textContent = labels[over.userData.leg];
+        v.label.style.left = event.clientX - rect.left + 14 + "px";
+        v.label.style.top = event.clientY - rect.top + 10 + "px";
+        v.label.style.display = "block";
+        var onFoot = v.editable && v.parts.feet.indexOf(over) >= 0;
+        v.renderer.domElement.style.cursor = onFoot ? "pointer" : "";
     }
 
     function sendTarget(v, now) {
@@ -478,34 +595,32 @@
 
     // ------------------------------------------------------------- public
 
-    // Draws `data` (keyframes.pose_to_scene plus "colors") into the element
-    // `containerId`. `editable` is false while a sequence is being previewed:
-    // the feet cannot be picked up then.
-    function render(containerId, data, editable) {
+    // Draws `data` (hexapod/scene.py) into the element with id `containerId`.
+    //
+    // options.editable  feet can be picked up and dragged (pose editor only;
+    //                   false while it previews a sequence)
+    // options.zoom      false leaves the mouse wheel to the page, for a view
+    //                   that sits in a scrolling page
+    function render(containerId, data, options) {
+        options = options || {};
         var container = document.getElementById(containerId);
         if (!container || !data || !three()) {
             return false;
         }
 
-        // Dash builds the page anew on every visit, so the element the view
-        // was mounted in may be gone; start over in the new one.
-        if (view && view.container !== container) {
-            disposeView(view);
-            view = null;
-        }
-        var fresh = !view;
+        disposeDetached();
+        var v = views[containerId];
+        var fresh = !v;
         if (fresh) {
-            view = createView(container);
+            v = views[containerId] = createView(containerId, container);
         }
-        var v = view;
 
-        // Preview frames come without colours; they keep the editor's.
         if (data.colors) {
             v.colors = Object.assign({}, DEFAULT_COLORS, data.colors);
         }
         if (fresh || !v.parts || Math.abs(v.size - data.size) > 1e-6) {
-            // Another robot: the feet are about to be rebuilt, so let go of
-            // the one being held rather than leave the gizmo on a dead mesh.
+            // The feet are about to be rebuilt, so let go of the one being
+            // held rather than leave the gizmo on a dead mesh.
             if (v.selected !== null) {
                 v.gizmo.detach();
                 v.selected = null;
@@ -513,10 +628,15 @@
             }
             v.renderer.setClearColor(v.colors.background);
             buildParts(v, data);
-            frameCamera(v, data);
+            // The camera stays where the user put it while the robot is
+            // resized; only a view that is new to this page is framed.
+            if (fresh) {
+                frameCamera(v, data, cameras[containerId]);
+            }
         }
 
-        v.editable = editable !== false;
+        v.orbit.enableZoom = options.zoom !== false;
+        v.editable = options.editable === true;
         if (!v.editable && v.selected !== null) {
             select(v, null);
         }
@@ -525,29 +645,32 @@
         return true;
     }
 
-    function resetCamera() {
-        if (view && view.data) {
-            lastCamera = null;
-            frameCamera(view, view.data);
-            requestFrame(view);
+    function resetCamera(containerId) {
+        var v = views[containerId];
+        if (v && v.data) {
+            delete cameras[containerId];
+            frameCamera(v, v.data, null);
+            cameras[containerId] = cameraState(v);
+            requestFrame(v);
         }
     }
 
     // Where a foot is drawn, in page pixels, or null before the first draw.
-    // For scripts that drive the editor, such as tools/make_screenshots.py.
-    function footScreenPosition(leg) {
-        if (!view || !view.parts) {
+    // For scripts that drive the pose editor in a browser.
+    function footScreenPosition(containerId, leg) {
+        var v = views[containerId];
+        if (!v || !v.parts) {
             return null;
         }
-        var p = view.parts.feet[leg].position.clone().project(view.camera);
-        var rect = view.renderer.domElement.getBoundingClientRect();
+        var p = v.parts.feet[leg].position.clone().project(v.camera);
+        var rect = v.renderer.domElement.getBoundingClientRect();
         return {
             x: rect.left + ((p.x + 1) / 2) * rect.width,
             y: rect.top + ((1 - p.y) / 2) * rect.height,
         };
     }
 
-    window.hexapodPoser = {
+    window.hexapodView = {
         render: render,
         resetCamera: resetCamera,
         footScreenPosition: footScreenPosition,

@@ -8,11 +8,11 @@ from widgets.robot_link_ui import SECTION_CONTROLS_OFFLINE_CLASS, STATUS_POLL_MS
 from widgets.section_maker import field_label, make_slider_field
 
 # --- Element IDs ---
-# Written by assets/poser.js through set_props; keep the two in step.
+# Written by assets/hexapod_view.js through set_props; keep the two in step.
 POSER_FOOT_TARGET_ID = "poser-foot-target"
 POSER_SELECTED_LEG_ID = "poser-selected-leg"
 
-POSER_VIEWER_ID = "poser-viewer"
+POSER_VIEWER_ID = "view-poser"
 POSER_RENDER_ACK_ID = "poser-render-ack"
 POSER_FEET_STORE_ID = "poser-feet"
 POSER_KEYFRAMES_STORE_ID = "poser-keyframes"

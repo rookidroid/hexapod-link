@@ -1,14 +1,15 @@
 #!/usr/bin/env sh
-# Rebuild assets/vendor/three.bundle.min.js, the copy of three.js the pose
-# editor's 3D view (assets/poser.js) draws with.
+# Rebuild assets/vendor/three.bundle.min.js, the copy of three.js the 3D view
+# (assets/hexapod_view.js) draws with on every page.
 #
 # It is checked in, like the bundled fonts and bootstrap, so the app needs no
 # network and no Node at run time; Node is only needed to run this. The bundle
 # is a plain script that sets window.HexapodThree, because Dash loads the files
 # in assets/ as plain scripts, not as ES modules.
 #
-# Only what poser.js uses is exported, which keeps the file small. Using another
-# three.js class there means adding it to the list below and running this again.
+# Only what hexapod_view.js uses is exported, which keeps the file small. Using
+# another three.js class there means adding it to the list below and running
+# this again.
 #
 #   $ sh tools/build_three_bundle.sh
 

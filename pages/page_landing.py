@@ -4,19 +4,17 @@ It answers the three things someone arriving here needs: what state the link to
 the hexapod is in, which tool does what, and how to get a real robot moving.
 
 There is no marketing artwork. The hero is the simulator's own render of the
-hexapod, drawn from the same BASE_FIGURE the tool pages start from, so the page
+hexapod, in the same 3D view the tool pages use (BASE_SCENE), so the page
 shows the actual thing and keeps working with no network -- which is the normal
 case here, since driving the robot means joining its access point instead of
 the internet.
 """
 
-from copy import deepcopy
-
 import dash_bootstrap_components as dbc
 from dash import callback, dcc, html
 from dash.dependencies import Output, Input
 
-from hexapod.const import BASE_FIGURE
+from hexapod.const import BASE_SCENE
 from hexapod.robot_link import ROBOT_LINK
 from pages import shared
 from texts import (
@@ -29,7 +27,7 @@ from texts import (
 )
 
 # --- Element IDs ---
-LANDING_GRAPH_ID = "landing-graph"
+LANDING_VIEW_ID = "view-landing"
 LANDING_STATUS_ID = "landing-link-status"
 LANDING_STATE_ID = "landing-link-state"
 LANDING_FIRMWARE_ID = "landing-link-firmware"
@@ -71,6 +69,10 @@ _link_state = html.Div(
     className="landing-link-panel",
 )
 
+# The wheel stays with the page: a view this size in a scrolling page would
+# otherwise swallow every scroll.
+shared.register_view(LANDING_VIEW_ID, zoom=False)
+
 hero = dbc.Row(
     [
         dbc.Col(
@@ -94,17 +96,7 @@ hero = dbc.Row(
         ),
         dbc.Col(
             html.Div(
-                dcc.Graph(
-                    id=LANDING_GRAPH_ID,
-                    # A copy: BASE_FIGURE is shared with the tool pages, and
-                    # this one is never written back to.
-                    figure=deepcopy(BASE_FIGURE),
-                    responsive=True,
-                    # No modebar, and the wheel stays with the page -- a plot
-                    # this size would otherwise swallow every scroll.
-                    config={"displayModeBar": False, "scrollZoom": False},
-                    style={"height": "100%", "width": "100%"},
-                ),
+                shared.make_view(LANDING_VIEW_ID, BASE_SCENE),
                 className="graph-container landing-stage",
             ),
             width=12,

@@ -17,7 +17,6 @@
 # foot under the cursor instead of the whole robot shifting as it re-balances.
 
 import json
-from math import atan2
 
 import numpy as np
 
@@ -28,6 +27,7 @@ from hexapod.path_generator import (
     inverse_kinematics,
     servo_angles_to_pose,
 )
+from hexapod.scene import hexapod_to_scene, xyz
 from hexapod.robot_config import (
     get_joint_limits,
     get_leg_signs,
@@ -114,41 +114,24 @@ def describe_bad_legs(bad_legs):
 
 
 def pose_to_scene(pose, robot_config):
-    """The geometry the 3D viewer draws for a pose, as plain lists.
+    """The scene the 3D view draws for a pose (hexapod/scene.py).
 
     The legs are posed by the simulator's own linkage model rather than by the
     path tool's IK, so what is drawn is the same model every other page draws.
+    The body is not settled onto the ground; the floor is drawn where the feet
+    stand at standby, and the support polygon through the feet that are on it.
     """
     hexapod = VirtualHexapod(get_simulator_dimensions(robot_config))
     for leg_id in range(6):
         leg = pose.get(leg_id, pose.get(str(leg_id)))
         hexapod.legs[leg_id].change_pose(leg["coxia"], leg["femur"], leg["tibia"])
 
-    def xyz(point):
-        return [round(point.x, 3) + 0.0, round(point.y, 3) + 0.0, round(point.z, 3) + 0.0]
-
-    legs = [[xyz(point) for point in leg.all_points] for leg in hexapod.legs]
-    feet = [leg[3] for leg in legs]
     ground = ground_height(robot_config)
-
+    feet = [xyz(leg.foot_tip()) for leg in hexapod.legs]
     standing = [foot for foot in feet if foot[2] <= ground + GROUND_TOLERANCE]
-    # Ordered around their centre, which is enough for the at most six points of
-    # a hexapod's feet to draw as a polygon; the feet sit on a convex ring.
-    if standing:
-        cx = sum(foot[0] for foot in standing) / len(standing)
-        cy = sum(foot[1] for foot in standing) / len(standing)
-        standing.sort(key=lambda foot: atan2(foot[1] - cy, foot[0] - cx))
-    support = [[foot[0], foot[1], ground] for foot in standing]
-
-    return {
-        "body": [xyz(vertex) for vertex in hexapod.body.vertices],
-        "head": xyz(hexapod.body.head),
-        "legs": legs,
-        "feet": feet,
-        "ground": ground,
-        "support": support,
-        "size": round(hexapod.sum_of_dimensions(), 3),
-    }
+    # The body is held still in the editor, so the world's axes would only sit
+    # on top of the body's own.
+    return hexapod_to_scene(hexapod, ground=ground, support=standing, world_axes=False)
 
 
 def clamp_duration(duration_ms):

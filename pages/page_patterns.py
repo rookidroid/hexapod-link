@@ -1,8 +1,8 @@
 import json
-from dash import callback
+from dash import callback, no_update
 from dash.dependencies import Output
 from hexapod.models import VirtualHexapod
-from hexapod.const import BASE_PLOTTER
+from hexapod.scene import hexapod_to_scene
 from hexapod.robot_link import ROBOT_LINK
 from widgets.leg_patterns_ui import PATTERNS_WIDGETS_SECTION, PATTERNS_CALLBACK_INPUTS
 from pages import helpers, shared
@@ -12,7 +12,7 @@ from pages import helpers, shared
 # Page layout
 # ......................
 
-GRAPH_ID = "graph-patterns"
+VIEW_ID = "view-patterns"
 MESSAGE_SECTION_ID = "message-patterns"
 PARAMETERS_SECTION_ID = "parameters-pattens"
 
@@ -25,20 +25,20 @@ sidebar = shared.make_standard_page_sidebar(
     robot_section=shared.make_stream_controls("patterns"),
 )
 
-layout = shared.make_standard_page_layout(GRAPH_ID, sidebar)
+layout = shared.make_standard_page_layout(VIEW_ID, sidebar)
 
 
 # ......................
 # Update page
 # ......................
 
-outputs, inputs, states = shared.make_standard_page_callback_params(
-    GRAPH_ID, PARAMETERS_SECTION_ID, MESSAGE_SECTION_ID
+outputs, inputs = shared.make_standard_page_callback_params(
+    VIEW_ID, PARAMETERS_SECTION_ID, MESSAGE_SECTION_ID
 )
 
 
-@callback(outputs, inputs, states)
-def update_patterns_page(dimensions_json, poses_json, relayout_data, figure):
+@callback(outputs, inputs)
+def update_patterns_page(dimensions_json, poses_json):
 
     dimensions = helpers.load_params(dimensions_json, "dims")
     poses = helpers.load_params(poses_json, "pose")
@@ -51,11 +51,9 @@ def update_patterns_page(dimensions_json, poses_json, relayout_data, figure):
     try:
         hexapod.update(poses)
     except Exception as alert:
-        return figure, helpers.make_alert_message(alert)
+        return no_update, helpers.make_alert_message(alert)
 
-    BASE_PLOTTER.update(figure, hexapod)
-    helpers.change_camera_view(figure, relayout_data)
-    return figure, ""
+    return hexapod_to_scene(hexapod), ""
 
 
 # ......................

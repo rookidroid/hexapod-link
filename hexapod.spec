@@ -36,7 +36,8 @@ datas = [("assets", "assets")]
 # package.json that Dash reads at import time to work out which files to serve.
 # PyInstaller's analysis only follows Python imports, so the data files and the
 # dist-info metadata (Dash checks component package versions) must be collected
-# explicitly or the app starts to a blank window.
+# explicitly or the app starts to a blank window. The app draws nothing with
+# plotly, but Dash imports it at start-up, so it has to be there all the same.
 for package in ("dash", "dash_bootstrap_components", "plotly"):
     datas += collect_data_files(package)
     datas += copy_metadata(package)
@@ -73,9 +74,9 @@ else:
 # reports success -- only running it shows the problem, which is what the smoke
 # test step in .github/workflows/build-desktop.yml is there to do.
 excludes = [
-    # plotly 6 talks to dataframes through narwhals, which probes every
-    # dataframe library it knows about. None of them are used here: the figures
-    # are built from plain dicts and numpy arrays.
+    # plotly (imported by Dash) talks to dataframes through narwhals, which
+    # probes every dataframe library it knows about. None of them are used
+    # here: the app does not use plotly at all.
     "polars",
     "pyarrow",
     "pandas",

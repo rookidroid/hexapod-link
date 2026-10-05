@@ -228,8 +228,8 @@ def capture_raw(browser, profile_dir, url, out_path, width, height):
             "--hide-scrollbars",
             f"--force-device-scale-factor={SCALE}",
             f"--window-size={width},{height}",
-            # Dash renders the page, then a round of callbacks draws the
-            # figure. Virtual time lets that finish before the shot is taken.
+            # Dash renders the page, then a round of callbacks draws the 3D
+            # view. Virtual time lets that finish before the shot is taken.
             "--virtual-time-budget=15000",
             f"--user-data-dir={profile_dir}",
             f"--screenshot={out_path}",
