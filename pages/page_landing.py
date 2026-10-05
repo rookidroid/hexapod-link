@@ -24,6 +24,7 @@ from texts import (
     IK_PAGE_PATH,
     PATTERNS_PAGE_PATH,
     MOTION_PAGE_PATH,
+    POSER_PAGE_PATH,
     URL_BUILD_GUIDE,
 )
 
@@ -119,8 +120,8 @@ hero = dbc.Row(
 #
 # Each card says what the page does on screen and what it does to the hardware,
 # because those are different questions and the second one is easy to get
-# wrong: three of these stream continuously and one commands the robot's own
-# gait.
+# wrong: three of these stream continuously, one commands the robot's own gait
+# and one streams a sequence only when asked to.
 # ......................
 
 
@@ -145,7 +146,8 @@ def _tool(index, title, desc, hardware, href, on_hardware=True):
         ),
         width=12,
         md=6,
-        xl=3,
+        # Equal shares of one row on a wide screen, however many cards there are.
+        xl=True,
         className="mb-3",
     )
 
@@ -182,6 +184,13 @@ tools = html.Div(
                     "Play the generated gaits frame by frame and scrub them.",
                     "Runs the robot's own gait from flash",
                     MOTION_PAGE_PATH,
+                ),
+                _tool(
+                    5,
+                    "Pose editor",
+                    "Drag the feet in 3D and string the poses into a timed sequence.",
+                    "Streams the sequence when you press Run",
+                    POSER_PAGE_PATH,
                 ),
             ],
             className="g-3",

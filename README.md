@@ -25,11 +25,12 @@ streaming control, and a rebuilt CI/test suite.
 | 🎉 | Forward Kinematics | Given the angles of each joint, what does the robot look like? |
 | 🎉 | Inverse Kinematics | What are the angles of each joint to make the robot look the way I want? Is it even possible? Why or why not? |
 | 🎉 | Leg Patterns & Motion | Preview predefined gaits and leg-pattern animations frame by frame. |
+| 🎉 | Pose Editor | Drag the feet in 3D, string the poses into a timed keyframe sequence, preview it and run it on the robot. |
 | 🎉 | Customizability | Set the dimensions and shape of the robot's body and legs. |
 | 🎉 | Real-time Robot Control | Drive a physical ESP32 hexapod over WiFi, from single joints to whole-body gaits. Works with any robot in the family (Nougat, Mochi, Macaroon, ...): each one serves its own config. |
 | 🎉 | Desktop App | Runs as a native window (Windows/Linux) via PyInstaller + pywebview, no browser required. |
 | 🎉 | Light & Dark Themes | Switch from the navigation bar; the choice is remembered between launches. |
-| 🎉 | Simplicity | Minimal dependencies. Numpy for calculations, Plotly Dash for the 3D view and UI. |
+| 🎉 | Simplicity | Minimal dependencies. Numpy for calculations, Plotly Dash for the 3D view and UI, and a bundled copy of three.js for the pose editor. |
 
 ## Preview
 
@@ -54,6 +55,14 @@ theme, dark shows the dark one.
   <tr>
     <td><b>Leg Patterns</b> — sweep all six legs together through one set of angles.</td>
     <td><b>Motion</b> — play the generated gaits frame by frame and scrub them.</td>
+  </tr>
+  <tr>
+    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/pose-editor-dark.png"><img src="docs/images/pose-editor.png" alt="The pose editor page"></picture></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td><b>Pose Editor</b> — drag the feet in 3D and build a keyframe sequence to run on the robot.</td>
+    <td></td>
   </tr>
 </table>
 
@@ -83,6 +92,7 @@ Then open the printed URL in a browser.
 - Modify default settings with [`settings.py`](./settings.py) — joint limits, robot link ports/rates, UI resolution, etc.
 - Modify the UI colours in [`assets/industrial.css`](./assets/industrial.css): the light theme's tokens are on `:root`, and the dark theme overrides them under `:root[data-theme="dark"]`.
 - Modify the 3D plot's colours and sizes with [`style_settings.py`](./style_settings.py). The plot is a dark CAD-style view in both themes.
+- The pose editor draws with three.js instead of Plotly, since Plotly's 3D plot cannot drag a point. Its view is [`assets/poser.js`](./assets/poser.js); the bundled three.js in `assets/vendor/` is rebuilt (with Node) by [`tools/build_three_bundle.sh`](./tools/build_three_bundle.sh).
 
 ### Light and dark themes
 
@@ -208,6 +218,17 @@ $ python tools/fake_robot.py nougat
   WiFi), or stream the simulator's frames for paths the firmware does not have.
   **Gait speed** (20-100 % of the robot's tuned rate) applies to both, and is
   sent to the robot as soon as it changes.
+- **Pose editor page** — click a foot in the 3D view to pick it up, then drag
+  the arrows to move it; the joints are solved as it moves, and a foot that
+  cannot reach a spot (or would take a joint past its limit) springs back.
+  **+ Add** records the pose as a keyframe with the time it takes to get there
+  from the one before. **Preview sequence** plays the keyframes in the
+  browser, and **RUN ON ROBOT** streams them to the hardware in real time,
+  smoothed to the robot's own frame rate (optionally looping, with gentle
+  starts and stops). Sequences save to and load from JSON files, which only
+  load on the robot they were made for. Feet move in straight lines between
+  keyframes, so add one in between to lift a foot over rather than dragging
+  it along the floor.
 - **Calibration page** — trims each servo's offset through the robot's own
   calibration routes: **Enter calibration** puts the robot in its calibration
   posture, **Apply** moves the servos to the edited offsets, **Save to robot**
@@ -229,6 +250,9 @@ the robot's actual state when moving between those two pages.
   (`jointLimits` in the robot's config), because the simulator allows far more
   travel than the hardware has. Widen these only after checking clearances.
 - If the stream stops, the robot eases back to standby on its own after 1 s.
+- A pose editor sequence starts from its first keyframe wherever the robot is,
+  so the first move is as fast as the servos' slew limit allows. Make the first
+  keyframe close to standby, or press **Standby** before **Run**.
 
 ## Testing
 
@@ -237,9 +261,9 @@ $ pip install -r requirements-dev.txt
 $ pytest
 ```
 
-The suite (~1700 lines across [`tests/`](./tests)) covers forward/inverse
-kinematics, leg patterns, path/motion generation, leg-naming conversions, the
-robot-link streaming protocol, reading each robot's config (against
+The suite (~1950 lines across [`tests/`](./tests)) covers forward/inverse
+kinematics, leg patterns, path/motion generation, the pose editor's keyframes,
+leg-naming conversions, the robot-link streaming protocol, reading each robot's config (against
 `tools/fake_robot.py`), and the saved UI preferences — all without needing a
 display, a browser, or a physical robot.
 

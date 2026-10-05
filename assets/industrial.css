@@ -1421,3 +1421,16 @@ input[type="number"]:focus,
 ::-webkit-scrollbar-thumb:hover {
     background: var(--ind-accent);
 }
+
+/* ===========================================
+   POSE EDITOR
+   The three.js view (assets/poser.js) fills the monitor frame the way the
+   Plotly graph does on the other pages.
+   =========================================== */
+
+.poser-viewer {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    position: relative;
+}
