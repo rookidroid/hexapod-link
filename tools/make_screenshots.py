@@ -42,6 +42,7 @@ PAGES = [
     ("inverse-kinematics", "/inverse-kinematics", 1400, 1000),
     ("leg-patterns", "/leg-patterns", 1400, 1000),
     ("motion", "/motion-animations", 1400, 1150),
+    ("pose-editor", "/pose-editor", 1400, 1000),
 ]
 
 # Every page is captured once per theme, with this suffix on the file name.
@@ -99,11 +100,40 @@ GIF_WIDTH = 640
 GIF_FRAME_MS = 90
 
 
-def apply_values(node, values, seen):
-    """Set .value on every component in a Dash layout whose id we have."""
+def posed_editor_stores():
+    """Starting data for the pose editor's stores, so its shot shows a sequence.
+
+    A tripod step: three feet lifted and swung forward, as the second of three
+    keyframes, and loaded into the editor. Built for whichever robot the app is
+    modelling, since foot positions only fit the robot they were placed on.
+    """
+    from hexapod import keyframes as kf
+    from hexapod.robot_link import ROBOT_LINK
+
+    robot_config = ROBOT_LINK.robot_config
+    standby = kf.standby_feet(robot_config)
+    lift = kf.ground_height(robot_config) * -0.5
+    step = [
+        [x, y + lift * 0.6, z + lift] if leg in (0, 2, 4) else [x, y, z]
+        for leg, (x, y, z) in enumerate(standby)
+    ]
+    frames = [
+        kf.make_keyframe(standby),
+        kf.make_keyframe(step, 400),
+        kf.make_keyframe(standby, 400),
+    ]
+    return {
+        "poser-feet": {"robot": robot_config["name"], "feet": frames[1]["feet"], "seq": 0},
+        "poser-keyframes": {"robot": robot_config["name"], "keyframes": frames},
+        "poser-selected-keyframe": 1,
+    }
+
+
+def apply_values(node, values, seen, prop="value"):
+    """Set `prop` on every component in a Dash layout whose id we have."""
     node_id = getattr(node, "id", None)
     if isinstance(node_id, str) and node_id in values:
-        node.value = values[node_id]
+        setattr(node, prop, values[node_id])
         seen.add(node_id)
 
     children = getattr(node, "children", None)
@@ -113,7 +143,7 @@ def apply_values(node, values, seen):
         children = [children]
     for child in children:
         if hasattr(child, "_prop_names") or hasattr(child, "children"):
-            apply_values(child, values, seen)
+            apply_values(child, values, seen, prop)
 
 
 def crop_trailing_background(image, margin=40):
@@ -190,13 +220,16 @@ def capture_raw(browser, profile_dir, url, out_path, width, height):
             browser,
             "--headless=new",
             "--disable-gpu",
+            # The 3D views are WebGL; without a GPU, Chrome only draws them in
+            # software when told it may.
+            "--enable-unsafe-swiftshader",
             "--no-first-run",
             "--no-default-browser-check",
             "--hide-scrollbars",
             f"--force-device-scale-factor={SCALE}",
             f"--window-size={width},{height}",
-            # Dash renders the page, then a round of callbacks draws the
-            # figure. Virtual time lets that finish before the shot is taken.
+            # Dash renders the page, then a round of callbacks draws the 3D
+            # view. Virtual time lets that finish before the shot is taken.
             "--virtual-time-budget=15000",
             f"--user-data-dir={profile_dir}",
             f"--screenshot={out_path}",
@@ -281,7 +314,10 @@ def main():
     seen = set()
     for layout in hexapod_link.PAGES.values():
         apply_values(layout, POSED_WIDGETS, seen)
-    missing = sorted(set(POSED_WIDGETS) - seen)
+    stores = posed_editor_stores()
+    for layout in hexapod_link.PAGES.values():
+        apply_values(layout, stores, seen, prop="data")
+    missing = sorted((set(POSED_WIDGETS) | set(stores)) - seen)
     if missing:
         print(f"warning: no such widget(s), left at default: {', '.join(missing)}")
 

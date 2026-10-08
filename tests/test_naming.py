@@ -3,7 +3,7 @@
 Nothing here computes anything; the tables *are* the contract. What these tests
 guard is that the correspondence stays the one documented at the top of
 hexapod/naming.py -- right legs first, joints numbered outward from the body --
-because every widget caption, plot trace and alert message is built from it, and
+because every widget caption, 3D view label and alert message is built from it, and
 a silent reordering would have the simulator and the robot's calibration page
 name the same servo differently.
 """

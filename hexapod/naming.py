@@ -20,7 +20,7 @@
 #
 # Internal identifiers stay descriptive: `right-front` says which leg it is
 # without a diagram, and the pose dicts, widget ids and point names all key off
-# them. Everything a person reads -- widget captions, plot traces, pose tables,
+# them. Everything a person reads -- widget captions, 3D view labels, pose tables,
 # alert messages -- is built from the label tables below, so the simulator and
 # the robot's calibration page name the same servo the same way.
 

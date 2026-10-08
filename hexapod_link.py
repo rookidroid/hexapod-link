@@ -28,6 +28,7 @@ from pages import (
     page_landing,
     page_motion,
     page_patterns,
+    page_poser,
 )
 from pages.shared import (
     GLOBAL_CONTROLS_PANEL,
@@ -45,6 +46,7 @@ from texts import (
     KINEMATICS_PAGE_PATH,
     MOTION_PAGE_PATH,
     PATTERNS_PAGE_PATH,
+    POSER_PAGE_PATH,
     ROOT_PATH,
 )
 
@@ -109,6 +111,7 @@ NAV_LINKS = dbc.Nav(
         dbc.NavItem(dbc.NavLink("Inverse kinematics", href=IK_PAGE_PATH)),
         dbc.NavItem(dbc.NavLink("Leg patterns", href=PATTERNS_PAGE_PATH)),
         dbc.NavItem(dbc.NavLink("Motion", href=MOTION_PAGE_PATH)),
+        dbc.NavItem(dbc.NavLink("Pose editor", href=POSER_PAGE_PATH)),
     ],
     navbar=True,
 )
@@ -188,6 +191,7 @@ PAGES = {
     KINEMATICS_PAGE_PATH: page_kinematics.layout,
     PATTERNS_PAGE_PATH: page_patterns.layout,
     MOTION_PAGE_PATH: page_motion.layout,
+    POSER_PAGE_PATH: page_poser.layout,
     CALIBRATION_PAGE_PATH: page_calibration.layout,
     ROOT_PATH: page_landing.layout,
 }

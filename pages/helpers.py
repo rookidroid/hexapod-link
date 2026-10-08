@@ -3,7 +3,6 @@ import json
 import dash_bootstrap_components as dbc
 from dash import html
 from hexapod.const import (
-    BASE_PLOTTER,
     BASE_POSE,
     BASE_IK_PARAMS,
     BASE_DIMENSIONS,
@@ -27,14 +26,6 @@ def make_pose(alpha, beta, gamma, poses=NEW_POSES):
             "tibia": gamma,
         }
     return poses
-
-
-def change_camera_view(figure, relayout_data):
-    if relayout_data and "scene.camera" in relayout_data:
-        camera = relayout_data["scene.camera"]
-        BASE_PLOTTER.change_camera_view(figure, camera)
-
-    return figure
 
 
 def load_params(params_json, params_type):

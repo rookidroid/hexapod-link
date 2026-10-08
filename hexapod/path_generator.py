@@ -1,5 +1,6 @@
 import numpy as np
 
+from hexapod.naming import LEG_NAMES
 from hexapod.robot_config import (
     GENERIC_CONFIG,
     get_leg_signs,
@@ -13,6 +14,7 @@ __all__ = [
     "generate_poses",
     "get_simulator_dimensions",
     "inverse_kinematics",
+    "servo_angles_to_pose",
 ]
 
 # --- Path Library Functions (from path_tool/path_lib.py) ---
@@ -404,39 +406,32 @@ def generate_poses(motion_name, robot_config=GENERIC_CONFIG):
     else:
         path = np.array([standby])
 
-    frames = []
-    from hexapod.const import NAMES_LEG
-    for step in range(path.shape[0]):
-        # Convert Cartesian to joint angles (j1, j2, j3)
-        angles = inverse_kinematics(path[step], config)
-        
-        pose_dict = {}
-        for leg_id in range(6):
-            j1 = angles[leg_id, 0]
-            j2 = angles[leg_id, 1]
-            j3 = angles[leg_id, 2]
+    return [
+        servo_angles_to_pose(inverse_kinematics(path[step], config), signs)
+        for step in range(path.shape[0])
+    ]
 
-            # Map the path tool's servo angles to the simulator's joint angles.
-            # This is the inverse of the relation in hexapod/robot_link.py, and
-            # is verified there against the firmware's own standby LUT:
-            #
-            #   j1 = 90 + alpha              (every leg; the mirroring is
-            #                                 already folded into the path
-            #                                 tool's local frame)
-            #   j2 = 90 - sign * beta
-            #   j3 = 90 + sign * gamma       sign = the leg's legScale
-            sign = signs[leg_id]
-            coxia = j1 - 90
-            femur = sign * (90 - j2)
-            tibia = sign * (j3 - 90)
 
-            pose_dict[leg_id] = {
-                "id": leg_id,
-                "name": NAMES_LEG[leg_id],
-                "coxia": coxia,
-                "femur": femur,
-                "tibia": tibia,
-            }
-        frames.append(pose_dict)
-        
-    return frames
+def servo_angles_to_pose(angles, signs):
+    """Map path-tool servo angles (6x3, j1/j2/j3 per leg) to a simulator pose.
+
+    This is the inverse of the relation in hexapod/robot_link.py, and is
+    verified there against the firmware's own standby LUT:
+
+      j1 = 90 + alpha              (every leg; the mirroring is already folded
+                                    into the path tool's local frame)
+      j2 = 90 - sign * beta
+      j3 = 90 + sign * gamma       sign = the leg's legScale
+    """
+    pose = {}
+    for leg_id in range(6):
+        j1, j2, j3 = (float(a) for a in angles[leg_id])
+        sign = signs[leg_id]
+        pose[leg_id] = {
+            "id": leg_id,
+            "name": LEG_NAMES[leg_id],
+            "coxia": j1 - 90,
+            "femur": sign * (90 - j2),
+            "tibia": sign * (j3 - 90),
+        }
+    return pose

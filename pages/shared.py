@@ -22,7 +22,7 @@ from widgets.robot_link_ui import (
     make_stream_control_ids,
     make_stream_controls_section,
 )
-from hexapod.const import BASE_FIGURE
+from hexapod.const import BASE_SCENE
 from hexapod.robot_link import ROBOT_LINK
 from hexapod.preferences import save_theme
 from hexapod.robot_config import describe, describe_firmware, get_simulator_dimensions
@@ -63,8 +63,55 @@ def update_dimensions(front, side, middle, coxia, femur, tibia):
 
 
 # ......................
+# The 3D view
+#
+# Every page draws the hexapod with assets/hexapod_view.js (three.js). A page
+# puts a scene (hexapod/scene.py) in the view's store and this hands it to the
+# view in the browser; the camera stays wherever the user left it.
+# ......................
+
+
+def view_store_id(view_id):
+    return f"{view_id}-scene"
+
+
+def make_view(view_id, scene=None):
+    """The element the view draws into, and the store its scene goes in."""
+    return html.Div(
+        [
+            html.Div(id=view_id, className="hexapod-view"),
+            dcc.Store(id=view_store_id(view_id), data=scene),
+            dcc.Store(id=f"{view_id}-ack"),
+        ],
+        className="hexapod-view-frame",
+    )
+
+
+def register_view(view_id, zoom=True):
+    """Draw whatever lands in the view's store.
+
+    `zoom=False` leaves the mouse wheel to the page, for a view in a page that
+    scrolls. The pose editor wires its view up itself, since it switches it
+    between editing and previewing (pages/page_poser.py).
+    """
+    clientside_callback(
+        """
+        function(scene) {
+            if (window.hexapodView && scene) {
+                window.hexapodView.render(%s, scene, {zoom: %s});
+            }
+            return window.dash_clientside.no_update;
+        }
+        """
+        % (json.dumps(view_id), "true" if zoom else "false"),
+        Output(f"{view_id}-ack", "data"),
+        Input(view_store_id(view_id), "data"),
+    )
+
+
+# ......................
 # Make uniform layout
-# Graph on the right, controls on the left
+# View on the right, controls on the left
 #
 # The height rules that make this one screenful -- who scrolls, who fills --
 # are in the PAGE LAYOUT block of assets/industrial.css, because they only hold
@@ -72,7 +119,13 @@ def update_dimensions(front, side, middle, coxia, femur, tibia):
 # ......................
 
 
-def make_standard_page_layout(graph_id, sidebar_sections):
+def make_standard_page_layout(view_id, sidebar_sections):
+    """Sidebar on the left, the 3D view on the right, already wired up.
+
+    The view starts on the neutral hexapod, and keeps it if the page's first
+    pose cannot be drawn, rather than starting as an empty screen.
+    """
+    register_view(view_id)
     sidebar = dbc.Col(
         dbc.Card(
             dbc.CardBody(sidebar_sections),
@@ -82,28 +135,20 @@ def make_standard_page_layout(graph_id, sidebar_sections):
         lg=4,
         className="page-sidebar mb-3 mb-lg-0 d-flex flex-column",
     )
-    graph = dbc.Col(
-        html.Div(
-            dcc.Graph(
-                id=graph_id,
-                figure=BASE_FIGURE,
-                responsive=True,
-                style={"height": "100%", "width": "100%"},
-            ),
-            className="graph-container flex-grow-1",
-        ),
+    view = dbc.Col(
+        html.Div(make_view(view_id, BASE_SCENE), className="graph-container flex-grow-1"),
         width=12,
         lg=8,
         className="page-plot d-flex flex-column",
     )
 
-    return dbc.Row([sidebar, graph], className="page-row flex-grow-1 m-0")
+    return dbc.Row([sidebar, view], className="page-row flex-grow-1 m-0")
 
 
 def make_scrollable_page(children):
     """Wrap a document-style page so it can scroll inside the fixed app shell.
 
-    The graph pages are one screenful by design, so above `lg` the shell does
+    The 3D view pages are one screenful by design, so above `lg` the shell does
     not scroll -- see the PAGE LAYOUT block in assets/industrial.css. A page that is
     taller than the viewport therefore has to bring its own scroll region, or
     its bottom is simply cut off with no way to reach it.
@@ -521,15 +566,20 @@ def make_stream_controls(page_key):
 
 
 # ......................
-# Make outputs, inputs, and states for page update callbacks
+# Make outputs and inputs for page update callbacks
 # .....................
 
 
-def make_standard_page_callback_params(graph_id, params_section_id, message_section_id):
+def make_standard_page_callback_params(view_id, params_section_id, message_section_id):
+    """Outputs and inputs of a page's update callback.
 
-    message_callback_output = Output(message_section_id, "children")
-    params_json_callback_input = Input(params_section_id, "children")
-    outputs = [Output(graph_id, "figure"), message_callback_output]
-    inputs = [DIMS_JSON_CALLBACK_INPUT, params_json_callback_input]
-    states = [State(graph_id, "relayoutData"), State(graph_id, "figure")]
-    return outputs, inputs, states
+    It takes the dimensions and the page's own parameters, and returns the
+    scene to draw and the message to show. On an error it returns no_update
+    for the scene, so the last pose that worked stays on screen.
+    """
+    outputs = [
+        Output(view_store_id(view_id), "data"),
+        Output(message_section_id, "children"),
+    ]
+    inputs = [DIMS_JSON_CALLBACK_INPUT, Input(params_section_id, "children")]
+    return outputs, inputs

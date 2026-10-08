@@ -4,19 +4,17 @@ It answers the three things someone arriving here needs: what state the link to
 the hexapod is in, which tool does what, and how to get a real robot moving.
 
 There is no marketing artwork. The hero is the simulator's own render of the
-hexapod, drawn from the same BASE_FIGURE the tool pages start from, so the page
+hexapod, in the same 3D view the tool pages use (BASE_SCENE), so the page
 shows the actual thing and keeps working with no network -- which is the normal
 case here, since driving the robot means joining its access point instead of
 the internet.
 """
 
-from copy import deepcopy
-
 import dash_bootstrap_components as dbc
 from dash import callback, dcc, html
 from dash.dependencies import Output, Input
 
-from hexapod.const import BASE_FIGURE
+from hexapod.const import BASE_SCENE
 from hexapod.robot_link import ROBOT_LINK
 from pages import shared
 from texts import (
@@ -24,11 +22,12 @@ from texts import (
     IK_PAGE_PATH,
     PATTERNS_PAGE_PATH,
     MOTION_PAGE_PATH,
+    POSER_PAGE_PATH,
     URL_BUILD_GUIDE,
 )
 
 # --- Element IDs ---
-LANDING_GRAPH_ID = "landing-graph"
+LANDING_VIEW_ID = "view-landing"
 LANDING_STATUS_ID = "landing-link-status"
 LANDING_STATE_ID = "landing-link-state"
 LANDING_FIRMWARE_ID = "landing-link-firmware"
@@ -70,6 +69,10 @@ _link_state = html.Div(
     className="landing-link-panel",
 )
 
+# The wheel stays with the page: a view this size in a scrolling page would
+# otherwise swallow every scroll.
+shared.register_view(LANDING_VIEW_ID, zoom=False)
+
 hero = dbc.Row(
     [
         dbc.Col(
@@ -93,17 +96,7 @@ hero = dbc.Row(
         ),
         dbc.Col(
             html.Div(
-                dcc.Graph(
-                    id=LANDING_GRAPH_ID,
-                    # A copy: BASE_FIGURE is shared with the tool pages, and
-                    # this one is never written back to.
-                    figure=deepcopy(BASE_FIGURE),
-                    responsive=True,
-                    # No modebar, and the wheel stays with the page -- a plot
-                    # this size would otherwise swallow every scroll.
-                    config={"displayModeBar": False, "scrollZoom": False},
-                    style={"height": "100%", "width": "100%"},
-                ),
+                shared.make_view(LANDING_VIEW_ID, BASE_SCENE),
                 className="graph-container landing-stage",
             ),
             width=12,
@@ -119,8 +112,8 @@ hero = dbc.Row(
 #
 # Each card says what the page does on screen and what it does to the hardware,
 # because those are different questions and the second one is easy to get
-# wrong: three of these stream continuously and one commands the robot's own
-# gait.
+# wrong: three of these stream continuously, one commands the robot's own gait
+# and one streams a sequence only when asked to.
 # ......................
 
 
@@ -145,7 +138,8 @@ def _tool(index, title, desc, hardware, href, on_hardware=True):
         ),
         width=12,
         md=6,
-        xl=3,
+        # Equal shares of one row on a wide screen, however many cards there are.
+        xl=True,
         className="mb-3",
     )
 
@@ -182,6 +176,13 @@ tools = html.Div(
                     "Play the generated gaits frame by frame and scrub them.",
                     "Runs the robot's own gait from flash",
                     MOTION_PAGE_PATH,
+                ),
+                _tool(
+                    5,
+                    "Pose editor",
+                    "Drag the feet in 3D and string the poses into a timed sequence.",
+                    "Streams the sequence when you press Run",
+                    POSER_PAGE_PATH,
                 ),
             ],
             className="g-3",

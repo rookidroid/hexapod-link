@@ -9,6 +9,7 @@ KINEMATICS_PAGE_PATH = "/kinematics"
 IK_PAGE_PATH = "/inverse-kinematics"
 PATTERNS_PAGE_PATH = "/leg-patterns"
 MOTION_PAGE_PATH = "/motion-animations"
+POSER_PAGE_PATH = "/pose-editor"
 CALIBRATION_PAGE_PATH = "/calibration"
 ROOT_PATH = "/"
 
