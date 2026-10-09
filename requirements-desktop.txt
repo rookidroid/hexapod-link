@@ -19,7 +19,7 @@ pywebview>=6.2.1
 # earlier; the upper bound keeps the build working on the distributions that
 # ship 1.0. Drop it once the target distribution has libgirepository-2.0-dev.
 PyGObject>=3.42,<3.50; sys_platform == "linux"
-pycairo>=1.29.1; sys_platform == "linux"
+pycairo>=1.29.2; sys_platform == "linux"
 
 # Build tooling only; not imported at runtime.
 pyinstaller>=6.22.3
