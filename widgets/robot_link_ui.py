@@ -4,29 +4,27 @@
 #
 # * TOPBAR_CONNECTION is the address and the connect button, in the top bar,
 #   so the link can be brought up from whatever tool is showing.
-# * ROBOT_INFO_SECTION and the stream section describe the robot and what is
-#   being sent to it; they are the first two blocks of the Robot tool panel.
+# * STREAM_OVERLAY switches streaming on and limits its speed, over the view.
+#
+# Which robot is modelled is named in the dimensions panel (ROBOT_INFO_ID,
+# widgets/dimensions_ui.py), whose measurements follow it.
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
 from settings import ROBOT_DEFAULT_IP, ROBOT_DEFAULT_MAX_STEP
-from hexapod.robot_config import describe
 from hexapod.robot_link import ROBOT_LINK
-from widgets.section_maker import make_slider_field, panel_section
+from widgets.section_maker import field_label
 
 # --- Element IDs ---
 ROBOT_INFO_ID = "robot-info"
-ROBOT_FIRMWARE_ID = "robot-firmware"
 ROBOT_CONFIG_STORE_ID = "robot-config-store"
 ROBOT_IP_INPUT_ID = "robot-ip-input"
 ROBOT_CONNECT_BTN_ID = "robot-connect-btn"
-ROBOT_STATUS_ID = "robot-status"
 ROBOT_POLL_INTERVAL_ID = "robot-poll-interval"
 
 # The stream section's controls.
 STREAM_SWITCH_ID = "robot-stream-switch"
 STREAM_MAX_STEP_ID = "robot-max-step-slider"
-STREAM_RELAX_BTN_ID = "robot-relax-btn"
 STREAM_CONTROLS_ID = "robot-stream-controls"
 
 # Poll the link often enough that the status pill feels live, but not so often
@@ -82,70 +80,55 @@ TOPBAR_CONNECTION = html.Div(
 
 
 # ................................
-# ROBOT PANEL
+# OVER THE 3D VIEW
+#
+# Streaming sends the pose that is on screen, so its switch and speed limit
+# sit on the view itself (pages/workspace.py), where they can be reached from
+# either tool. Only the inner block is dimmed while offline, so the card
+# itself stays legible over the view.
 # ................................
 
-ROBOT_INFO_SECTION = panel_section(
-    "Robot",
-    [
-        html.Div(
-            describe(ROBOT_LINK.robot_config),
-            id=ROBOT_INFO_ID,
-            className="robot-info",
-        ),
-        # Filled in by the status poll while a robot is connected.
-        html.Div(id=ROBOT_FIRMWARE_ID, className="robot-detail"),
-        html.Div("Disconnected", id=ROBOT_STATUS_ID, className="robot-detail text-muted"),
-    ],
-    blurb=(
-        "Join the robot's WiFi access point, then connect from the top bar. "
-        "The robot reports its own size and gaits, and the model follows."
-    ),
-)
+STREAM_HUD_ID = "robot-stream-hud"
 
-
-def make_stream_section():
-    # Everything starts disabled because the app starts with no session; the
-    # sync callback in pages/shared.py opens it up once one is connected.
-    stream_row = html.Div(
+STREAM_OVERLAY = html.Div(
+    html.Div(
+        # Everything starts disabled because the app starts with no session;
+        # the sync callback in pages/shared.py opens it up once one is
+        # connected.
         [
             dbc.Switch(
                 id=STREAM_SWITCH_ID,
-                label="Stream pose to robot",
+                label="Stream to robot",
                 value=False,
                 disabled=True,
-                className="mb-0 ind-wrap-main",
+                className="mb-0",
             ),
-            dbc.Button(
-                "Relax",
-                id=STREAM_RELAX_BTN_ID,
-                color="danger",
-                outline=True,
-                size="sm",
-                disabled=True,
-                className="ind-wrap-side",
-                title="Cut drive to the servos so the legs go limp",
+            html.Div(
+                [
+                    field_label("Max speed"),
+                    dcc.Slider(
+                        id=STREAM_MAX_STEP_ID,
+                        min=1,
+                        max=30,
+                        step=1,
+                        value=ROBOT_DEFAULT_MAX_STEP,
+                        marks=None,
+                        disabled=True,
+                        allow_direct_input=True,
+                    ),
+                ],
+                className="ind-inline-slider",
+                title="Max joint speed, in servo ticks per cycle: how fast any servo may slew",
             ),
         ],
-        className="ind-wrap-row mb-3",
-    )
-
-    max_step_slider = make_slider_field(
-        STREAM_MAX_STEP_ID,
-        "Max joint speed (ticks/cycle)",
-        1,
-        30,
-        1,
-        ROBOT_DEFAULT_MAX_STEP,
-        disabled=True,
-    )
-
-    return panel_section(
-        "Stream",
-        html.Div(
-            [stream_row, max_step_slider],
-            id=STREAM_CONTROLS_ID,
-            className=SECTION_CONTROLS_OFFLINE_CLASS,
-        ),
-        blurb="Sends every reachable pose to the servos as it changes.",
-    )
+        id=STREAM_CONTROLS_ID,
+        className=SECTION_CONTROLS_OFFLINE_CLASS,
+    ),
+    id=STREAM_HUD_ID,
+    className="hud-panel stream-hud",
+    title=(
+        "Sends every reachable pose to the servos as it changes. Put the "
+        "hexapod on a stand first: a pose that stands up here will not "
+        "necessarily stand up on the floor."
+    ),
+)

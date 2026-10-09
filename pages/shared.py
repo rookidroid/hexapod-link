@@ -8,17 +8,14 @@ from widgets.dimensions_ui import (
 from widgets.robot_link_ui import (
     TOPBAR_CONNECTION,
     ROBOT_INFO_ID,
-    ROBOT_FIRMWARE_ID,
     ROBOT_CONFIG_STORE_ID,
     ROBOT_IP_INPUT_ID,
     ROBOT_CONNECT_BTN_ID,
-    ROBOT_STATUS_ID,
     ROBOT_POLL_INTERVAL_ID,
     SECTION_CONTROLS_CLASS,
     SECTION_CONTROLS_OFFLINE_CLASS,
     STREAM_CONTROLS_ID,
     STREAM_MAX_STEP_ID,
-    STREAM_RELAX_BTN_ID,
     STREAM_SWITCH_ID,
 )
 from hexapod.robot_link import ROBOT_LINK
@@ -73,11 +70,12 @@ def view_store_id(view_id):
     return f"{view_id}-scene"
 
 
-def make_view(view_id, scene=None, overlay=None, hud=None):
+def make_view(view_id, scene=None, overlay=None, hud=None, controls=None):
     """The element the view draws into, and the store its scene goes in.
 
     `overlay` is laid over the view's top-right corner, for a button or two
-    that act on the view itself; `hud` over its bottom-left, for a readout.
+    that act on the view itself; `hud` over its bottom-left, for a readout;
+    `controls` over its top-left, for what acts on what the view shows.
     """
     children = [
         html.Div(id=view_id, className="hexapod-view"),
@@ -88,6 +86,8 @@ def make_view(view_id, scene=None, overlay=None, hud=None):
         children.append(html.Div(overlay, className="hexapod-view-overlay"))
     if hud:
         children.append(html.Div(hud, className="hexapod-view-hud"))
+    if controls:
+        children.append(html.Div(controls, className="hexapod-view-controls"))
     return html.Div(children, className="hexapod-view-frame")
 
 
@@ -117,8 +117,7 @@ def make_workspace(rail, panels, view, dock):
 
 # The status pill is the app's link readout: whether the robot is reachable,
 # which one it is, and whether it is being streamed to. The state modifier
-# colours its LED (STATUS PILL in industrial.css). A click on it opens the
-# Robot tool (pages/workspace.py).
+# colours its LED (STATUS PILL in industrial.css); its tooltip has the detail.
 STATUS_PILL_ID = "status-pill"
 _PILL_BASE_CLASS = "status-pill"
 
@@ -138,11 +137,12 @@ def make_topbar(theme):
                 className="topbar-brand",
             ),
             TOPBAR_CONNECTION,
-            html.Button(
+            html.Div(
                 "Offline",
                 id=STATUS_PILL_ID,
                 className=_pill_class("is-offline"),
                 title="Disconnected",
+                role="status",
             ),
             make_theme_toggle(theme),
         ],
@@ -277,40 +277,36 @@ def firmware_status_text(status):
 
 
 def link_status_text(status):
-    """One line describing the link, for the Robot panel and the pill's tooltip."""
+    """One line describing the link, for the status pill's tooltip."""
     if status["last_error"]:
-        return f"⚠ {status['last_error']}", "text-danger"
+        return f"⚠ {status['last_error']}"
 
     if not status["connected"]:
-        return "Disconnected", "text-muted"
+        return "Disconnected"
 
     mode = "STREAMING" if status["streaming"] else "IDLE (holding)"
-    text = (
-        f"● {status['robot_label']} @ {status['ip']} — {mode} — "
+    return (
+        f"{status['robot_label']} @ {status['ip']} — {mode} — "
         f"{status['packets_sent']} pkts"
     )
-    return text, "text-success" if status["streaming"] else "text-info"
 
 
 @callback(
-    Output(ROBOT_STATUS_ID, "children"),
-    Output(ROBOT_STATUS_ID, "className"),
-    Output(ROBOT_FIRMWARE_ID, "children"),
     Output(STATUS_PILL_ID, "children"),
     Output(STATUS_PILL_ID, "className"),
     Output(STATUS_PILL_ID, "title"),
     Input(ROBOT_POLL_INTERVAL_ID, "n_intervals"),
 )
 def update_robot_status(_n_intervals):
-    """Refresh the status pill in the top bar and the detail in the Robot panel.
+    """Refresh the status pill in the top bar.
 
-    The pill carries the summary -- which robot, and whether it is reachable
-    and being streamed to -- so the link state is legible whatever tool is
-    showing; the panel carries the address, mode and packet count, with the
-    robot's firmware version on its own line.
+    It reads the summary -- which robot, and whether it is reachable and being
+    streamed to -- and its tooltip the detail: the address, mode and packet
+    count, and the robot's firmware version.
     """
     status = ROBOT_LINK.status()
-    text, colour_class = link_status_text(status)
+    text = link_status_text(status)
+    firmware = firmware_status_text(status)
 
     if status["last_error"]:
         label, state = "Fault", "is-fault"
@@ -321,14 +317,8 @@ def update_robot_status(_n_intervals):
     else:
         label, state = f"{status['robot_label']} · Online", "is-online"
 
-    return (
-        text,
-        "robot-detail " + colour_class,
-        firmware_status_text(status),
-        label,
-        _pill_class(state),
-        text,
-    )
+    tooltip = f"{text}\n{firmware}" if firmware else text
+    return label, _pill_class(state), tooltip
 
 
 # ......................
@@ -362,19 +352,8 @@ def update_robot_max_step(max_step):
 
 
 @callback(
-    Output(STREAM_SWITCH_ID, "value", allow_duplicate=True),
-    Input(STREAM_RELAX_BTN_ID, "n_clicks"),
-    prevent_initial_call=True,
-)
-def relax_robot(_n_clicks):
-    ROBOT_LINK.relax()
-    return False
-
-
-@callback(
     Output(STREAM_CONTROLS_ID, "className"),
     Output(STREAM_SWITCH_ID, "disabled"),
-    Output(STREAM_RELAX_BTN_ID, "disabled"),
     Output(STREAM_MAX_STEP_ID, "disabled"),
     Output(STREAM_SWITCH_ID, "value", allow_duplicate=True),
     Output(STREAM_MAX_STEP_ID, "value", allow_duplicate=True),
@@ -405,7 +384,6 @@ def sync_stream_controls(_n_intervals, switch_value, max_step_value):
 
     return (
         SECTION_CONTROLS_OFFLINE_CLASS if offline else SECTION_CONTROLS_CLASS,
-        offline,
         offline,
         offline,
         switch,

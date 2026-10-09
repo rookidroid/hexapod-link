@@ -291,12 +291,8 @@ body {
     background: var(--ind-surface-alt);
     border: 1px solid var(--ind-border-strong);
     border-radius: 999px;
-    cursor: pointer;
-    transition: border-color 0.15s ease, background-color 0.15s ease;
-}
-
-.status-pill:hover {
-    background: var(--ind-hover);
+    cursor: default;
+    transition: border-color 0.15s ease;
 }
 
 .status-pill::before {
@@ -546,11 +542,6 @@ body {
     --rail-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 8.5l7-2.5 4.5 9.5'/%3E%3Ccircle cx='14.5' cy='18.5' r='2.5' fill='black'/%3E%3Cpath d='M18.5 3v7M15 6.5h7'/%3E%3C/svg%3E");
 }
 
-/* Robot: the WiFi link to it. */
-.tool-rail .form-check:nth-child(3) .rail-item {
-    --rail-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M2.5 9a14 14 0 0 1 19 0M5.5 12.5a9.5 9.5 0 0 1 13 0M8.5 16a5 5 0 0 1 7 0'/%3E%3Ccircle cx='12' cy='19.5' r='1.6' fill='black'/%3E%3C/svg%3E");
-}
-
 @media (max-width: 991.98px) {
     .tool-rail {
         flex-direction: row;
@@ -615,45 +606,6 @@ body {
 
 .panel-message:empty {
     display: none;
-}
-
-.robot-info {
-    font-weight: 600;
-    font-size: 0.9rem;
-    margin-bottom: 0.25rem;
-}
-
-.robot-detail {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    overflow-wrap: anywhere;
-}
-
-.robot-detail:empty {
-    display: none;
-}
-
-.safety-list {
-    font-size: 0.8rem;
-    line-height: 1.4;
-    color: var(--ind-text-muted);
-    padding-left: 1.1rem;
-    margin-bottom: 0.75rem;
-}
-
-.safety-list li + li {
-    margin-top: 0.3rem;
-}
-
-.build-link {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--ind-accent);
-    text-decoration: none;
-}
-
-.build-link:hover {
-    text-decoration: underline;
 }
 
 /* ===========================================
@@ -1082,6 +1034,114 @@ body {
     gap: 0.4rem;
 }
 
+/* The robot's own controls, on the view's top-left corner: streaming, with
+   its speed limit, and under it the robot's dimensions, folded away. */
+.hexapod-view-controls {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 3;
+    max-width: calc(100% - 24px);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+}
+
+/* A card over the dark view, in either theme: the stream controls, the
+   dimensions and the joint angles. Dash's sliders and the inputs inside one
+   are redrawn for it. */
+.hud-panel,
+.angles-hud {
+    --Dash-Fill-Disabled: rgba(160, 190, 240, 0.22);
+    --Dash-Fill-Inverse-Strong: var(--view-bg);
+    --Dash-Text-Primary: var(--hud-text);
+    --Dash-Text-Strong: var(--hud-text);
+    --Dash-Stroke-Strong: var(--hud-border);
+    --Dash-Stroke-Weak: var(--hud-border);
+    color: var(--hud-text);
+    background: var(--hud-bg);
+    border: 1px solid var(--hud-border);
+    border-radius: 8px;
+    backdrop-filter: blur(6px);
+}
+
+.hud-panel .ind-field-label,
+.hud-panel .ind-group-header {
+    color: var(--hud-muted);
+}
+
+.hud-panel .ind-group-header {
+    border-bottom-color: var(--hud-border);
+}
+
+.hud-panel .form-control,
+.hud-panel .dash-range-slider-input {
+    color: var(--hud-text) !important;
+    background: rgba(160, 190, 240, 0.08) !important;
+    border: 1px solid var(--hud-border) !important;
+}
+
+.hud-panel .form-control:focus {
+    border-color: rgba(160, 190, 240, 0.6) !important;
+    box-shadow: var(--ind-glow);
+}
+
+.stream-hud > div {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 1rem;
+    padding: 0.35rem 0.75rem;
+}
+
+.stream-hud .form-switch .form-check-label {
+    font-size: 0.82rem;
+    white-space: nowrap;
+}
+
+.stream-hud .form-check-input:not(:checked) {
+    background-color: rgba(160, 190, 240, 0.12);
+    border-color: var(--hud-border);
+}
+
+.stream-hud .ind-inline-slider {
+    min-width: 0;
+    width: 12rem;
+}
+
+.dims-hud {
+    padding: 0.35rem 0.75rem;
+}
+
+.dims-hud[open] {
+    width: 17rem;
+    padding-bottom: 0.6rem;
+}
+
+.dims-robot {
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin: 0.1rem 0 0.2rem;
+}
+
+.dims-hud .ind-field-grid {
+    margin-bottom: 0.4rem;
+}
+
+.dims-note {
+    font-size: 0.72rem;
+    line-height: 1.35;
+    color: var(--hud-muted);
+}
+
+/* Too narrow for it beside the reset buttons: it goes under them. */
+@media (max-width: 575.98px) {
+    .hexapod-view-controls {
+        top: 52px;
+    }
+}
+
 .view-btn.btn {
     --bs-btn-color: var(--hud-text);
     --bs-btn-bg: var(--hud-bg);
@@ -1105,19 +1165,15 @@ body {
 }
 
 .angles-hud {
-    color: var(--hud-text);
-    background: var(--hud-bg);
-    border: 1px solid var(--hud-border);
-    border-radius: 8px;
     padding: 0.35rem 0.6rem;
-    backdrop-filter: blur(6px);
 }
 
 .angles-hud[open] {
     padding-bottom: 0.55rem;
 }
 
-.angles-hud > summary {
+.angles-hud > summary,
+.dims-hud > summary {
     font-size: 0.75rem;
     font-weight: 700;
     letter-spacing: 0.06em;
@@ -1127,7 +1183,8 @@ body {
     user-select: none;
 }
 
-.angles-hud[open] > summary {
+.angles-hud[open] > summary,
+.dims-hud[open] > summary {
     margin-bottom: 0.3rem;
 }
 

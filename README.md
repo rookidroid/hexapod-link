@@ -39,9 +39,9 @@ theme, dark shows the dark one.
 
 <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/app-dark.png"><img src="docs/images/app.png" alt="The Hexapod Link workspace"></picture>
 
-The whole app is one screen: pick a tool on the rail down the left — **Body**,
-**Feet** or **Robot** — and use it on the 3D view, with the joint angles read
-out over the view. Along the bottom, string poses into a keyframe sequence or
+The whole app is one screen: pick a tool on the rail down the left — **Body**
+or **Feet** — and use it on the 3D view, with the joint angles, streaming to
+the robot and the robot's dimensions over the view. Along the bottom, string poses into a keyframe sequence or
 pick one of the robot's gaits, preview it and run it on the robot.
 
 Everything above is generated from the running app by
@@ -134,8 +134,8 @@ over WiFi in real time, from a single joint up to a full gait.
    to it. The robot performs its stand-up sequence when a client connects.
 3. Start the app and press **Connect** in the top bar; the address field
    beside it starts on the robot's (`192.168.4.1`). The status pill next to it
-   turns green and names the robot once it answers, and clicking the pill
-   opens the **Robot** tool with the link's detail.
+   turns green and names the robot once it answers; hover it for the link's
+   detail and the robot's firmware.
 
 ### Leg and joint numbering
 
@@ -201,18 +201,18 @@ add up, each with its own tool on the rail:
   cannot reach a spot (or would take a joint past its limit) stays where it
   was. **Put feet back** undoes the moves.
 
-The third tool, **Robot**, shows the connected robot and its firmware, the
-link's status, **Stream pose to robot**, and the robot's **Dimensions**. These
-follow the connected robot and can be edited to try another body; foot moves
-are from standby, so they keep their meaning on the resized body, and what is
+The robot's **Dimensions** fold out from the view's top-left corner, under the
+stream controls, with the name of the robot they belong to. They follow the
+connected robot and can be edited to try another body; foot moves are from
+standby, so they keep their meaning on the resized body, and what is
 streamed is solved on it too.
 
 Neither pose tool undoes the other: tilt the body, lift a foot, and both stay,
 and the Body sliders always show the pose as it is. **Reset pose**, over the
 view, clears both; **Reset view** frames the robot again. The joint angles
 are read out in the corner of the view (click the heading to fold them away),
-and with **Stream pose to robot** on, every reachable pose is sent to the
-servos as it changes. The tool and what the dock plays are remembered across
+and with **Stream to robot** on, in the view's top-left corner, every
+reachable pose is sent to the servos as it changes. The tool and what the dock plays are remembered across
 a reload.
 
 The dock plays a sequence: the **Keyframes** collected here, or a **Gait**.
@@ -239,11 +239,10 @@ frames for paths the firmware does not have (**Stream frames**). **Speed**
 is sent to the robot as soon as it changes.
 
 Until a robot is connected the stream and run controls are greyed out, since
-neither has anything to act on. Once connected, the **Stream** section of the
-Robot tool starts the sending: turn on **Stream pose to robot**, **Max joint
-speed** limits how fast any servo may slew, and **Relax** cuts drive so the
-servos go limp. The switch follows the robot's actual state, so it is right
-after a reload.
+neither has anything to act on. Once connected, the controls in the view's
+top-left corner start the sending: turn on **Stream to robot**, and **Max
+speed** limits how fast any servo may slew (in servo ticks per cycle). The
+switch follows the robot's actual state, so it is right after a reload.
 
 Servo offsets are trimmed on the robot's own calibration page, served by its
 firmware.

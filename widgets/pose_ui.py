@@ -4,11 +4,10 @@
 #
 #   Body   inverse kinematics: move and tilt the body over planted feet
 #   Feet   move each foot, by dragging it in the 3D view or typing where
-#   Robot  the link, streaming and the robot's dimensions (assembled in
-#          pages/workspace.py, since its parts live elsewhere)
 #
 # Over the view, the joint angles are read out and the pose and the camera
-# can be reset. Along the bottom, the dock plays a sequence, which is either
+# can be reset; streaming to the robot and the robot's dimensions are there
+# too (widgets/robot_link_ui.py, widgets/dimensions_ui.py). Along the bottom, the dock plays a sequence, which is either
 # the keyframes collected here or one of the robot's gaits: previewing it in
 # the view, and running it on the robot.
 import dash_bootstrap_components as dbc
@@ -39,8 +38,7 @@ POSE_VIEW_ID = "view-pose"
 POSE_TOOL_ID = "pose-tool"
 TOOL_BODY = "body"
 TOOL_FEET = "feet"
-TOOL_ROBOT = "robot"
-TOOLS = (TOOL_BODY, TOOL_FEET, TOOL_ROBOT)
+TOOLS = (TOOL_BODY, TOOL_FEET)
 POSE_TOOL_PANEL_IDS = {tool: f"pose-panel-{tool}" for tool in TOOLS}
 
 POSE_STATE_STORE_ID = "pose-state"
@@ -203,14 +201,15 @@ TOOL_RAIL = dbc.RadioItems(
     options=[
         {"label": "Body", "value": TOOL_BODY},
         {"label": "Feet", "value": TOOL_FEET},
-        {"label": "Robot", "value": TOOL_ROBOT},
     ],
     value=TOOL_BODY,
     className="tool-rail",
     inputClassName="btn-check",
     labelClassName="rail-item",
     labelCheckedClassName="active",
-    persistence=True,
+    # Named rather than True, so a session that remembered the Robot tool,
+    # which is gone, starts on Body instead of on no tool at all.
+    persistence="body-feet",
     persistence_type="session",
 )
 

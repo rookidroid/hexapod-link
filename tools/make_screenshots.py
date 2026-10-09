@@ -322,6 +322,8 @@ def main():
         POSE_RESET_BTN_ID,
         POSE_RESET_VIEW_BTN_ID,
     )
+    from widgets.dimensions_ui import DIMENSIONS_HUD_ID
+    from widgets.robot_link_ui import STREAM_HUD_ID
 
     seen = set()
     stores = posed_pose_stores()
@@ -372,6 +374,8 @@ def main():
                     ANGLES_HUD_ID: hidden,
                     POSE_RESET_BTN_ID: hidden,
                     POSE_RESET_VIEW_BTN_ID: hidden,
+                    STREAM_HUD_ID: hidden,
+                    DIMENSIONS_HUD_ID: hidden,
                 },
                 set(),
                 prop="style",
