@@ -5,15 +5,15 @@
 // a clientside callback hands it to hexapodView.render() -- see
 // register_view() in pages/shared.py.
 //
-// On the pose editor (pages/page_poser.py) the view is also editable: a foot
-// can be clicked to pick it up and dragged with the arrows. A drag becomes a
-// foot target in the "poser-foot-target" store; the server solves the leg's
+// On the pose page's Feet tool (pages/page_pose.py) the view is also editable:
+// a foot can be clicked to pick it up and dragged with the arrows. A drag
+// becomes a foot target in the "pose-foot-target" store; the server solves the leg's
 // joints and, if the foot can get there, sends back the new scene. A foot that
 // cannot get there springs back to where the server last put it.
 //
 // Coordinates are millimetres, z up, in whatever frame the page uses: the
 // settled robot standing on the floor at z = 0 on most pages, the robot's own
-// body frame in the pose editor.
+// body frame (raised to stand at z = 0) while dragging feet.
 //
 // Dash loads every .js file in assets/ on its own, so this is a plain script.
 // three.js comes from assets/vendor/three.bundle.min.js (window.HexapodThree);
@@ -23,9 +23,9 @@
 (function () {
     "use strict";
 
-    // The pose editor's stores, written while editing.
-    var FOOT_TARGET_ID = "poser-foot-target";
-    var SELECTED_LEG_ID = "poser-selected-leg";
+    // The pose page's stores, written while editing.
+    var FOOT_TARGET_ID = "pose-foot-target";
+    var SELECTED_LEG_ID = "pose-selected-leg";
 
     // How often a foot target is sent while dragging, in ms. The final position
     // is always sent when the drag ends.
@@ -597,7 +597,7 @@
 
     // Draws `data` (hexapod/scene.py) into the element with id `containerId`.
     //
-    // options.editable  feet can be picked up and dragged (pose editor only;
+    // options.editable  feet can be picked up and dragged (the pose page only;
     //                   false while it previews a sequence)
     // options.zoom      false leaves the mouse wheel to the page, for a view
     //                   that sits in a scrolling page
@@ -655,8 +655,18 @@
         }
     }
 
+    // Picks a foot up (or puts it down, for null), as clicking it would: for
+    // the pose page's foot picker. Picking the foot already held does
+    // nothing, so the picker and the click can follow each other.
+    function selectFoot(containerId, leg) {
+        var v = views[containerId];
+        if (v && v.parts) {
+            select(v, leg === undefined ? null : leg);
+        }
+    }
+
     // Where a foot is drawn, in page pixels, or null before the first draw.
-    // For scripts that drive the pose editor in a browser.
+    // For scripts that drive the pose page in a browser.
     function footScreenPosition(containerId, leg) {
         var v = views[containerId];
         if (!v || !v.parts) {
@@ -673,6 +683,7 @@
     window.hexapodView = {
         render: render,
         resetCamera: resetCamera,
+        selectFoot: selectFoot,
         footScreenPosition: footScreenPosition,
     };
 })();

@@ -18,11 +18,8 @@ from hexapod.const import BASE_SCENE
 from hexapod.robot_link import ROBOT_LINK
 from pages import shared
 from texts import (
-    KINEMATICS_PAGE_PATH,
-    IK_PAGE_PATH,
-    PATTERNS_PAGE_PATH,
     MOTION_PAGE_PATH,
-    POSER_PAGE_PATH,
+    POSE_PAGE_PATH,
     URL_BUILD_GUIDE,
 )
 
@@ -112,8 +109,8 @@ hero = dbc.Row(
 #
 # Each card says what the page does on screen and what it does to the hardware,
 # because those are different questions and the second one is easy to get
-# wrong: three of these stream continuously, one commands the robot's own gait
-# and one streams a sequence only when asked to.
+# wrong: the pose page streams as you pose, and the motion page commands the
+# robot's own gait.
 # ......................
 
 
@@ -151,38 +148,18 @@ tools = html.Div(
             [
                 _tool(
                     1,
-                    "Kinematics",
-                    "Set all 18 joint angles by hand and watch the body follow.",
-                    "Streams every pose to the servos",
-                    KINEMATICS_PAGE_PATH,
+                    "Pose",
+                    "Tilt and shift the body, move the feet, then string the "
+                    "poses into a timed sequence.",
+                    "Streams each reachable pose; the sequence on Run",
+                    POSE_PAGE_PATH,
                 ),
                 _tool(
                     2,
-                    "Inverse kinematics",
-                    "Translate and rotate the body; the solver finds the joints.",
-                    "Streams once the pose is reachable",
-                    IK_PAGE_PATH,
-                ),
-                _tool(
-                    3,
-                    "Leg patterns",
-                    "Sweep all six legs together through one set of angles.",
-                    "Streams every pose to the servos",
-                    PATTERNS_PAGE_PATH,
-                ),
-                _tool(
-                    4,
                     "Motion",
                     "Play the generated gaits frame by frame and scrub them.",
                     "Runs the robot's own gait from flash",
                     MOTION_PAGE_PATH,
-                ),
-                _tool(
-                    5,
-                    "Pose editor",
-                    "Drag the feet in 3D and string the poses into a timed sequence.",
-                    "Streams the sequence when you press Run",
-                    POSER_PAGE_PATH,
                 ),
             ],
             className="g-3",

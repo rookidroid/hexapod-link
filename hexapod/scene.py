@@ -20,6 +20,8 @@
 
 from math import atan2
 
+import numpy as np
+
 from hexapod.naming import LEG_LABELS
 from style_settings import (
     AXIS_X_COLOR,
@@ -120,3 +122,39 @@ def hexapod_to_scene(hexapod, ground=0.0, support=None, world_axes=True):
         "labels": list(LEG_LABELS),
         "colors": VIEWER_COLORS,
     }
+
+
+def transform_scene(scene, rotation, shift):
+    """The same scene moved rigidly: every point p goes to rotation @ p + shift.
+
+    How the pose page draws the body-frame scene of a pose where the body is
+    in the world (hexapod/pose_layers.py). The floor height is only moved,
+    not tilted, so set it afterwards when the rotation is not upright.
+    """
+    rotation = np.asarray(rotation, dtype=float)
+    shift = np.asarray(shift, dtype=float)
+
+    def move(point):
+        moved = rotation @ np.asarray(point, dtype=float) + shift
+        return [round(float(c), 3) + 0.0 for c in moved]
+
+    return {
+        **scene,
+        "body": [move(p) for p in scene["body"]],
+        "head": move(scene["head"]),
+        "cog": move(scene["cog"]),
+        "legs": [[move(p) for p in leg] for leg in scene["legs"]],
+        "feet": [move(p) for p in scene["feet"]],
+        "support": [move(p) for p in scene["support"]],
+        "axes": [
+            {**axis, "from": move(axis["from"]), "to": move(axis["to"])}
+            for axis in scene["axes"]
+        ],
+        "ground": round(scene["ground"] + float(shift[2]), 3) + 0.0,
+    }
+
+
+def raise_scene(scene, dz):
+    """The same scene moved `dz` up, so a body-frame scene can share the floor
+    (z = 0) of the scenes drawn in the world."""
+    return transform_scene(scene, np.eye(3), [0.0, 0.0, dz])

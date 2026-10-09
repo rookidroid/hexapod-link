@@ -14,7 +14,7 @@ from dash import dcc, html
 from settings import ROBOT_DEFAULT_IP, ROBOT_DEFAULT_MAX_STEP
 from hexapod.robot_config import describe
 from hexapod.robot_link import ROBOT_LINK
-from widgets.section_maker import make_slider_field
+from widgets.section_maker import make_slider_field, panel_section
 
 # --- Element IDs ---
 ROBOT_INFO_ID = "robot-info"
@@ -191,33 +191,25 @@ def make_stream_controls_section(ids):
         disabled=True,
     )
 
-    return dbc.Card(
-        dbc.CardBody(
-            [
-                html.H6("Stream to robot", className="mb-2"),
-                html.P(
-                    "Put the hexapod on a stand before streaming.",
-                    className="text-muted small mb-3",
-                ),
-                # The heading, the blurb and the status line stay at full
-                # strength while offline -- they are what explains why the rest
-                # is greyed out.
-                html.Div(
-                    [stream_row, max_step_slider],
-                    id=ids["controls"],
-                    className=SECTION_CONTROLS_OFFLINE_CLASS,
-                ),
-                html.Div(
-                    "Disconnected",
-                    id=ids["status"],
-                    className="small text-muted font-monospace text-center",
-                ),
-                dcc.Interval(
-                    id=ids["interval"], interval=STATUS_POLL_MS, n_intervals=0
-                ),
-            ]
-        ),
-        className="mb-3 ind-card",
+    return panel_section(
+        "Stream to robot",
+        [
+            # The heading, the blurb and the status line stay at full strength
+            # while offline -- they are what explains why the rest is greyed
+            # out.
+            html.Div(
+                [stream_row, max_step_slider],
+                id=ids["controls"],
+                className=SECTION_CONTROLS_OFFLINE_CLASS,
+            ),
+            html.Div(
+                "Disconnected",
+                id=ids["status"],
+                className="small text-muted font-monospace text-center",
+            ),
+            dcc.Interval(id=ids["interval"], interval=STATUS_POLL_MS, n_intervals=0),
+        ],
+        blurb="Put the hexapod on a stand before streaming.",
     )
 
 
@@ -279,33 +271,27 @@ motion_buttons = html.Div(
     className="ind-wrap-row",
 )
 
-ROBOT_MOTION_WIDGETS_SECTION = dbc.Card(
-    dbc.CardBody(
-        [
-            html.H6("Run on robot", className="mb-2"),
-            html.P(
-                "Runs the motion selected above on the hardware.",
-                className="text-muted small mb-3",
-            ),
-            html.Div(
-                [motion_mode, motion_loop, motion_speed, motion_buttons],
-                id=ROBOT_MOTION_CONTROLS_ID,
-                className=SECTION_CONTROLS_OFFLINE_CLASS,
-            ),
-            html.Div(
-                "Connect a robot to run this on the hardware.",
-                id=ROBOT_MOTION_MESSAGE_ID,
-                className="small text-muted font-monospace text-center mt-2",
-            ),
-            # Its own interval rather than the global one: this section is
-            # mounted with the motion page, and a callback whose output is not
-            # on the current page has nothing to write to.
-            dcc.Interval(
-                id=ROBOT_MOTION_POLL_INTERVAL_ID,
-                interval=STATUS_POLL_MS,
-                n_intervals=0,
-            ),
-        ]
-    ),
-    className="mb-3 ind-card",
+ROBOT_MOTION_WIDGETS_SECTION = panel_section(
+    "Run on robot",
+    [
+        html.Div(
+            [motion_mode, motion_loop, motion_speed, motion_buttons],
+            id=ROBOT_MOTION_CONTROLS_ID,
+            className=SECTION_CONTROLS_OFFLINE_CLASS,
+        ),
+        html.Div(
+            "Connect a robot to run this on the hardware.",
+            id=ROBOT_MOTION_MESSAGE_ID,
+            className="small text-muted font-monospace text-center mt-2",
+        ),
+        # Its own interval rather than the global one: this section is mounted
+        # with the motion page, and a callback whose output is not on the
+        # current page has nothing to write to.
+        dcc.Interval(
+            id=ROBOT_MOTION_POLL_INTERVAL_ID,
+            interval=STATUS_POLL_MS,
+            n_intervals=0,
+        ),
+    ],
+    blurb="Runs the motion selected above on the hardware.",
 )

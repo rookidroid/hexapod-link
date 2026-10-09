@@ -5,14 +5,15 @@ assuming probably ground contacts are known.
 This algorithm rests upon the assumption that it
 knows which point of the each leg is in contact with the ground.
 This assumption seems to be true for all possible cases for
-leg-patterns page and inverse-kinematics page.
+the poses it was written for: one set of angles on all six legs,
+and the old inverse kinematics poses.
 
 But this is not true for all possible
 angle combinations (18 angles) that can be defined in
 the kinematics page.
 
-This module is used for the leg-patterns page,
-and the inverse-kinematics page.
+This module is what VirtualHexapod.update() uses by default
+(the motion page).
 
 The other module will be used for the kinematics page.
 ❗❗❗

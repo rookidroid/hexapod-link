@@ -14,7 +14,7 @@ from hexapod.const import BASE_DIMENSIONS, BASE_SCENE, HEXAPOD
 from hexapod.models import VirtualHexapod
 from hexapod.path_generator import generate_poses
 from hexapod.robot_config import get_simulator_dimensions
-from hexapod.scene import VIEWER_COLORS, hexapod_to_scene
+from hexapod.scene import VIEWER_COLORS, hexapod_to_scene, raise_scene
 from tests.robots import ROBOT_CONFIGS
 
 
@@ -102,3 +102,19 @@ def test_scene_survives_json_without_negative_zero(name):
     scene = hexapod_to_scene(settled(ROBOT_CONFIGS[name], motion="turn_left", frame=7))
     assert json.loads(json.dumps(scene)) == scene
     assert not any(str(n) == "-0.0" for n in all_numbers(scene))
+
+
+def test_raised_scene_moves_every_point_up_and_nothing_else():
+    scene = hexapod_to_scene(settled(ROBOT_CONFIGS["nougat"]))
+    raised = raise_scene(scene, 50.0)
+
+    def points(s):
+        return [s["head"], s["cog"], *s["body"], *s["feet"], *s["support"]] + [
+            p for leg in s["legs"] for p in leg
+        ] + [p for axis in s["axes"] for p in (axis["from"], axis["to"])]
+
+    for before, after in zip(points(scene), points(raised)):
+        assert after[:2] == before[:2]
+        assert after[2] == pytest.approx(before[2] + 50.0)
+    assert raised["ground"] == pytest.approx(scene["ground"] + 50.0)
+    assert raised["size"] == scene["size"] and raised["labels"] == scene["labels"]

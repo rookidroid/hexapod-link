@@ -38,11 +38,8 @@ OUTPUT_WIDTH = 1600
 # below is just "tall enough for that page's control panel".
 PAGES = [
     ("home", "/", 1400, 1700),
-    ("kinematics", "/kinematics", 1400, 1000),
-    ("inverse-kinematics", "/inverse-kinematics", 1400, 1000),
-    ("leg-patterns", "/leg-patterns", 1400, 1000),
+    ("pose", "/pose", 1400, 1000),
     ("motion", "/motion-animations", 1400, 1150),
-    ("pose-editor", "/pose-editor", 1400, 1000),
 ]
 
 # Every page is captured once per theme, with this suffix on the file name.
@@ -50,82 +47,71 @@ PAGES = [
 # the one matching their GitHub colour mode.
 THEMES = [("light", ""), ("dark", "-dark")]
 
-# Widget values applied before serving, so each page is captured showing off
-# what it does instead of the neutral start-up pose. Keyed by widget id, which
-# is also what the page callbacks key off, so these stay valid as long as the
-# callbacks do; ids that no longer exist are skipped.
-POSED_WIDGETS = {
-    # Kinematics: a tripod stance, three legs planted and three lifted.
-    "widget-right-front-coxia": 25.0,
-    "widget-right-front-femur": 40.0,
-    "widget-right-front-tibia": -55.0,
-    "widget-right-middle-coxia": 0.0,
-    "widget-right-middle-femur": 5.0,
-    "widget-right-middle-tibia": -25.0,
-    "widget-right-back-coxia": -25.0,
-    "widget-right-back-femur": 40.0,
-    "widget-right-back-tibia": -55.0,
-    "widget-left-front-coxia": -25.0,
-    "widget-left-front-femur": 5.0,
-    "widget-left-front-tibia": -25.0,
-    "widget-left-middle-coxia": 0.0,
-    "widget-left-middle-femur": 40.0,
-    "widget-left-middle-tibia": -55.0,
-    "widget-left-back-coxia": 25.0,
-    "widget-left-back-femur": 5.0,
-    "widget-left-back-tibia": -25.0,
-    # Inverse kinematics: body shifted and tilted off centre, well inside what
-    # the solver can reach so the shot shows a solved pose and not an error.
-    "widget-start-hip-stance": 12.0,
-    "widget-start-leg-stance": 45.0,
-    "widget-percent-x": 0.15,
-    "widget-percent-y": -0.1,
-    "widget-percent-z": 0.2,
-    "widget-rot-x": 10.5,
-    "widget-rot-y": -9.0,
-    "widget-rot-z": 6.0,
-    # Leg patterns: all six legs swept together.
-    "widget-alpha": 0.0,
-    "widget-beta": 33.0,
-    "widget-gamma": -45.0,
+# Each page is captured showing off what it does instead of the neutral
+# start-up pose. The pose page: one foot lifted, under a body shifted and
+# tilted off centre, all well within reach. The page draws its sliders from
+# the pose in its store, so the pose goes there (posed_pose_stores()) rather
+# than into the slider values.
+POSED_LAYERS = {
+    "body": {
+        "percent_x": 0.15,
+        "percent_y": -0.1,
+        "percent_z": 0.2,
+        "rot_x": 7.5,
+        "rot_y": -6.0,
+        "rot_z": 6.0,
+    },
+    "lifted_foot": (0, [15.0, 20.0, 35.0]),
 }
 
-# The animated hero on the README: one gait cycle, played on the kinematics
-# page because that page takes its pose straight from the widget values. The
-# gait is generated for the robot the app is modelling, so it fits the body
-# drawn in the plot.
+# The animated hero on the README: one gait cycle, played on the pose page,
+# each frame put in its store as feet moved from standby. The gait is
+# generated for the robot the app is modelling, so it fits the body drawn in
+# the plot.
 GIF_MOTION = "walk_0"
 GIF_FRAME_STEP = 2
 GIF_WIDTH = 640
 GIF_FRAME_MS = 90
+# A GIF frame with less contrast than this share of the typical frame's shows
+# an empty view, and is taken again, up to this many times.
+EMPTY_FRAME_RATIO = 0.8
+EMPTY_FRAME_RETRIES = 4
 
 
-def posed_editor_stores():
-    """Starting data for the pose editor's stores, so its shot shows a sequence.
+def posed_pose_stores():
+    """Starting data for the pose page's stores, so its shot shows a sequence.
 
-    A tripod step: three feet lifted and swung forward, as the second of three
-    keyframes, and loaded into the editor. Built for whichever robot the app is
-    modelling, since foot positions only fit the robot they were placed on.
+    The pose is POSED_LAYERS, and it is the second of three keyframes --
+    standby, that pose, standby -- with the editor loaded from it. Built for
+    whichever robot the app is modelling, since foot positions only fit the
+    robot they were placed on.
     """
+    import numpy as np
+
     from hexapod import keyframes as kf
+    from hexapod import pose_layers as pl
     from hexapod.robot_link import ROBOT_LINK
 
     robot_config = ROBOT_LINK.robot_config
-    standby = kf.standby_feet(robot_config)
-    lift = kf.ground_height(robot_config) * -0.5
-    step = [
-        [x, y + lift * 0.6, z + lift] if leg in (0, 2, 4) else [x, y, z]
-        for leg, (x, y, z) in enumerate(standby)
-    ]
-    frames = [
-        kf.make_keyframe(standby),
-        kf.make_keyframe(step, 400),
-        kf.make_keyframe(standby, 400),
-    ]
+    standby = pl.standby_state()
+    offsets = np.zeros((6, 3))
+    leg, lift = POSED_LAYERS["lifted_foot"]
+    offsets[leg] = lift
+    posed = pl.make_state(POSED_LAYERS["body"], offsets)
+
+    def keyframe(state, duration_ms=kf.DEFAULT_DURATION_MS):
+        return kf.make_keyframe(pl.body_feet(state, robot_config), duration_ms, state)
+
+    frames = [keyframe(standby), keyframe(posed, 600), keyframe(standby, 600)]
     return {
-        "poser-feet": {"robot": robot_config["name"], "feet": frames[1]["feet"], "seq": 0},
-        "poser-keyframes": {"robot": robot_config["name"], "keyframes": frames},
-        "poser-selected-keyframe": 1,
+        "pose-state": {
+            "robot": robot_config["name"],
+            "state": posed,
+            "feet": frames[1]["feet"],
+            "seq": 0,
+        },
+        "pose-keyframes": {"robot": robot_config["name"], "keyframes": frames},
+        "pose-selected-keyframe": 1,
     }
 
 
@@ -255,33 +241,57 @@ def capture(browser, profile_dir, url, out_path, width, height):
 
 def capture_gif(browser, profile_dir, layouts, url, out_path):
     """Walk the hexapod through one gait cycle, one browser shot per frame."""
+    from hexapod import keyframes as kf
+    from hexapod import pose_layers as pl
     from hexapod.path_generator import generate_poses
     from hexapod.robot_link import ROBOT_LINK
 
-    poses = generate_poses(GIF_MOTION, ROBOT_LINK.robot_config)[::GIF_FRAME_STEP]
-    frames = []
+    robot_config = ROBOT_LINK.robot_config
+    poses = generate_poses(GIF_MOTION, robot_config)[::GIF_FRAME_STEP]
     box = None
-    with tempfile.TemporaryDirectory() as frame_dir:
-        for number, pose in enumerate(poses):
-            values = {
-                f"widget-{leg['name']}-{joint}": round(float(leg[joint]), 2)
-                for leg in pose.values()
-                for joint in ("coxia", "femur", "tibia")
-            }
-            for layout in layouts:
-                apply_values(layout, values, set())
 
-            raw = os.path.join(frame_dir, f"{number:02d}.png")
-            capture_raw(browser, profile_dir, url, raw, 1400, 1000)
-            image = Image.open(raw).convert("RGB")
-            # The camera never moves, so the panel found in the first frame
-            # frames every later one too and the GIF does not jitter.
-            box = box or find_plot_box(image)
-            if box:
-                image = image.crop(box)
-            height = round(image.height * GIF_WIDTH / image.width)
-            frames.append(image.resize((GIF_WIDTH, height), Image.LANCZOS))
+    def shoot(number, pose, frame_dir):
+        nonlocal box
+        feet = kf.pose_to_feet(pose, robot_config)
+        store = {
+            "robot": robot_config["name"],
+            "state": pl.from_feet(feet, robot_config),
+            "feet": feet,
+            "seq": number,
+        }
+        for layout in layouts:
+            apply_values(layout, {"pose-state": store}, set(), prop="data")
+
+        raw = os.path.join(frame_dir, f"{number:02d}.png")
+        capture_raw(browser, profile_dir, url, raw, 1400, 1000)
+        image = Image.open(raw).convert("RGB")
+        # The camera never moves, so the panel found in the first frame
+        # frames every later one too and the GIF does not jitter.
+        box = box or find_plot_box(image)
+        if box:
+            image = image.crop(box)
+        height = round(image.height * GIF_WIDTH / image.width)
+        return image.resize((GIF_WIDTH, height), Image.LANCZOS)
+
+    def detail(image):
+        return float(np.asarray(image.convert("L"), dtype=float).std())
+
+    with tempfile.TemporaryDirectory() as frame_dir:
+        frames = []
+        for number, pose in enumerate(poses):
+            frames.append(shoot(number, pose, frame_dir))
             print(f"    frame {number + 1}/{len(poses)}")
+
+        # Now and then the view comes up before the robot is in it, and the
+        # shot is of an empty monitor: much flatter than the frames around
+        # it. Those are taken again.
+        typical = float(np.median([detail(frame) for frame in frames]))
+        for number, pose in enumerate(poses):
+            for _ in range(EMPTY_FRAME_RETRIES):
+                if detail(frames[number]) >= EMPTY_FRAME_RATIO * typical:
+                    break
+                print(f"    frame {number + 1} came out empty; taking it again")
+                frames[number] = shoot(number, pose, frame_dir)
 
     # One shared palette across frames, otherwise each frame quantises
     # differently and the background shimmers.
@@ -312,14 +322,12 @@ def main():
     import hexapod_link  # noqa: E402  (imported late; it builds the whole app)
 
     seen = set()
-    for layout in hexapod_link.PAGES.values():
-        apply_values(layout, POSED_WIDGETS, seen)
-    stores = posed_editor_stores()
+    stores = posed_pose_stores()
     for layout in hexapod_link.PAGES.values():
         apply_values(layout, stores, seen, prop="data")
-    missing = sorted((set(POSED_WIDGETS) | set(stores)) - seen)
+    missing = sorted(set(stores) - seen)
     if missing:
-        print(f"warning: no such widget(s), left at default: {', '.join(missing)}")
+        print(f"warning: no such store(s), left empty: {', '.join(missing)}")
 
     os.makedirs(OUT_DIR, exist_ok=True)
     server = make_server("127.0.0.1", PORT, hexapod_link.app.server, threaded=True)
@@ -359,7 +367,7 @@ def main():
                 browser,
                 profile_dir,
                 list(hexapod_link.PAGES.values()),
-                f"http://127.0.0.1:{PORT}/kinematics",
+                f"http://127.0.0.1:{PORT}/pose",
                 out_path,
             )
             kb = os.path.getsize(out_path) // 1024

@@ -36,7 +36,6 @@ DIMENSIONS_HIDDEN_SECTION_ID = "hexapod-dimensions-values"
 DIMENSIONS_HIDDEN_SECTION = html.Div(
     id=DIMENSIONS_HIDDEN_SECTION_ID, style={"display": "none"}
 )
-DIMS_JSON_CALLBACK_INPUT = Input(DIMENSIONS_HIDDEN_SECTION_ID, "children")
 DIMS_JSON_CALLBACK_OUTPUT = Output(DIMENSIONS_HIDDEN_SECTION_ID, "children")
 
 
@@ -75,24 +74,28 @@ def view_store_id(view_id):
     return f"{view_id}-scene"
 
 
-def make_view(view_id, scene=None):
-    """The element the view draws into, and the store its scene goes in."""
-    return html.Div(
-        [
-            html.Div(id=view_id, className="hexapod-view"),
-            dcc.Store(id=view_store_id(view_id), data=scene),
-            dcc.Store(id=f"{view_id}-ack"),
-        ],
-        className="hexapod-view-frame",
-    )
+def make_view(view_id, scene=None, overlay=None):
+    """The element the view draws into, and the store its scene goes in.
+
+    `overlay` is laid over the view's top-right corner, for a button or two
+    that act on the view itself.
+    """
+    children = [
+        html.Div(id=view_id, className="hexapod-view"),
+        dcc.Store(id=view_store_id(view_id), data=scene),
+        dcc.Store(id=f"{view_id}-ack"),
+    ]
+    if overlay:
+        children.append(html.Div(overlay, className="hexapod-view-overlay"))
+    return html.Div(children, className="hexapod-view-frame")
 
 
 def register_view(view_id, zoom=True):
     """Draw whatever lands in the view's store.
 
     `zoom=False` leaves the mouse wheel to the page, for a view in a page that
-    scrolls. The pose editor wires its view up itself, since it switches it
-    between editing and previewing (pages/page_poser.py).
+    scrolls. The pose page wires its view up itself, since it switches it
+    between editing and previewing (pages/page_pose.py).
     """
     clientside_callback(
         """
@@ -111,34 +114,48 @@ def register_view(view_id, zoom=True):
 
 # ......................
 # Make uniform layout
-# View on the right, controls on the left
+# Controls on the left, the view on the right
 #
-# The height rules that make this one screenful -- who scrolls, who fills --
-# are in the PAGE LAYOUT block of assets/industrial.css, because they only hold
-# above the `lg` breakpoint and inline styles cannot carry a media query.
+# The control column has a fixed width, sized for its controls, and the view
+# takes everything else, so a wider window goes to the view. The height rules
+# that make this one screenful -- who scrolls, who fills -- are in the PAGE
+# LAYOUT block of assets/industrial.css, because they only hold above the `lg`
+# breakpoint and inline styles cannot carry a media query.
 # ......................
 
 
-def make_standard_page_layout(view_id, sidebar_sections):
-    """Sidebar on the left, the 3D view on the right, already wired up.
+def make_standard_page_layout(view_id, sidebar_sections, dock=None, overlay=None, wire=True):
+    """Control panel on the left, the 3D view on the right, already wired up.
 
     The view starts on the neutral hexapod, and keeps it if the page's first
     pose cannot be drawn, rather than starting as an empty screen.
+
+    `dock` goes under the view, for what is read off the pose or played
+    along with it rather than set: the pose page's joint angles and keyframe
+    timeline. `overlay` goes over the view's corner (make_view). `wire=False`
+    leaves drawing the view to the page, as on the pose page.
     """
-    register_view(view_id)
+    if wire:
+        register_view(view_id)
     sidebar = dbc.Col(
         dbc.Card(
             dbc.CardBody(sidebar_sections),
             className="ind-card page-panel flex-grow-1",
         ),
         width=12,
-        lg=4,
         className="page-sidebar mb-3 mb-lg-0 d-flex flex-column",
     )
+    view_column = [
+        html.Div(
+            make_view(view_id, BASE_SCENE, overlay=overlay),
+            className="graph-container flex-grow-1",
+        )
+    ]
+    if dock is not None:
+        view_column.append(dock)
     view = dbc.Col(
-        html.Div(make_view(view_id, BASE_SCENE), className="graph-container flex-grow-1"),
+        view_column,
         width=12,
-        lg=8,
         className="page-plot d-flex flex-column",
     )
 
@@ -181,7 +198,12 @@ def make_standard_page_sidebar(
     )
     message_section = html.Div(id=message_section_id)
 
-    sections = [params_widgets_section, message_section]
+    # Flattened, so every section is a direct child of the panel: the rule
+    # between sections is drawn by a sibling selector (PANEL SECTIONS in
+    # assets/industrial.css), which a wrapping div would hide them from.
+    if not isinstance(params_widgets_section, list):
+        params_widgets_section = [params_widgets_section]
+    sections = [*params_widgets_section, message_section]
     if robot_section is not None:
         sections.append(robot_section)
     sections.append(params_hidden_section)
@@ -563,23 +585,3 @@ def make_stream_controls(page_key):
         )
 
     return section
-
-
-# ......................
-# Make outputs and inputs for page update callbacks
-# .....................
-
-
-def make_standard_page_callback_params(view_id, params_section_id, message_section_id):
-    """Outputs and inputs of a page's update callback.
-
-    It takes the dimensions and the page's own parameters, and returns the
-    scene to draw and the message to show. On an error it returns no_update
-    for the scene, so the last pose that worked stays on screen.
-    """
-    outputs = [
-        Output(view_store_id(view_id), "data"),
-        Output(message_section_id, "children"),
-    ]
-    inputs = [DIMS_JSON_CALLBACK_INPUT, Input(params_section_id, "children")]
-    return outputs, inputs

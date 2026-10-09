@@ -1,9 +1,10 @@
-"""The pose editor's keyframes: solving joints from dragged feet, and timing.
+"""The pose page's keyframes: solving joints from feet and back, and timing.
 
-The editor places feet in the path tool's body frame and draws them with the
+The page places feet in the path tool's body frame and draws them with the
 simulator's linkage model, so the first thing checked is that those two agree:
-a foot solved by one lands where the other draws it. The rest covers what a
-sequence turns into on its way to the robot.
+a foot solved by one lands where the other draws it, and a pose set by joint
+angles (the Body and Legs tools) turns into feet that solve back to it. The
+rest covers what a sequence turns into on its way to the robot.
 """
 
 import json
@@ -22,11 +23,16 @@ from hexapod.keyframes import (
     interpolate_feet,
     load,
     make_keyframe,
+    pose_to_feet,
     pose_to_scene,
     sequence_duration_ms,
     standby_feet,
 )
+from hexapod.ik_solver.ik_solver2 import solve_inverse_kinematics
+from hexapod.models import VirtualHexapod
 from hexapod.path_generator import generate_poses
+from hexapod.robot_config import get_simulator_dimensions
+from pages.helpers import make_pose
 from hexapod.robot_config import GENERIC_CONFIG, get_sequence_fps
 from tests.robots import ROBOT_CONFIGS
 
@@ -57,6 +63,50 @@ def test_moved_feet_round_trip_through_the_simulator(robot):
     pose, bad = feet_to_pose(feet, robot)
     assert bad == []
     np.testing.assert_allclose(pose_to_scene(pose, robot)["feet"], feet, atol=1e-2)
+
+
+def assert_same_pose(actual, expected, atol=1e-2):
+    for leg_id in range(6):
+        for joint in ("coxia", "femur", "tibia"):
+            assert actual[leg_id][joint] == pytest.approx(expected[leg_id][joint], abs=atol)
+
+
+@pytest.mark.parametrize("robot", ROBOTS, ids=ROBOT_IDS)
+def test_feet_round_trip_through_their_pose(robot):
+    feet = np.array(standby_feet(robot))
+    feet[2] += [8, -6, 25]
+    pose, bad = feet_to_pose(feet, robot)
+    assert bad == []
+    np.testing.assert_allclose(pose_to_feet(pose, robot), feet, atol=1e-2)
+
+
+@pytest.mark.parametrize("robot", ROBOTS, ids=ROBOT_IDS)
+def test_body_pose_survives_the_trip_through_feet(robot):
+    # What the Body tool does: solve a tilted, shifted body, keep it as feet,
+    # and solve the joints back from those for the readout and the robot.
+    parameters = {
+        "hip_stance": 0,
+        "leg_stance": 0,
+        "percent_x": 0.1,
+        "percent_y": -0.1,
+        "percent_z": 0.05,
+        "rot_x": 6,
+        "rot_y": -4.5,
+        "rot_z": 3,
+    }
+    hexapod = VirtualHexapod(get_simulator_dimensions(robot))
+    poses, _, _ = solve_inverse_kinematics(hexapod, parameters)
+    pose, bad = feet_to_pose(pose_to_feet(poses, robot), robot)
+    assert bad == []
+    assert_same_pose(pose, poses)
+
+
+@pytest.mark.parametrize("robot", ROBOTS, ids=ROBOT_IDS)
+def test_leg_pattern_survives_the_trip_through_feet(robot):
+    poses = make_pose(5, 20, -10, {leg: {} for leg in range(6)})
+    pose, bad = feet_to_pose(pose_to_feet(poses, robot), robot)
+    assert bad == []
+    assert_same_pose(pose, poses)
 
 
 @pytest.mark.parametrize("robot", ROBOTS, ids=ROBOT_IDS)

@@ -217,7 +217,16 @@ body {
 
    Below `lg` the columns stack, so the page scrolls as a whole and the plot
    keeps a workable height of its own instead of collapsing.
+
+   The control column is a fixed width, sized for its sliders and joint grids
+   rather than a share of the window: a wider window goes to the view, which
+   can use it, instead of stretching the sliders. A page with a dock (the pose
+   page) stacks it under the view, in the same column.
    =========================================== */
+
+:root {
+    --page-sidebar-width: clamp(320px, 27vw, 420px);
+}
 
 .page-row {
     min-height: 0;
@@ -243,7 +252,25 @@ body {
         min-height: 0;
     }
 
+    .page-row > .page-sidebar {
+        flex: 0 0 var(--page-sidebar-width);
+        width: var(--page-sidebar-width);
+    }
+
+    .page-row > .page-plot {
+        flex: 1 1 0;
+        width: auto;
+        min-width: 0;
+    }
+
     .page-panel {
+        overflow-y: auto;
+    }
+
+    /* The view keeps most of the height; a dock with more in it than that
+       scrolls rather than squeezing the view. */
+    .page-dock {
+        max-height: 45%;
         overflow-y: auto;
     }
 }
@@ -251,6 +278,10 @@ body {
 @media (max-width: 991.98px) {
     .page-plot {
         min-height: 70vh;
+    }
+
+    .page-plot > .graph-container {
+        min-height: 55vh;
     }
 }
 
@@ -1157,6 +1188,7 @@ input[type="number"]:focus,
 /* Dash's own components read their colours from these. Scoped to the two
    places that hold controls, so nothing else in the app changes. */
 .page-panel,
+.page-dock,
 .global-drawer,
 .page-scroll {
     --Dash-Fill-Interactive-Strong: var(--ind-accent);
@@ -1266,6 +1298,27 @@ input[type="number"]:focus,
     margin-bottom: 0.75rem;
 }
 
+/* A few fields that belong together, e.g. a foot's x, y and height: always
+   side by side, sharing the width. */
+.ind-field-grid.ind-field-row {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+}
+
+/* Narrow enough that spinner arrows would hide the value, as in the joint
+   grid below. */
+.ind-field-row input {
+    padding-inline: 0.35rem;
+    -moz-appearance: textfield;
+}
+
+.ind-field-row input::-webkit-outer-spin-button,
+.ind-field-row input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
 /* One input per leg and joint; joint names once, in the header. */
 .ind-joint-grid {
     --bs-table-bg: transparent;
@@ -1324,8 +1377,9 @@ input[type="number"]:focus,
     -moz-appearance: textfield;
 }
 
-/* Kinematics: a Left and a Right block, side by side when both fit with a
-   full value in every input, left above right when they do not. The basis
+/* Joint grids (the Feet tool): a Left and a Right block, side by side when
+   both fit with a full value in every input, left above right when they do
+   not. The basis
    is that width -- "L1" plus three inputs of "-178.5" -- so the wrap happens
    exactly when the values would start to clip. */
 .ind-joint-sides {
@@ -1397,6 +1451,237 @@ input[type="number"]:focus,
 
 .ind-wrap-row > .ind-wrap-side {
     flex: 1 1 6rem;
+}
+
+/* ===========================================
+   PANEL SECTIONS
+
+   The blocks of a page's control panel (panel_section() in
+   widgets/section_maker.py) sit flat on the panel, divided by a rule, rather
+   than as cards nested inside it: one plate, not a stack of them. The rule
+   goes over every section that follows another, hidden ones included, so it
+   is right whichever of the pose page's tools is showing.
+   =========================================== */
+
+.ind-section ~ .ind-section {
+    border-top: 2px solid var(--ind-border-light);
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+}
+
+/* A segmented switch: dbc.RadioItems drawn as a row of joined buttons, the
+   chosen one filled. The labels are buttons, so the section-header look the
+   `.ind-card label` rule gives labels is undone here. */
+.ind-segmented {
+    display: inline-flex;
+    flex-wrap: nowrap;
+}
+
+.ind-segmented .form-check {
+    padding: 0;
+    margin: 0;
+    min-height: 0;
+}
+
+.ind-segmented .form-check + .form-check {
+    margin-left: -2px;
+}
+
+.ind-card .ind-segmented label.btn {
+    display: block;
+    margin: 0;
+    padding: 0.3rem 0.8rem;
+    font-size: 0.85rem;
+    border: 2px solid var(--ind-border);
+    clip-path: none;
+    white-space: nowrap;
+}
+
+.ind-card .ind-segmented label.btn.active {
+    color: #fff !important;
+    background: var(--ind-accent);
+    border-color: var(--ind-outline);
+    position: relative;
+    z-index: 1;
+}
+
+/* Full width, for the pose page's tool switch. */
+.ind-segmented.ind-segmented-fill {
+    display: flex;
+}
+
+.ind-segmented-fill .form-check {
+    flex: 1 1 0;
+}
+
+.ind-segmented-fill label.btn {
+    width: 100%;
+    text-align: center;
+}
+
+/* ===========================================
+   DOCK — under the view, on the pose page
+
+   The joint angles on the left, the keyframe timeline on the right; the
+   timeline drops under the angles when the two do not fit side by side.
+   =========================================== */
+
+.page-dock {
+    flex: 0 0 auto;
+    margin-top: 0.75rem;
+    padding: 0.9rem 1rem 1.1rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.75rem 1.75rem;
+}
+
+/* Fixed in the layout, like the page panel: no lift, no stencil over the
+   controls. */
+.page-dock:hover {
+    transform: none;
+    box-shadow: var(--shadow-hard);
+}
+
+.page-dock::after {
+    content: none;
+}
+
+.ind-dock-angles {
+    flex: 0 0 auto;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.ind-dock-keyframes {
+    flex: 1 1 26rem;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.ind-dock-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+}
+
+.ind-dock-row h6 {
+    margin-bottom: 0 !important;
+}
+
+/* An empty message slot would still take a gap of its own. */
+.ind-dock-keyframes > div:empty {
+    display: none;
+}
+
+.ind-dock-scrubber {
+    flex: 1 1 5rem;
+    min-width: 5rem;
+}
+
+.ind-dock-scrubber .dash-slider-container {
+    width: 100%;
+}
+
+.ind-play-btn {
+    min-width: 6.5rem;
+}
+
+.ind-duration-input {
+    width: 7.5rem;
+    flex-wrap: nowrap;
+}
+
+.ind-duration-input .input-group-text {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    border: 2px solid var(--ind-border-light);
+    border-left: none;
+    border-radius: 0;
+    background: var(--ind-bg);
+    color: var(--ind-text-muted);
+}
+
+/* The keyframes, in order, as one row of chips that scrolls sideways. */
+.ind-kf-strip {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 2.1rem;
+    overflow-x: auto;
+    padding-bottom: 2px;
+}
+
+.ind-kf-chip {
+    flex: 0 0 auto;
+    display: inline-flex;
+    gap: 0.4rem;
+    padding: 0.2rem 0.6rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+    color: var(--ind-text);
+    background: var(--ind-input-bg);
+    border: 2px solid var(--ind-border-light);
+    border-radius: 0;
+    transition: border-color 0.1s ease;
+}
+
+.ind-kf-chip:hover {
+    border-color: var(--ind-accent);
+}
+
+.ind-kf-chip.active {
+    color: #fff;
+    background: var(--ind-accent);
+    border-color: var(--ind-outline);
+}
+
+.ind-kf-index {
+    font-weight: 700;
+}
+
+/* The joint angles: one table, a column per leg. Only as wide as its values. */
+.ind-joint-grid.ind-angle-strip {
+    width: auto;
+    table-layout: auto;
+}
+
+.ind-angle-strip tr > th:first-child {
+    width: auto;
+    padding-right: 0.35rem;
+}
+
+.ind-angle-strip th,
+.ind-angle-strip td {
+    padding: 0.1rem 0.15rem;
+}
+
+.ind-angle-strip .ind-readout {
+    min-width: 3.9rem;
+    font-size: 0.75rem;
+    padding: 0.15rem 0.3rem;
+}
+
+/* A leg whose foot is out of reach: its angles mean nothing. */
+.ind-readout.is-bad {
+    text-align: center;
+    color: var(--ind-alert-text);
+    background: var(--ind-alert-bg);
+}
+
+/* Buttons over the 3D view's corner (make_view's overlay). */
+.hexapod-view-overlay {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 3;
+    display: flex;
+    gap: 0.4rem;
 }
 
 /* ===========================================

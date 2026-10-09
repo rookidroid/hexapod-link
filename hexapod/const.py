@@ -18,17 +18,6 @@ BASE_DIMENSIONS = {
 }
 
 
-BASE_IK_PARAMS = {
-    "hip_stance": 0,
-    "leg_stance": 0,
-    "percent_x": 0,
-    "percent_y": 0,
-    "percent_z": 0,
-    "rot_x": 0,
-    "rot_y": 0,
-    "rot_z": 0,
-}
-
 BASE_POSE = deepcopy(HEXAPOD_POSE)
 
 BASE_HEXAPOD = VirtualHexapod(BASE_DIMENSIONS)

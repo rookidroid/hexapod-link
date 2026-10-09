@@ -12,6 +12,20 @@ def field_label(text):
     return html.Label(text, className="ind-field-label")
 
 
+def panel_section(header, children, blurb=None, **div_props):
+    """One titled block of a page's control panel.
+
+    Flat on the panel rather than a card inside it: sections are told apart by
+    the rule over each one (see PANEL SECTIONS in assets/industrial.css), so
+    the panel is one plate instead of a stack of nested ones.
+    """
+    body = [html.H6(header, className="mb-2" if blurb else "mb-3")]
+    if blurb:
+        body.append(html.P(blurb, className="text-muted small mb-3"))
+    body.extend(children if isinstance(children, list) else [children])
+    return html.Section(body, className="ind-section", **div_props)
+
+
 def group_header(text):
     """A small header over a group of fields within one card."""
     return html.Div(text, className="ind-group-header")
@@ -72,9 +86,11 @@ def make_number_field(input_id, label, **input_props):
     )
 
 
-def make_field_grid(fields):
-    """Lays fields out in as many columns as the panel has room for."""
-    return html.Div(fields, className="ind-field-grid")
+def make_field_grid(fields, one_row=False):
+    """Lays fields out in as many columns as the panel has room for, or all
+    on one row with `one_row`, for a few that belong together (x, y, z)."""
+    class_name = "ind-field-grid ind-field-row" if one_row else "ind-field-grid"
+    return html.Div(fields, className=class_name)
 
 
 def make_joint_grid(rows, column_labels, make_cell, class_name=""):

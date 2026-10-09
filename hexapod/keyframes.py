@@ -1,4 +1,4 @@
-# Keyframed leg motion for the pose editor (pages/page_poser.py).
+# Keyframed leg motion for the pose page (pages/page_pose.py).
 #
 # A pose here is where the six feet are, not what the joints are doing: a 6x3
 # list of foot tip positions in the robot's body frame, the same frame the path
@@ -9,7 +9,9 @@
 # A keyframe is {"feet": [[x, y, z] * 6], "duration_ms": int}, where the
 # duration is the time taken to reach that pose from the keyframe before it. The
 # first keyframe's duration is only used when the sequence loops, for the move
-# from the last keyframe back round to it.
+# from the last keyframe back round to it. A keyframe made on the pose page
+# also keeps the layers the pose was built from, as "state"
+# (hexapod/pose_layers.py); this module carries it along without looking in it.
 #
 # Nothing here settles the body onto the ground: the body is held still and the
 # feet move around it. That is how the robot sees it too -- it has no idea where
@@ -108,6 +110,25 @@ def feet_to_pose(feet, robot_config):
     return pose, bad_legs
 
 
+def _posed_model(pose, robot_config):
+    """The simulator's linkage model with its legs set to `pose`, body unmoved."""
+    hexapod = VirtualHexapod(get_simulator_dimensions(robot_config))
+    for leg_id in range(6):
+        leg = pose.get(leg_id, pose.get(str(leg_id)))
+        hexapod.legs[leg_id].change_pose(leg["coxia"], leg["femur"], leg["tibia"])
+    return hexapod
+
+
+def pose_to_feet(pose, robot_config):
+    """Where a pose puts the six feet, in the body frame: feet_to_pose run backwards.
+
+    How a pose made from joint angles -- the body and leg sliders of the pose
+    page -- becomes feet that can be dragged and kept as a keyframe.
+    """
+    hexapod = _posed_model(pose, robot_config)
+    return clean_feet([xyz(leg.foot_tip()) for leg in hexapod.legs])
+
+
 def describe_bad_legs(bad_legs):
     labels = ", ".join(leg_label(leg) for leg in bad_legs)
     return f"Out of reach or past a joint limit: {labels}"
@@ -121,11 +142,7 @@ def pose_to_scene(pose, robot_config):
     The body is not settled onto the ground; the floor is drawn where the feet
     stand at standby, and the support polygon through the feet that are on it.
     """
-    hexapod = VirtualHexapod(get_simulator_dimensions(robot_config))
-    for leg_id in range(6):
-        leg = pose.get(leg_id, pose.get(str(leg_id)))
-        hexapod.legs[leg_id].change_pose(leg["coxia"], leg["femur"], leg["tibia"])
-
+    hexapod = _posed_model(pose, robot_config)
     ground = ground_height(robot_config)
     feet = [xyz(leg.foot_tip()) for leg in hexapod.legs]
     standing = [foot for foot in feet if foot[2] <= ground + GROUND_TOLERANCE]
@@ -142,11 +159,14 @@ def clamp_duration(duration_ms):
     return min(max(duration, MIN_DURATION_MS), MAX_DURATION_MS)
 
 
-def make_keyframe(feet, duration_ms=DEFAULT_DURATION_MS):
-    return {
+def make_keyframe(feet, duration_ms=DEFAULT_DURATION_MS, state=None):
+    keyframe = {
         "feet": clean_feet(feet),
         "duration_ms": clamp_duration(duration_ms),
     }
+    if isinstance(state, dict):
+        keyframe["state"] = state
+    return keyframe
 
 
 def _ease(t):
@@ -162,10 +182,17 @@ def interpolate_feet(keyframes, fps, loop=False, ease=True):
     back to the first is included, without repeating the first keyframe at the
     end, so playing the frames round and round has no hitch at the seam.
     """
+    points = [np.asarray(kf["feet"], dtype=float).reshape(6, 3) for kf in keyframes]
+    return [frame.tolist() for frame in interpolate_arrays(points, keyframes, fps, loop, ease)]
+
+
+def interpolate_arrays(points, keyframes, fps, loop=False, ease=True):
+    """interpolate_feet() for any values: one array per keyframe, timed by
+    the keyframes' durations. Returns the arrays, one per frame."""
     if not keyframes:
         return []
 
-    points = [np.asarray(kf["feet"], dtype=float).reshape(6, 3) for kf in keyframes]
+    points = [np.asarray(point, dtype=float) for point in points]
     frames = [points[0]]
 
     segments = [(i - 1, i) for i in range(1, len(points))]
@@ -182,7 +209,7 @@ def interpolate_feet(keyframes, fps, loop=False, ease=True):
                 t = _ease(t)
             frames.append(points[start] + (points[end] - points[start]) * t)
 
-    return [frame.tolist() for frame in frames]
+    return frames
 
 
 def interpolate(keyframes, robot_config, fps, loop=False, ease=True):
@@ -218,7 +245,8 @@ def dump(keyframes, robot_config):
             "version": FILE_VERSION,
             "robot": robot_config["name"],
             "keyframes": [
-                make_keyframe(kf["feet"], kf["duration_ms"]) for kf in keyframes
+                make_keyframe(kf["feet"], kf["duration_ms"], kf.get("state"))
+                for kf in keyframes
             ],
         },
         indent=2,
@@ -261,7 +289,9 @@ def load(text, robot_config):
             feet = np.asarray(entry["feet"], dtype=float)
             if feet.shape != (6, 3) or not np.isfinite(feet).all():
                 raise ValueError("feet must be six [x, y, z] positions")
-            keyframes.append(make_keyframe(feet.tolist(), entry["duration_ms"]))
+            keyframes.append(
+                make_keyframe(feet.tolist(), entry["duration_ms"], entry.get("state"))
+            )
         except (KeyError, TypeError, ValueError) as error:
             raise KeyframeFileError(f"Keyframe {index + 1} is malformed: {error}") from error
 

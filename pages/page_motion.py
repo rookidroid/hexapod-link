@@ -44,14 +44,14 @@ hidden_components = html.Div([
     dcc.Store(id=PLAY_STATE_STORE_ID, data=False),
 ])
 
-motion_widgets = html.Div([
-    MOTION_WIDGETS_SECTION,
+motion_widgets = [
+    *MOTION_WIDGETS_SECTION,
     # Running a gait on the hardware needs a motion to name, and this is the
     # only page that has one, so the controls for it sit under the dropdown
     # that chooses it rather than in the global panel.
     ROBOT_MOTION_WIDGETS_SECTION,
-    hidden_components
-])
+    hidden_components,
+]
 
 sidebar = shared.make_standard_page_sidebar(
     message_section_id="motion-message-section",

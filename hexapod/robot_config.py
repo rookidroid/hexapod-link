@@ -350,6 +350,53 @@ def get_simulator_dimensions(robot_config, mount_angles=True):
     return dimensions
 
 
+def with_dimensions(robot_config, dimensions):
+    """The robot's config with its body and legs measured as `dimensions`.
+
+    `dimensions` is in get_simulator_dimensions()'s terms, as the Robot drawer
+    edits them. The mounts move with front, side and middle, each leg keeping
+    its own side and mirroring; the legs take the new lengths. A real robot's
+    legs keep the angles they are mounted at, whatever the body measures; the
+    generic model has no robot behind it, so its legs keep pointing straight
+    out from the cog. Joint limits, gait and the rest are the robot's own.
+
+    A measurement that is missing or not positive keeps the robot's.
+    """
+    if not isinstance(dimensions, dict):
+        return robot_config
+    current = get_simulator_dimensions(robot_config, mount_angles=False)
+
+    def measure(name):
+        value = dimensions.get(name)
+        valid = isinstance(value, (int, float)) and not isinstance(value, bool) and value > 0
+        return float(value) if valid else current[name]
+
+    new = {name: measure(name) for name in current}
+    if new == current:
+        return robot_config
+
+    def rescaled(values, old, new_value):
+        return [value * new_value / old if old else value for value in values]
+
+    config = deepcopy(robot_config["config"])
+    corners, middles = (0, 2, 3, 5), (1, 4)
+    xs, ys = config["legMountX"], config["legMountY"]
+    for leg in corners:
+        xs[leg], ys[leg] = (
+            rescaled([xs[leg]], current["front"], new["front"])[0],
+            rescaled([ys[leg]], current["side"], new["side"])[0],
+        )
+    for leg in middles:
+        xs[leg] = rescaled([xs[leg]], current["middle"], new["middle"])[0]
+    config["legJoint1ToJoint2"] = new["coxia"]
+    config["legJoint2ToJoint3"] = new["femur"]
+    config["legJoint3ToTip"] = new["tibia"]
+    if robot_config["source"] == "generic":
+        config["legMountAngle"] = _radial_mount_angles(xs, ys)
+
+    return {**robot_config, "config": config}
+
+
 def get_leg_signs(robot_config):
     """+1 or -1 per leg: how the femur and tibia servos are mirrored.
 
