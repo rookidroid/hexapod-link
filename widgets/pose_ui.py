@@ -71,6 +71,9 @@ POSE_JOINT_FIELDS = [
 POSE_JOINT_FIELD_IDS = [field_id for _, _, field_id in POSE_JOINT_FIELDS]
 POSE_ANGLES_ID = "pose-angles"
 ANGLES_HUD_ID = "pose-angles-hud"
+# The update_pose callback (pages/page_pose.py) adds "is-bad" to it while a
+# leg is out of reach.
+ANGLES_HUD_CLASS = "angles-hud"
 POSE_MESSAGE_ID = "pose-message"
 POSE_RESET_BTN_ID = "pose-reset-btn"
 POSE_CLEAR_FEET_BTN_ID = "pose-clear-feet-btn"
@@ -333,7 +336,7 @@ ANGLES_HUD = html.Details(
     ],
     id=ANGLES_HUD_ID,
     open=True,
-    className="angles-hud",
+    className=ANGLES_HUD_CLASS,
 )
 
 

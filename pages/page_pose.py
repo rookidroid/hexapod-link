@@ -58,6 +58,8 @@ from widgets.ik_ui import IK_WIDGETS_IDS
 from widgets.pose_ui import (
     MODE_EDIT,
     MODE_PREVIEW,
+    ANGLES_HUD_CLASS,
+    ANGLES_HUD_ID,
     POSE_ADD_BTN_ID,
     POSE_ANGLES_ID,
     POSE_CLEAR_FEET_BTN_ID,
@@ -529,6 +531,7 @@ _last_sent = {"key": None}
 @callback(
     Output(POSE_SCENE_STORE_ID, "data"),
     Output(POSE_ANGLES_ID, "children"),
+    Output(ANGLES_HUD_ID, "className"),
     Input(POSE_STATE_STORE_ID, "data"),
     DIMENSIONS_INPUT,
 )
@@ -547,7 +550,10 @@ def update_pose(pose_store, dimensions_json):
 
     scene = pl.scene(state, pose, robot_config)
     scene["seq"] = pose_store.get("seq", 0)
-    return scene, helpers.make_angle_strip(pose, bad_legs)
+    # Marked when a leg is out of reach, so the readout says so even folded
+    # away, when the warning inside it cannot be seen.
+    hud_class = f"{ANGLES_HUD_CLASS} is-bad" if bad_legs else ANGLES_HUD_CLASS
+    return scene, helpers.make_angle_strip(pose, bad_legs), hud_class
 
 
 # The foot picker and the view follow each other: clicking a foot picks it in

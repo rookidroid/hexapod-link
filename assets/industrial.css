@@ -1183,6 +1183,21 @@ body {
     user-select: none;
 }
 
+/* Folded away while a leg is out of reach: the warning inside it cannot be
+   seen, so the folded readout turns red instead. */
+.angles-hud.is-bad:not([open]) {
+    background: rgba(140, 24, 24, 0.88);
+    border-color: rgba(255, 92, 92, 0.85);
+}
+
+.angles-hud.is-bad:not([open]) > summary {
+    color: #ffd6d6;
+}
+
+.angles-hud.is-bad:not([open]) > summary::after {
+    content: ' ⚠';
+}
+
 .angles-hud[open] > summary,
 .dims-hud[open] > summary {
     margin-bottom: 0.3rem;
