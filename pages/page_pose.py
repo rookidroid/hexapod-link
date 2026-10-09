@@ -1,8 +1,9 @@
-# The pose page: set a pose, collect poses as keyframes, preview the sequence
-# and run it on the robot -- or preview one of the robot's gaits and run that.
+# What the workspace does (its layout is pages/workspace.py): set a pose,
+# collect poses as keyframes, preview the sequence and run it on the robot --
+# or preview one of the robot's gaits and run that.
 #
 # There is one pose: the robot's standby posture with two layers on top
-# (hexapod/pose_layers.py), and a tool for each:
+# (hexapod/pose_layers.py), and a tool on the rail for each:
 #
 #   Feet  moving single feet away from where standby plants them, by dragging
 #         them in the 3D view or typing where they go
@@ -15,13 +16,11 @@
 # dragged. Out of the layers come the joint angles, what is
 # streamed to the robot and what a keyframe keeps.
 #
-# The 3D view is the one every page uses (assets/hexapod_view.js). Here it
-# reports a dragged foot through the POSE_FOOT_TARGET_ID store and draws
+# The 3D view (assets/hexapod_view.js) reports a dragged foot through the POSE_FOOT_TARGET_ID store and draws
 # whatever lands in the view's scene store, or a frame of the sequence while
 # previewing; the kinematics all happen here.
 #
-# What is being edited lives in session stores, so it survives a visit to
-# another page:
+# What is being edited lives in session stores, so it survives a reload:
 #
 #   pose       {"robot", "state": the layers, "feet": 6x3 in the body frame,
 #               "seq"}
@@ -33,7 +32,7 @@
 # afresh.
 #
 # The robot modelled is the connected one (or the last one, or the generic
-# model), measured as the Robot drawer's dimensions have it: they start on the
+# model), measured as the Robot panel's dimensions have it: they start on the
 # robot's own and can be edited to try another body. Feet and keyframes are
 # moves from standby and keep their meaning on the resized body; what is
 # streamed to the robot is solved on it too.
@@ -55,13 +54,6 @@ from hexapod.path_generator import generate_poses
 from hexapod.robot_config import get_sequence_fps, with_dimensions
 from hexapod.robot_link import ROBOT_LINK
 from pages import helpers, shared
-from texts import (
-    IK_PAGE_PATH,
-    KINEMATICS_PAGE_PATH,
-    MOTION_PAGE_PATH,
-    PATTERNS_PAGE_PATH,
-    POSER_PAGE_PATH,
-)
 from widgets.ik_ui import IK_WIDGETS_IDS
 from widgets.pose_ui import (
     MODE_EDIT,
@@ -70,7 +62,6 @@ from widgets.pose_ui import (
     POSE_ANGLES_ID,
     POSE_CLEAR_FEET_BTN_ID,
     POSE_DELETE_BTN_ID,
-    POSE_DOCK,
     POSE_DOWNLOAD_ID,
     POSE_DURATION_ID,
     POSE_EARLIER_BTN_ID,
@@ -93,7 +84,6 @@ from widgets.pose_ui import (
     POSE_LATER_BTN_ID,
     POSE_LOOP_ID,
     POSE_MESSAGE_ID,
-    POSE_PANEL_SECTIONS,
     POSE_PLAY_BTN_ID,
     POSE_PLAY_STATE_STORE_ID,
     POSE_PREVIEW_MESSAGE_ID,
@@ -102,7 +92,6 @@ from widgets.pose_ui import (
     POSE_RESET_VIEW_BTN_ID,
     POSE_ROBOT_CONTROLS_ID,
     POSE_ROBOT_MESSAGE_ID,
-    POSE_ROBOT_POLL_INTERVAL_ID,
     POSE_RUN_BTN_ID,
     POSE_SAVE_BTN_ID,
     POSE_SELECTED_KF_STORE_ID,
@@ -110,129 +99,59 @@ from widgets.pose_ui import (
     POSE_STATE_STORE_ID,
     POSE_SOURCE_ID,
     POSE_SOURCE_PART_IDS,
-    POSE_SOURCE_STORE_ID,
     POSE_STOP_BTN_ID,
     POSE_TOOL_ID,
     POSE_TOOL_PANEL_IDS,
-    POSE_TOOL_STORE_ID,
     POSE_UPDATE_BTN_ID,
     POSE_UPLOAD_ID,
     POSE_VIEW_ID,
     POSE_VIEW_MODE_ID,
     PREVIEW_FPS,
-    RESET_VIEW_BUTTON,
     GAIT_NATIVE,
     SOURCE_GAIT,
-    SOURCE_KEYFRAMES,
     SOURCES,
-    TOOL_BODY,
     TOOL_FEET,
     TOOLS,
 )
 from widgets.robot_link_ui import (
     ROBOT_CONFIG_STORE_ID,
+    ROBOT_POLL_INTERVAL_ID,
     SECTION_CONTROLS_CLASS,
     SECTION_CONTROLS_OFFLINE_CLASS,
 )
 
 # ......................
-# Page layout
+# The view and the tools
 # ......................
 
 POSE_SCENE_STORE_ID = shared.view_store_id(POSE_VIEW_ID)
 POSE_RENDER_ACK_ID = f"{POSE_VIEW_ID}-ack"
 
-# The pose is streamed from here, so the stream switch sits with the tools
-# that set it rather than in the global panel.
-sidebar = [*POSE_PANEL_SECTIONS, shared.make_stream_controls("pose")]
 
-# The view is not wired up by register_view() as on the other pages: it
-# switches between an editable pose and the preview's frames, below.
-layout = shared.make_standard_page_layout(
-    POSE_VIEW_ID,
-    sidebar,
-    dock=POSE_DOCK,
-    overlay=[RESET_VIEW_BUTTON],
-    wire=False,
-)
-
-
-# ......................
-# Picking a tool
-# ......................
-
-# The addresses of the pages this one replaced open it on the tool that took
-# over from each: the leg patterns' work is done by the Body tool now, and the
-# Kinematics page's joint inputs are the Feet tool's joint grid.
-PATH_TOOLS = {
-    KINEMATICS_PAGE_PATH: TOOL_FEET,
-    IK_PAGE_PATH: TOOL_BODY,
-    PATTERNS_PAGE_PATH: TOOL_BODY,
-    POSER_PAGE_PATH: TOOL_FEET,
-}
-
-
-@callback(
-    Output(POSE_TOOL_ID, "value"),
-    Input("url", "pathname"),
-    State(POSE_TOOL_STORE_ID, "data"),
-)
-def pick_tool(pathname, remembered):
-    """The tool to open on: the one the address names, else the last used."""
-    tool = PATH_TOOLS.get(pathname, remembered)
-    return tool if tool in TOOLS else TOOL_BODY
-
-
-@callback(
-    Output(POSE_SOURCE_ID, "value"),
-    Output(POSE_VIEW_MODE_ID, "value", allow_duplicate=True),
-    Input("url", "pathname"),
-    State(POSE_SOURCE_STORE_ID, "data"),
-    prevent_initial_call="initial_duplicate",
-)
-def pick_source(pathname, remembered):
-    """What the dock plays: the Motion page's address opens it on the gaits,
-    which that page used to play, already showing one; otherwise whatever was
-    last played."""
-    if pathname == MOTION_PAGE_PATH:
-        return SOURCE_GAIT, MODE_PREVIEW
-    return (remembered if remembered in SOURCES else SOURCE_KEYFRAMES), no_update
-
-
-# Remember the source, and show the parts of the dock that belong to it.
+# Show the parts of the dock that belong to the source being played.
 clientside_callback(
     """
     function(source) {
         var show = {}, hide = {display: "none"};
-        return [source, %s];
+        return [%s];
     }
     """
-    % ", ".join(
-        f'source === "{source}" ? show : hide'
-        for source in SOURCES
-        for _ in POSE_SOURCE_PART_IDS[source]
-    ),
-    Output(POSE_SOURCE_STORE_ID, "data"),
-    *[
-        Output(part_id, "style")
-        for source in SOURCES
-        for part_id in POSE_SOURCE_PART_IDS[source]
-    ],
+    % ", ".join(f'source === "{source}" ? show : hide' for source in SOURCES),
+    *[Output(POSE_SOURCE_PART_IDS[source], "style") for source in SOURCES],
     Input(POSE_SOURCE_ID, "value"),
 )
 
 
-# Remember the tool, and show its controls. The other panels are only hidden,
-# so their sliders keep their values.
+# Show the tool's panel. The others are only hidden, so their sliders keep
+# their values.
 clientside_callback(
     """
     function(tool) {
         var show = {}, hide = {display: "none"};
-        return [tool, %s];
+        return [%s];
     }
     """
     % ", ".join(f'tool === "{tool}" ? show : hide' for tool in TOOLS),
-    Output(POSE_TOOL_STORE_ID, "data"),
     *[Output(POSE_TOOL_PANEL_IDS[tool], "style") for tool in TOOLS],
     Input(POSE_TOOL_ID, "value"),
 )
@@ -248,14 +167,14 @@ BODY_WIDGET_KEYS = dict(zip(IK_WIDGETS_IDS, pl.BODY_KEYS))
 JOINT_FIELD_KEYS = {field_id: (leg, joint) for leg, joint, field_id in POSE_JOINT_FIELDS}
 
 
-# The Robot drawer's dimensions, as JSON (pages/shared.py).
+# The Robot panel's dimensions, as JSON (pages/shared.py).
 DIMENSIONS_INPUT = Input(shared.DIMENSIONS_HIDDEN_SECTION_ID, "children")
 DIMENSIONS_STATE = State(shared.DIMENSIONS_HIDDEN_SECTION_ID, "children")
 
 
 def _robot(dimensions_json=None):
     """The robot this page models: the connected one's config, measured as
-    the Robot drawer has it (robot_config.with_dimensions)."""
+    the Robot panel has it (robot_config.with_dimensions)."""
     try:
         dimensions = json.loads(dimensions_json) if dimensions_json else None
     except (TypeError, ValueError):
@@ -405,7 +324,7 @@ def edit(
         selected = out_selected = None
     if trigger in (None, shared.DIMENSIONS_HIDDEN_SECTION_ID) and selected is not None:
         # Back on the page with a keyframe selected: show its time, not the
-        # input's default. (The drawer's dimensions arriving can be what runs
+        # input's default. (The Robot panel's dimensions arriving can be what runs
         # this first on a page load.)
         out_duration = frames[selected]["duration_ms"]
 
@@ -822,12 +741,9 @@ def build_preview(
 
     if source == SOURCE_GAIT:
         poses, fps = _gait_frames(gait, robot_config, speed_pct, PREVIEW_FPS)
-        # Drawn as the robot sees it: the body held still over feet moved
-        # from standby.
-        scenes = [
-            pl.scene(pl.from_feet(kf.pose_to_feet(pose, robot_config), robot_config), pose, robot_config)
-            for pose in poses
-        ]
+        # Drawn standing on the floor, so a gait that tilts the body tilts it
+        # rather than swinging the feet through the ground.
+        scenes = [pl.settled_scene(pose, robot_config) for pose in poses]
         message = ""
         # Picking a gait is asking to see it.
         if ctx.triggered_id in (POSE_SOURCE_ID, POSE_GAIT_ID):
@@ -1073,7 +989,7 @@ OFFLINE_MESSAGE = "Connect a robot to run this on the hardware."
     Output(POSE_GAIT_SPEED_ID, "min"),
     Output(POSE_GAIT_SPEED_ID, "max"),
     Output(POSE_GAIT_SPEED_ID, "value", allow_duplicate=True),
-    Input(POSE_ROBOT_POLL_INTERVAL_ID, "n_intervals"),
+    Input(ROBOT_POLL_INTERVAL_ID, "n_intervals"),
     State(POSE_ROBOT_MESSAGE_ID, "children"),
     State(POSE_GAIT_SPEED_ID, "value"),
     State(POSE_GAIT_SPEED_ID, "min"),

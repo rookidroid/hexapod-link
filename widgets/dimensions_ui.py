@@ -1,12 +1,16 @@
-# Widgets used to set the dimensions of the hexapod
-import dash_bootstrap_components as dbc
-from dash import html
+# Widgets used to set the dimensions of the hexapod: a block of the Robot
+# tool panel (pages/workspace.py).
 from dash.dependencies import Input
 from texts import DIMENSIONS_WIDGETS_HEADER
 from settings import INPUT_DIMENSIONS_RESOLUTION
 from hexapod.robot_config import get_simulator_dimensions
 from hexapod.robot_link import ROBOT_LINK
-from widgets.section_maker import group_header, make_field_grid, make_number_field
+from widgets.section_maker import (
+    group_header,
+    make_field_grid,
+    make_number_field,
+    panel_section,
+)
 
 
 def make_number_widget(widget_id, name, value):
@@ -23,7 +27,6 @@ def make_number_widget(widget_id, name, value):
 # COMPONENTS
 # ................................
 
-HEADER = html.H6(DIMENSIONS_WIDGETS_HEADER, className="mb-3")
 WIDGET_NAMES = ["front", "side", "middle", "coxia", "femur", "tibia"]
 DIMENSION_WIDGET_IDS = [f"widget-dimension-{name}" for name in WIDGET_NAMES]
 DIMENSION_CALLBACK_INPUTS = [Input(id, "value") for id in DIMENSION_WIDGET_IDS]
@@ -43,7 +46,11 @@ sections = [
     make_field_grid(widgets[3:]),
 ]
 
-DIMENSIONS_WIDGETS_SECTION = dbc.Card(
-    dbc.CardBody([HEADER, *sections]),
-    className="mb-3 ind-card",
+DIMENSIONS_WIDGETS_SECTION = panel_section(
+    DIMENSIONS_WIDGETS_HEADER,
+    sections,
+    blurb=(
+        "Follow the connected robot; edit them to try another body. Poses "
+        "keep their meaning on the resized body."
+    ),
 )

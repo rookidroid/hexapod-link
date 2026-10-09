@@ -29,7 +29,7 @@ streaming control, and a rebuilt CI/test suite.
 | 🎉 | Customizability | Set the dimensions of the robot's body and legs, and pose that body. |
 | 🎉 | Real-time Robot Control | Drive a physical ESP32 hexapod over WiFi, from single joints to whole-body gaits. Works with any robot in the family (Nougat, Mochi, Macaroon, ...): each one serves its own config. |
 | 🎉 | Desktop App | Runs as a native window (Windows/Linux) via PyInstaller + pywebview, no browser required. |
-| 🎉 | Light & Dark Themes | Switch from the navigation bar; the choice is remembered between launches. |
+| 🎉 | Light & Dark Themes | Switch from the top bar; the choice is remembered between launches. |
 | 🎉 | Simplicity | Minimal dependencies. Numpy for calculations, Dash for the UI, and a bundled copy of three.js for the 3D view. |
 
 ## Preview
@@ -37,17 +37,16 @@ streaming control, and a rebuilt CI/test suite.
 The screenshots follow your GitHub colour mode: light here shows the light
 theme, dark shows the dark one.
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/home-dark.png"><img src="docs/images/home.png" alt="The landing page"></picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/app-dark.png"><img src="docs/images/app.png" alt="The Hexapod Link workspace"></picture>
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/pose-dark.png"><img src="docs/images/pose.png" alt="The pose page"></picture>
-
-**Pose** — move single feet in 3D or set their joints, tilt and shift the body
-over them (inverse kinematics), string the poses into a keyframe sequence, or
-pick one of the robot's gaits, then preview it and run it on the robot.
+The whole app is one screen: pick a tool on the rail down the left — **Body**,
+**Feet** or **Robot** — and use it on the 3D view, with the joint angles read
+out over the view. Along the bottom, string poses into a keyframe sequence or
+pick one of the robot's gaits, preview it and run it on the robot.
 
 Everything above is generated from the running app by
-[`tools/make_screenshots.py`](./tools/make_screenshots.py), which captures every
-page in both themes (`<page>.png` and `<page>-dark.png` in `docs/images/`), and
+[`tools/make_screenshots.py`](./tools/make_screenshots.py), which captures it
+in both themes (`app.png` and `app-dark.png` in `docs/images/`), and
 the app icon by [`tools/make_icon.py`](./tools/make_icon.py). Rerun those after
 a UI or theme change rather than editing the images by hand.
 
@@ -71,12 +70,11 @@ Then open the printed URL in a browser.
 - Modify default settings with [`settings.py`](./settings.py) — joint limits, robot link ports/rates, UI resolution, etc.
 - Modify the UI colours in [`assets/industrial.css`](./assets/industrial.css): the light theme's tokens are on `:root`, and the dark theme overrides them under `:root[data-theme="dark"]`.
 - Modify the 3D view's colours with [`style_settings.py`](./style_settings.py). The view is a dark CAD-style monitor in both themes.
-- Every page draws the robot with one three.js view, [`assets/hexapod_view.js`](./assets/hexapod_view.js), fed scenes built by [`hexapod/scene.py`](./hexapod/scene.py). Left-drag orbits, the wheel zooms and right-drag pans; with the pose page's Feet tool the feet can also be picked up. The bundled three.js in `assets/vendor/` is rebuilt (with Node) by [`tools/build_three_bundle.sh`](./tools/build_three_bundle.sh).
+- The robot is drawn by one three.js view, [`assets/hexapod_view.js`](./assets/hexapod_view.js), fed scenes built by [`hexapod/scene.py`](./hexapod/scene.py). Left-drag orbits, the wheel zooms and right-drag pans; with the Feet tool the feet can also be picked up. The bundled three.js in `assets/vendor/` is rebuilt (with Node) by [`tools/build_three_bundle.sh`](./tools/build_three_bundle.sh).
 
 ### Light and dark themes
 
-The ☾ / ☀ button in the navigation bar, next to the robot status button,
-switches between the light and dark themes. The choice is saved to
+The ☾ / ☀ button at the right end of the top bar switches between the light and dark themes. The choice is saved to
 `~/.hexapod-link/preferences.json` (set `HEXAPOD_LINK_PREFERENCES` to move it)
 and applied before the first paint on the next launch, so the app opens in
 whichever theme you left it in. Light is the default.
@@ -134,15 +132,16 @@ over WiFi in real time, from a single joint up to a full gait.
 2. Power on the robot and **join its WiFi access point** from the machine
    running this app — the ESP32 is the access point, so there is no other route
    to it. The robot performs its stand-up sequence when a client connects.
-3. Start the app and open the **ROBOT** panel from the status button in the
-   navigation bar. It holds the robot's dimensions and the link to it -- its
-   address (`192.168.4.1`) and the connect button -- and is reachable from every
-   page. Streaming and gait controls live on the pages that use them.
+3. Start the app and press **Connect** in the top bar; the address field
+   beside it starts on the robot's (`192.168.4.1`). The status pill next to it
+   turns green and names the robot once it answers, and clicking the pill
+   opens the **Robot** tool with the link's detail.
 
 ### Leg and joint numbering
 
 Legs and joints are named the way the robot's firmware names them, so a leg
-picked out in the 3D view is the leg the calibration page calls by that name.
+picked out in the 3D view is the leg the robot's own calibration page calls by
+that name.
 Legs are numbered per side, front to back; joints are numbered outward from the
 body.
 
@@ -187,63 +186,67 @@ $ python tools/fake_robot.py nougat
 
 ### Using it
 
-- **Pose page** — one pose: the robot's standby posture with two layers on
-  top that add up, each with its own tool, picked with the switch at the top
-  of the panel:
-  - **Body** — translate and rotate the body over wherever the feet are
-    planted; the joints are solved to keep them there.
-  - **Feet** — click a foot in the 3D view to pick it up, then drag the arrows
-    to move it, or pick it from the list and type its **X**, **Y** and **Up**
-    (height above the floor) in millimetres, or type a leg's joint angles in
-    the **Joints** grid and the foot goes where they put it. A foot that
-    cannot reach a spot (or would take a joint past its limit) stays where it
-    was. **Put feet back** undoes the moves.
+The window is one screen: the top bar, the tool rail down the left, the
+panel of the tool picked on it, the 3D view, and the dock along the bottom.
 
-  Neither tool undoes the other: tilt the body, lift a foot, and both stay,
-  and the Body sliders always show the pose as it is. **Reset to standby**
-  clears both. The joint angles are read out under the view,
-  and with **Stream pose to robot** on, every reachable pose is sent to the
-  servos as it changes. The robot is modelled as the dimensions in the
-  **ROBOT** panel measure it: they follow the connected robot, and can be
-  edited to try another body. Foot moves are from standby, so they keep their
-  meaning on the resized body, and what is streamed is solved on it too.
+There is one pose: the robot's standby posture with two layers on top that
+add up, each with its own tool on the rail:
 
-  Under the view, beside the joint angles, the dock plays a sequence: the
-  **Keyframes** collected here, or a **Gait**. **Play** previews it in the
-  view, **Loop** repeats it there and on the robot, and **RUN ON ROBOT** runs
-  it on the hardware.
+- **Body** — translate and rotate the body over wherever the feet are
+  planted; the joints are solved to keep them there.
+- **Feet** — click a foot in the 3D view to pick it up, then drag the arrows
+  to move it, or pick it from the list and type its **X**, **Y** and **Up**
+  (height above the floor) in millimetres, or type a leg's joint angles in
+  the **Joints** grid and the foot goes where they put it. A foot that
+  cannot reach a spot (or would take a joint past its limit) stays where it
+  was. **Put feet back** undoes the moves.
 
-  With **Keyframes**, **+ Add** records the pose as a keyframe with the time it takes to get there from the one before; click a
-  keyframe to load it back. **RUN ON ROBOT** streams the keyframes to the
-  hardware in real time, smoothed to the robot's own frame rate (with gentle
-  starts and stops, unless **Ease** is off). Between keyframes each layer moves on its own, so a body tilting
-  from one keyframe to the next tilts over planted feet, while a moved foot
-  travels in a straight line: add a keyframe in between to lift a foot over
-  rather than dragging it along the floor. Sequences save to and load from
-  JSON files, which only load on the robot they were made for.
+The third tool, **Robot**, shows the connected robot and its firmware, the
+link's status, **Stream pose to robot**, and the robot's **Dimensions**. These
+follow the connected robot and can be edited to try another body; foot moves
+are from standby, so they keep their meaning on the resized body, and what is
+streamed is solved on it too.
 
-  With **Gait**, pick one of the gaits the path tool generates; it is shown
-  played at the robot's own timing. **RUN ON ROBOT** either triggers the
-  robot's own built-in gait (recommended; the ESP32 plays it from flash so
-  smoothness does not depend on WiFi), or streams the simulator's frames for
-  paths the firmware does not have. **Speed** (20-100 % of the robot's tuned
-  rate) applies to both and to the preview, and is sent to the robot as soon
-  as it changes.
+Neither pose tool undoes the other: tilt the body, lift a foot, and both stay,
+and the Body sliders always show the pose as it is. **Reset pose**, over the
+view, clears both; **Reset view** frames the robot again. The joint angles
+are read out in the corner of the view (click the heading to fold them away),
+and with **Stream pose to robot** on, every reachable pose is sent to the
+servos as it changes. The tool and what the dock plays are remembered across
+a reload.
 
-  The old Kinematics, Inverse Kinematics, Leg Patterns, Pose Editor and Motion
-  addresses open this page (Kinematics on the Feet tool, Leg Patterns on the
-  Body tool, Motion on the gaits).
-- **Calibration page** — trims each servo's offset through the robot's own
-  calibration routes: **Enter calibration** puts the robot in its calibration
-  posture, **Apply** moves the servos to the edited offsets, **Save to robot**
-  writes them to the robot's flash, then **Exit**.
+The dock plays a sequence: the **Keyframes** collected here, or a **Gait**.
+**Play** previews it in the view (**Pose** / **Sequence** switch the view
+between the pose being edited and the preview), **Loop** repeats it there and
+on the robot, and **Run on robot** runs it on the hardware.
 
-Connect from the **ROBOT** panel first — until then the **STREAM TO ROBOT** and
-**RUN ON ROBOT** controls are greyed out, since neither has anything to act on.
-Once connected, the **STREAM TO ROBOT** section on the Pose page starts the
-sending: turn on **Stream pose to robot**, **Max joint speed** limits how fast
-any servo may slew, and **RELAX** cuts drive so the servos go limp. The switch
-follows the robot's actual state, so it is right when coming back to the page.
+With **Keyframes**, **+ Add** records the pose as a keyframe with the time it
+takes to get there from the one before; click a keyframe to load it back.
+**Run on robot** streams the keyframes to the hardware in real time, smoothed
+to the robot's own frame rate (with gentle starts and stops, unless **Ease**
+is off). Between keyframes each layer moves on its own, so a body tilting
+from one keyframe to the next tilts over planted feet, while a moved foot
+travels in a straight line: add a keyframe in between to lift a foot over
+rather than dragging it along the floor. Sequences save to and load from
+JSON files, which only load on the robot they were made for.
+
+With **Gait**, pick one of the gaits the path tool generates; it is shown
+played at the robot's own timing. **Run on robot** either triggers the
+robot's own built-in gait (**Robot's own**, recommended; the ESP32 plays it
+from flash so smoothness does not depend on WiFi), or streams the simulator's
+frames for paths the firmware does not have (**Stream frames**). **Speed**
+(20-100 % of the robot's tuned rate) applies to both and to the preview, and
+is sent to the robot as soon as it changes.
+
+Until a robot is connected the stream and run controls are greyed out, since
+neither has anything to act on. Once connected, the **Stream** section of the
+Robot tool starts the sending: turn on **Stream pose to robot**, **Max joint
+speed** limits how fast any servo may slew, and **Relax** cuts drive so the
+servos go limp. The switch follows the robot's actual state, so it is right
+after a reload.
+
+Servo offsets are trimmed on the robot's own calibration page, served by its
+firmware.
 
 ### Safety
 
@@ -265,7 +268,7 @@ $ pytest
 ```
 
 The suite (~1950 lines across [`tests/`](./tests)) covers forward/inverse
-kinematics, leg patterns, path/motion generation, the pose page's keyframes,
+kinematics, leg patterns, path/motion generation, keyframe sequences,
 leg-naming conversions, the robot-link streaming protocol, reading each robot's config (against
 `tools/fake_robot.py`), and the saved UI preferences — all without needing a
 display, a browser, or a physical robot.

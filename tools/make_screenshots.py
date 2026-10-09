@@ -3,8 +3,8 @@
     python tools/make_screenshots.py
 
 Serves the app on a loopback port, drives headless Chrome over it once per
-page and theme, and writes the results to docs/images/: <page>.png in the
-light theme and <page>-dark.png in the dark one. The screenshots are therefore
+theme, and writes the results to docs/images/: app.png in the light theme and
+app-dark.png in the dark one. The screenshots are therefore
 always of the current UI -- rerun this after a theme or layout change rather
 than editing the PNGs by hand.
 
@@ -34,23 +34,21 @@ PORT = 8099
 # on the ~900 px column GitHub renders a README into.
 SCALE = 2
 OUTPUT_WIDTH = 1600
-# Chrome renders the whole window and the page never scrolls, so each height
-# below is just "tall enough for that page's control panel".
-PAGES = [
-    ("home", "/", 1400, 1700),
-    ("pose", "/pose", 1400, 1000),
+# The app is one screen that never scrolls at this size: the window is the
+# picture.
+SHOTS = [
+    ("app", "/", 1440, 900),
 ]
 
-# Every page is captured once per theme, with this suffix on the file name.
+# Every shot is taken once per theme, with this suffix on the file name.
 # The README picks between the two with a <picture> element, so readers see
 # the one matching their GitHub colour mode.
 THEMES = [("light", ""), ("dark", "-dark")]
 
-# Each page is captured showing off what it does instead of the neutral
-# start-up pose. The pose page: one foot lifted, under a body shifted and
-# tilted off centre, all well within reach. The page draws its sliders from
-# the pose in its store, so the pose goes there (posed_pose_stores()) rather
-# than into the slider values.
+# The app is captured showing off what it does instead of the neutral start-up
+# pose: one foot lifted, under a body shifted and tilted off centre, all well
+# within reach. The sliders are drawn from the pose in its store, so the pose
+# goes there (posed_pose_stores()) rather than into the slider values.
 POSED_LAYERS = {
     "body": {
         "percent_x": 0.15,
@@ -63,7 +61,7 @@ POSED_LAYERS = {
     "lifted_foot": (0, [15.0, 20.0, 35.0]),
 }
 
-# The animated hero on the README: one gait cycle, played on the pose page,
+# The animated hero on the README: one gait cycle, played in the workspace,
 # each frame put in its store as feet moved from standby. The gait is
 # generated for the robot the app is modelling, so it fits the body drawn in
 # the plot.
@@ -78,7 +76,7 @@ EMPTY_FRAME_RETRIES = 4
 
 
 def posed_pose_stores():
-    """Starting data for the pose page's stores, so its shot shows a sequence.
+    """Starting data for the pose stores, so the shot shows a sequence.
 
     The pose is POSED_LAYERS, and it is the second of three keyframes --
     standby, that pose, standby -- with the editor loaded from it. Built for
@@ -163,8 +161,8 @@ def find_plot_box(image, dark_level=70, coverage=0.25):
     """Bounding box of the dark 3D plot panel inside a page screenshot.
 
     Takes the longest stretch of dark rows and columns rather than their
-    outer bounds, so the navbar's dark hazard stripe -- also full width and
-    also dark -- is not swept into the box.
+    outer bounds, so a dark band elsewhere on the page -- the dock's
+    readouts, say -- is not swept into the box.
     """
     dark = np.asarray(image.convert("L")) < dark_level
     rows = longest_run(dark.mean(axis=1) > coverage)
@@ -238,7 +236,7 @@ def capture(browser, profile_dir, url, out_path, width, height):
     return OUTPUT_WIDTH, scaled_height
 
 
-def capture_gif(browser, profile_dir, layouts, url, out_path):
+def capture_gif(browser, profile_dir, layout, url, out_path):
     """Walk the hexapod through one gait cycle, one browser shot per frame."""
     from hexapod import keyframes as kf
     from hexapod import pose_layers as pl
@@ -258,11 +256,10 @@ def capture_gif(browser, profile_dir, layouts, url, out_path):
             "feet": feet,
             "seq": number,
         }
-        for layout in layouts:
-            apply_values(layout, {"pose-state": store}, set(), prop="data")
+        apply_values(layout, {"pose-state": store}, set(), prop="data")
 
         raw = os.path.join(frame_dir, f"{number:02d}.png")
-        capture_raw(browser, profile_dir, url, raw, 1400, 1000)
+        capture_raw(browser, profile_dir, url, raw, 1440, 900)
         image = Image.open(raw).convert("RGB")
         # The camera never moves, so the panel found in the first frame
         # frames every later one too and the GIF does not jitter.
@@ -319,11 +316,16 @@ def main():
     from hexapod.preferences import save_theme
 
     import hexapod_link  # noqa: E402  (imported late; it builds the whole app)
+    from pages.workspace import WORKSPACE
+    from widgets.pose_ui import (
+        ANGLES_HUD_ID,
+        POSE_RESET_BTN_ID,
+        POSE_RESET_VIEW_BTN_ID,
+    )
 
     seen = set()
     stores = posed_pose_stores()
-    for layout in hexapod_link.PAGES.values():
-        apply_values(layout, stores, seen, prop="data")
+    apply_values(WORKSPACE, stores, seen, prop="data")
     missing = sorted(set(stores) - seen)
     if missing:
         print(f"warning: no such store(s), left empty: {', '.join(missing)}")
@@ -340,7 +342,7 @@ def main():
         with tempfile.TemporaryDirectory() as profile_dir:
             for theme, suffix in ([] if gif_only else THEMES):
                 save_theme(theme)
-                for name, path, width, height in PAGES:
+                for name, path, width, height in SHOTS:
                     file_name = f"{name}{suffix}.png"
                     out_path = os.path.join(OUT_DIR, file_name)
                     size = capture(
@@ -356,17 +358,29 @@ def main():
 
             if "--no-gif" in sys.argv:
                 return
-            # The GIF is cropped to the 3D plot, which looks the same in both
+            # The GIF is cropped to the 3D view, which looks the same in both
             # themes; find_plot_box() needs the light page around it to find
-            # the plot's edges.
+            # the view's edges. What is laid over the view is hidden, so the
+            # robot is all there is in the frame.
             save_theme("light")
             print(f"  rendering {GIF_MOTION} ...")
             out_path = os.path.join(OUT_DIR, "walk.gif")
+            hidden = {"display": "none"}
+            apply_values(
+                WORKSPACE,
+                {
+                    ANGLES_HUD_ID: hidden,
+                    POSE_RESET_BTN_ID: hidden,
+                    POSE_RESET_VIEW_BTN_ID: hidden,
+                },
+                set(),
+                prop="style",
+            )
             size = capture_gif(
                 browser,
                 profile_dir,
-                list(hexapod_link.PAGES.values()),
-                f"http://127.0.0.1:{PORT}/pose",
+                WORKSPACE,
+                f"http://127.0.0.1:{PORT}/",
                 out_path,
             )
             kb = os.path.getsize(out_path) // 1024

@@ -1,13 +1,17 @@
 /* =============================================
-   HEXAPOD LINK — MOBILE SUIT THEME (LIGHT / DARK)
+   HEXAPOD LINK — WORKSTATION THEME (LIGHT / DARK)
 
-   RX-78-2 colours: white armour plates framed in navy, Federation blue as the
-   main accent, red and V-fin yellow as trim. Light is the armour itself; dark
-   is the cockpit, the same tricolour on deep navy with a cyan monitor glow.
+   One screen built around the 3D view: a top bar, a tool rail, the panel of
+   the tool picked on it, the view, and a dock along the bottom
+   (pages/shared.py make_workspace, pages/workspace.py).
+
+   The colours are the RX-78-2 tricolour the app has always worn -- Federation
+   blue as the accent, yellow and red kept for state -- on quiet surfaces, so
+   the view is what draws the eye. Light is white armour, dark is the cockpit.
 
    Every colour that differs between the themes is a token on :root. The dark
    values override them when <html> carries data-theme="dark"; the attribute is
-   set by hexapod_link.py and the navbar theme toggle (pages/shared.py).
+   set by hexapod_link.py and the top bar's theme toggle (pages/shared.py).
    ============================================= */
 
 /* Fonts are bundled locally (assets/fonts) rather than pulled from Google
@@ -48,9 +52,8 @@
     src: url('fonts/chakra-petch-700-latin.woff2') format('woff2');
 }
 
-/* Display face for the brand and headings: wide and squared, in the
-   Microgramma / Eurostile line of the mobile suits' own markings. It has one
-   weight only, so headings set in it stay at 400 rather than be faux-bolded. */
+/* Wide and squared, in the Microgramma / Eurostile line: the brand only. It
+   has one weight, so it stays at 400 rather than be faux-bolded. */
 @font-face {
     font-family: 'Michroma';
     font-style: normal;
@@ -91,1174 +94,743 @@
     src: url('fonts/ibm-plex-mono-700-latin.woff2') format('woff2');
 }
 
-/* ---- CSS Variables ---- */
+/* ===========================================
+   TOKENS
+   =========================================== */
+
 :root {
-    --ind-bg: #dde3ec; /* Panel-line grey */
-    --ind-surface: #f3f5f9; /* White armour */
-    --ind-surface-alt: #ffffff;
-    --ind-border: #1b2a4a; /* Navy frame */
-    --ind-border-light: #a9b6cc;
-    --ind-accent: #1d4fa3; /* Federation blue */
+    --ind-bg: #e6ebf2;             /* Behind the panels */
+    --ind-surface: #f6f8fb;        /* Panels, top bar, dock */
+    --ind-surface-alt: #ffffff;    /* Inputs, buttons, chips */
+    --ind-border: #d3dbe7;         /* Hairlines between areas */
+    --ind-border-strong: #a9b6cc;  /* Control outlines */
+    --ind-accent: #1d4fa3;         /* Federation blue */
     --ind-accent-hover: #163f84;
     --ind-accent-active: #10306a;
     --ind-accent-rgb: 29, 79, 163;
-    --ind-accent-alt: #f2b705; /* V-fin yellow */
-    --ind-red: #d62828; /* Chest and shield red */
-    --ind-ok: #16a34a; /* ONLINE LED */
-    --ind-text: #0f1a30; /* Navy black */
-    --ind-text-muted: #4a5875;
-    --ind-hover: #e8eef8; /* Hovered nav links and secondary buttons */
-    --ind-input-bg: #eef2f8;
-    --ind-input-focus-bg: #ffffff;
-    --ind-outline: #0f1a30; /* Heavy outline on the solid buttons */
-    --ind-stripe: #d62828; /* Second colour of the navbar trim */
+    --ind-accent-alt: #e0a800;     /* V-fin yellow: streaming */
+    --ind-red: #d62828;            /* Faults and destructive actions */
+    --ind-ok: #16a34a;             /* Online */
+    --ind-text: #0f1a30;
+    --ind-text-muted: #56637d;
+    --ind-hover: #e9eef7;
+    --ind-input-bg: #ffffff;
     --ind-alert-text: #9b1c1c;
     --ind-alert-bg: #fdecec;
-    --ind-plate: #ffffff; /* Light band of the tricolour trim */
+    --ind-track: #d3dbe7;          /* Slider tracks */
 
-    /* Focus ring: a plain blue halo on the armour, a HUD glow in the cockpit. */
-    --ind-glow: 0 0 0 2px rgba(29, 79, 163, 0.25);
+    --ind-glow: 0 0 0 3px rgba(29, 79, 163, 0.22);
+    --shadow-soft: 0 1px 2px rgba(15, 26, 48, 0.06), 0 2px 8px rgba(15, 26, 48, 0.06);
+    --radius: 6px;
 
-    --font-heading: 'Chakra Petch', sans-serif;
+    /* The 3D view is the same dark monitor in both themes, and so is what is
+       laid over it. */
+    --view-bg: #0a1428;
+    --hud-bg: rgba(8, 16, 34, 0.82);
+    --hud-border: rgba(160, 190, 240, 0.18);
+    --hud-text: #e4eeff;
+    --hud-muted: #8aa2c8;
+
+    --font-ui: 'Chakra Petch', system-ui, sans-serif;
     --font-display: 'Michroma', 'Chakra Petch', sans-serif;
     --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
-    
-    --shadow-hard: 4px 4px 0px rgba(15, 26, 48, 0.18);
-    --shadow-hover: 6px 6px 0px rgba(15, 26, 48, 0.24);
-    --shadow-soft: 0 2px 10px rgba(15, 26, 48, 0.12);
-    --shadow-drawer: -4px 0 16px rgba(15, 26, 48, 0.2);
 
-    /* Mecha corners: the top-right and bottom-left cut off at 45 degrees. */
-    --chamfer: 8px;
-    --chamfer-clip: polygon(
-        0 0,
-        calc(100% - var(--chamfer)) 0,
-        100% var(--chamfer),
-        100% 100%,
-        var(--chamfer) 100%,
-        0 calc(100% - var(--chamfer))
-    );
+    --topbar-h: 52px;
+    --rail-w: 68px;
+    --panel-w: clamp(300px, 24vw, 380px);
 }
 
-/* Cockpit: the same tricolour under the panoramic monitor's light. Deep navy
-   plates, the blue and yellow lifted a step so they read on dark, and a cyan
-   HUD glow on whatever has focus. The 3D plot is the same monitor view in both
-   themes and does not change. */
 :root[data-theme="dark"] {
     color-scheme: dark;
 
     --ind-bg: #060c18;
-    --ind-surface: #0c1730;
-    --ind-surface-alt: #11203f;
-    --ind-border: #2f5fb3;
-    --ind-border-light: #1e3563;
+    --ind-surface: #0b1529;
+    --ind-surface-alt: #0f1d38;
+    --ind-border: #1a2b4d;
+    --ind-border-strong: #2c4475;
     --ind-accent: #3d7cf0;
     --ind-accent-hover: #2f68d6;
     --ind-accent-active: #2455b4;
     --ind-accent-rgb: 61, 124, 240;
     --ind-accent-alt: #ffd23f;
-    --ind-red: #ff4d4d;
+    --ind-red: #ff5c5c;
     --ind-ok: #22c55e;
     --ind-text: #e4eeff;
     --ind-text-muted: #8aa2c8;
-    --ind-hover: #18294d;
-    --ind-input-bg: #08122a;
-    --ind-input-focus-bg: #050c1e;
-    --ind-outline: #02060f;
-    --ind-stripe: #ff4d4d;
+    --ind-hover: #15274a;
+    --ind-input-bg: #081227;
     --ind-alert-text: #ffb4b4;
-    --ind-alert-bg: rgba(255, 77, 77, 0.12);
-    --ind-plate: #e4eeff;
+    --ind-alert-bg: rgba(255, 92, 92, 0.12);
+    --ind-track: #24396a;
 
-    --ind-glow: 0 0 0 1px rgba(76, 201, 240, 0.45),
-                0 0 14px rgba(76, 201, 240, 0.25);
-
-    --shadow-hard: 4px 4px 0px rgba(0, 0, 0, 0.5);
-    --shadow-hover: 6px 6px 0px rgba(0, 0, 0, 0.6);
-    --shadow-soft: 0 2px 10px rgba(0, 0, 0, 0.55);
-    --shadow-drawer: -4px 0 16px rgba(0, 0, 0, 0.65);
+    --ind-glow: 0 0 0 3px rgba(76, 201, 240, 0.3);
+    --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 10px rgba(0, 0, 0, 0.35);
 }
 
-/* ---- Global Reset ---- */
+/* ===========================================
+   BASE
+   =========================================== */
+
+html,
 body {
-    font-family: var(--font-heading);
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    font-family: var(--font-ui);
     background: var(--ind-bg);
     color: var(--ind-text);
-    overflow-x: hidden;
+    overflow: hidden;
 }
 
-/* ---- Animations ---- */
-@keyframes mechanicalSlide {
-    0%   { transform: translateY(-10px); opacity: 0; }
-    100% { transform: translateY(0); opacity: 1; }
-}
+/* Dash's own components (sliders, checklists) read their colours from these. */
+.app-shell {
+    --Dash-Fill-Interactive-Strong: var(--ind-accent);
+    --Dash-Fill-Interactive-Weak: rgba(var(--ind-accent-rgb), 0.15);
+    --Dash-Fill-Primary-Hover: var(--ind-accent-hover);
+    --Dash-Fill-Primary-Active: var(--ind-accent-active);
+    --Dash-Stroke-Strong: var(--ind-border-strong);
+    --Dash-Stroke-Weak: var(--ind-border);
+    --Dash-Text-Strong: var(--ind-text);
+    --Dash-Text-Primary: var(--ind-text);
+    --Dash-Text-Weak: var(--ind-text-muted);
+    --Dash-Fill-Inverse-Strong: var(--ind-surface-alt);
+    --Dash-Fill-Disabled: var(--ind-track);
 
-#page-content {
-    animation: mechanicalSlide 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
-    min-height: 0;
-    overflow-y: auto;
+    height: 100vh;
 }
 
 /* ===========================================
-   PAGE LAYOUT — one screenful, one scrollbar
-
-   From `lg` up the app is a fixed-height console: the plot fills whatever
-   height is left beside the navbar, and the only thing that scrolls is the
-   control panel, inside its own column.
-
-   The nowrap is what makes that work. A Bootstrap row wraps, and a wrapping
-   flex line is as tall as its tallest item -- the panel -- not as tall as its
-   container, so the row grew past the viewport, the whole page took the
-   scrollbar and the plot was pushed off the bottom. The `min-height: 0` on the
-   columns is the other half: flex items refuse to shrink below their content
-   until told they may.
-
-   Below `lg` the columns stack, so the page scrolls as a whole and the plot
-   keeps a workable height of its own instead of collapsing.
-
-   The control column is a fixed width, sized for its sliders and joint grids
-   rather than a share of the window: a wider window goes to the view, which
-   can use it, instead of stretching the sliders. A page with a dock (the pose
-   page) stacks it under the view, in the same column.
+   TOP BAR
+   Brand on the left; the connection, the status pill and the theme toggle
+   on the right.
    =========================================== */
 
-:root {
-    --page-sidebar-width: clamp(320px, 27vw, 420px);
+.topbar {
+    flex: 0 0 var(--topbar-h);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0 0.75rem 0 1rem;
+    background: var(--ind-surface);
+    border-bottom: 1px solid var(--ind-border);
+    position: relative;
+    z-index: 5;
 }
 
-.page-row {
-    min-height: 0;
-}
-
-.page-plot .graph-container {
-    min-height: 0;
-}
-
-@media (min-width: 992px) {
-    #page-content {
-        overflow: hidden;
-    }
-
-    .page-row {
-        flex-wrap: nowrap;
-        height: 100%;
-    }
-
-    /* Only while the row is clamped to the viewport: stacked, the columns are
-       supposed to be as tall as their content. */
-    .page-row > [class*="col-"] {
-        min-height: 0;
-    }
-
-    .page-row > .page-sidebar {
-        flex: 0 0 var(--page-sidebar-width);
-        width: var(--page-sidebar-width);
-    }
-
-    .page-row > .page-plot {
-        flex: 1 1 0;
-        width: auto;
-        min-width: 0;
-    }
-
-    .page-panel {
-        overflow-y: auto;
-    }
-
-    /* The view keeps most of the height; a dock with more in it than that
-       scrolls rather than squeezing the view. */
-    .page-dock {
-        max-height: 45%;
-        overflow-y: auto;
-    }
-}
-
-@media (max-width: 991.98px) {
-    .page-plot {
-        min-height: 70vh;
-    }
-
-    .page-plot > .graph-container {
-        min-height: 55vh;
-    }
-}
-
-/* A page that is taller than the shell brings its own scroll region, since
-   above `lg` the shell itself does not scroll. See make_scrollable_page(). */
-.page-scroll {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow-y: auto;
-}
-
-/* ===========================================
-   NAVBAR — Control Panel Header
-   =========================================== */
-
-.ind-navbar {
-    background: var(--ind-surface) !important;
-    border-bottom: 4px solid var(--ind-accent);
-    box-shadow: var(--shadow-soft);
-    padding: 0.8rem 0;
-}
-
-/* Chest trim under the blue border: a red block, then yellow vent slats on
-   blue, the way the colours sit on the RX-78's torso. */
-.ind-navbar::after {
-    content: '';
-    display: block;
-    height: 4px;
-    width: 100%;
-    background:
-      linear-gradient(90deg, var(--ind-stripe) 0 160px, transparent 160px),
-      repeating-linear-gradient(
-        90deg,
-        var(--ind-accent-alt) 0 14px,
-        transparent 14px 22px
-      ),
-      var(--ind-accent);
-    position: absolute;
-    bottom: -4px;
-    left: 0;
-}
-
-.ind-navbar .navbar-brand {
-    font-weight: 700;
-    font-size: 1.35rem;
-    color: var(--ind-text) !important;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    font-family: var(--font-display);
-    font-weight: 400;
-    font-synthesis: none;
-}
-
-.ind-navbar .navbar-brand::before {
-    content: '⚙ ';
-    color: var(--ind-accent);
-}
-
-/* Release stamp beside the brand: small, muted, and in its original case. */
-.ind-navbar .navbar-version {
-    margin-left: 0.6rem;
-    padding: 0.1rem 0.4rem;
-    font-family: var(--font-mono, monospace);
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    text-transform: none;
-    vertical-align: middle;
-    color: var(--ind-text-muted);
-    border: 1px solid var(--ind-border-light);
-}
-
-.ind-navbar .nav-link {
-    font-weight: 700;
-    font-size: 0.95rem;
-    color: var(--ind-text-muted) !important;
-    letter-spacing: 0.3px;
-    padding: 0.4rem 0.8rem;
-    margin: 0 0.2rem;
-    border: 2px solid transparent;
+.topbar-brand {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    min-width: 0;
     white-space: nowrap;
-    transition: all 0.1s ease;
 }
 
-.ind-navbar .nav-link:hover {
-    color: var(--ind-text) !important;
-    border-color: var(--ind-border-light);
+.topbar-title {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+/* One small accent mark in front of the brand: all that is left of the
+   armour's tricolour trim. */
+.topbar-title::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 0.95em;
+    margin-right: 0.6rem;
+    vertical-align: -0.1em;
+    background: linear-gradient(var(--ind-red) 0 33%, var(--ind-accent-alt) 33% 66%, var(--ind-accent) 66%);
+    border-radius: 1px;
+}
+
+.topbar-version {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--ind-text-muted);
+}
+
+.topbar-connection {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-left: auto;
+}
+
+.topbar-connection .topbar-ip {
+    width: 9.5rem;
+}
+
+.topbar-connection .btn {
+    min-width: 6.5rem;
+}
+
+/* ---- Status pill ----
+   The LED takes the state's colour: grey offline, green online, pulsing
+   yellow while streaming, red on a fault. */
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 31px;
+    max-width: 18rem;
+    padding: 0 0.8rem 0 0.7rem;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--ind-text);
+    background: var(--ind-surface-alt);
+    border: 1px solid var(--ind-border-strong);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.status-pill:hover {
     background: var(--ind-hover);
 }
 
-/* From `lg` to `xl` everything still shares one line, but only just: the wide
-   display face of the brand plus four links and the status button come to
-   about 1100px at full size. Tighten the brand and the link padding until
-   there is room again. */
-@media (min-width: 992px) and (max-width: 1199.98px) {
-    .ind-navbar .navbar-brand {
-        font-size: 1rem;
-        letter-spacing: 1px;
-    }
-
-    .ind-navbar .nav-link {
-        padding: 0.4rem 0.5rem;
-        margin: 0;
-    }
+.status-pill::before {
+    content: '';
+    flex: 0 0 auto;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--ind-text-muted);
 }
 
-/* Below `lg` there is no room for brand, links and status button on one line.
-   The links drop to a row of their own under the other two, rather than the
-   status button being pushed off on its own. */
+.status-pill.is-online::before { background: var(--ind-ok); }
+.status-pill.is-fault::before { background: var(--ind-red); }
+.status-pill.is-fault { border-color: var(--ind-red); }
+
+.status-pill.is-streaming::before {
+    background: var(--ind-accent-alt);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ind-accent-alt) 30%, transparent);
+    animation: status-led-pulse 1s ease-in-out infinite;
+}
+
+@keyframes status-led-pulse {
+    50% { opacity: 0.35; }
+}
+
+.icon-btn {
+    width: 31px;
+    height: 31px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    line-height: 1;
+    color: var(--ind-text);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    transition: background-color 0.15s ease;
+}
+
+.icon-btn:hover {
+    background: var(--ind-hover);
+}
+
+/* ===========================================
+   WORKSPACE
+   The rail runs the full height down the left; the dock spans everything
+   else along the bottom. Above `lg` it is one screenful: only the tool panel
+   and the dock scroll, and the view takes the height that is left.
+   =========================================== */
+
+.workspace {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: var(--rail-w) var(--panel-w) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-areas:
+        "rail panel view"
+        "rail dock  dock";
+}
+
+.ws-rail {
+    grid-area: rail;
+    background: var(--ind-surface);
+    border-right: 1px solid var(--ind-border);
+    padding: 0.5rem 0.4rem;
+}
+
+.ws-panel {
+    grid-area: panel;
+    min-height: 0;
+    overflow-y: auto;
+    background: var(--ind-surface);
+    border-right: 1px solid var(--ind-border);
+}
+
+.ws-view {
+    grid-area: view;
+    min-height: 0;
+    min-width: 0;
+    position: relative;
+    background: var(--view-bg);
+}
+
+.ws-dock {
+    grid-area: dock;
+    max-height: 40vh;
+    overflow-y: auto;
+    background: var(--ind-surface);
+    border-top: 1px solid var(--ind-border);
+}
+
+/* Below `lg` there is no height to share: the rail turns into a row of tabs
+   and everything stacks, with the page scrolling as a whole. */
 @media (max-width: 991.98px) {
-    .ind-navbar .container-fluid {
+    body {
+        overflow: auto;
+    }
+
+    .app-shell {
+        height: auto;
+        min-height: 100vh;
+    }
+
+    .topbar {
+        flex: 0 0 auto;
         flex-wrap: wrap;
         row-gap: 0.4rem;
+        padding-block: 0.5rem;
     }
 
-    .ind-navbar .navbar-nav {
-        order: 3;
-        width: 100%;
-        flex-wrap: wrap;
+    .workspace {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto auto 60vh auto;
+        grid-template-areas: "rail" "panel" "view" "dock";
     }
 
-    .ind-navbar .nav-link {
-        padding: 0.25rem 0.6rem;
-        margin: 0;
+    .ws-rail {
+        border-right: none;
+        border-bottom: 1px solid var(--ind-border);
     }
 
-    .ind-navbar .nav-item:first-child .nav-link {
-        padding-left: 0;
+    .ws-panel {
+        overflow: visible;
+        border-right: none;
+    }
+
+    .ws-view {
+        min-height: 320px;
+    }
+
+    .ws-dock {
+        max-height: none;
     }
 }
 
 @media (max-width: 575.98px) {
-    .ind-navbar .navbar-brand {
-        font-size: 1.2rem;
+    .topbar {
+        column-gap: 0.4rem;
+    }
+
+    .topbar-title {
+        font-size: 0.82rem;
         letter-spacing: 1px;
     }
 
-    .ind-status-btn {
-        font-size: 0.75rem;
-        padding: 0.25rem 0.6rem 0.25rem 0.5rem;
-    }
-
-    /* Otherwise the status button no longer fits beside the brand and drops
-       onto a line of its own. */
-    .ind-navbar .navbar-version {
+    .topbar-version {
         display: none;
     }
+
+    .topbar-connection {
+        order: 3;
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .topbar-connection .topbar-ip {
+        flex: 1 1 auto;
+        width: auto;
+    }
+
+    .status-pill {
+        margin-left: auto;
+        max-width: 11rem;
+    }
 }
 
 /* ===========================================
-   CARDS — Control Modules
+   RAIL
+   The tool switch (dbc.RadioItems): a column of icon buttons, the picked
+   one marked in the accent. The icons are masks filled with the text colour,
+   so they follow the state and the theme.
    =========================================== */
 
-.ind-card,
-.glass-panel-light,
-.card {
-    background: var(--ind-surface-alt) !important;
-    border: 2px solid var(--ind-border) !important;
-    border-radius: 0 !important; /* Sharp corners */
-    box-shadow: var(--shadow-hard);
-    color: var(--ind-text);
-    transition: transform 0.1s ease, box-shadow 0.1s ease;
+.tool-rail {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.tool-rail .form-check {
+    padding: 0;
+    margin: 0;
+    min-height: 0;
+}
+
+.rail-item {
     position: relative;
-}
-
-/* ---- Armour plate details ----
-
-   Every plate (the cards here, and the landing page's tool and build cards)
-   carries the same three markings, all drawn by pseudo-elements so no layout
-   code knows about them:
-   - along the top edge, a red chip, Federation blue, and a set of yellow
-     vent slats at the right-hand end;
-   - in the bottom-right corner, a navy reinforcing plate;
-   - beside it, a small stencilled unit marking.
-   The marking sits inside the card's bottom padding, clear of its content. */
-
-.ind-card::before, .card::before, .glass-panel-light::before,
-.tool-card::before, .build-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 4px;
-    pointer-events: none;
-    background:
-        repeating-linear-gradient(
-            90deg,
-            var(--ind-accent-alt) 0 5px,
-            transparent 5px 9px
-        ) right 6px top / 32px 100% no-repeat,
-        linear-gradient(
-            90deg,
-            var(--ind-red) 0 28px,
-            var(--ind-accent) 28px calc(100% - 44px),
-            transparent calc(100% - 44px)
-        );
-}
-
-.ind-card::after, .card::after, .glass-panel-light::after,
-.tool-card::after, .build-card::after {
-    content: 'RX-78-2';
-    position: absolute;
-    right: 0;
-    bottom: 0;
-    padding: 0 20px 3px 0;
-    font-family: var(--font-mono);
-    font-size: 0.55rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    width: 100%;
+    padding: 0.6rem 0 0.5rem;
+    font-size: 0.72rem;
     font-weight: 600;
-    line-height: 1;
-    letter-spacing: 1.5px;
-    color: color-mix(in srgb, var(--ind-text-muted) 65%, transparent);
-    pointer-events: none;
-    background: linear-gradient(
-        135deg,
-        transparent 50%,
-        var(--ind-border) 50%
-    ) right bottom / 14px 14px no-repeat;
-}
-
-.tool-card, .build-card {
-    position: relative;
-}
-
-/* The page panel scrolls, and an absolutely placed marking would scroll with
-   its content and land on top of a control. The sections inside it carry
-   their own. */
-.page-panel::after {
-    content: none;
-}
-
-.ind-card:hover,
-.card:hover {
-    transform: translate(-2px, -2px);
-    box-shadow: var(--shadow-hover);
-}
-
-/* The page panel fills an overflow-clipped region, so the lift above would push
-   its top edge out of view. The sections inside it keep the lift: the panel's
-   padding leaves them room to move. */
-.page-panel:hover {
-    transform: none;
-    box-shadow: var(--shadow-hard);
-}
-
-.ind-card .card-body,
-.card .card-body {
-    padding: 1.25rem;
-}
-
-/* Card section headers */
-.card h6,
-.card label,
-.ind-card h6,
-.ind-card label {
-    color: var(--ind-text) !important;
-    font-weight: 700;
     letter-spacing: 0.3px;
-    font-size: 1rem;
-    margin-bottom: 0.75rem;
-    border-bottom: 2px solid var(--ind-accent-alt);
-    padding-bottom: 4px;
-    display: inline-block;
-}
-
-/* The section titles proper are the h6s: set in the display face, which is
-   wide enough to want a smaller size. Labels keep the body face. */
-.card h6,
-.ind-card h6 {
-    font-family: var(--font-display);
-    font-weight: 400;
-    font-size: 0.85rem;
-    letter-spacing: 0.5px;
-}
-
-/* ===========================================
-   FORM INPUTS
-   =========================================== */
-
-input[type="number"],
-.form-control {
-    font-family: var(--font-mono) !important;
-    font-size: 0.95rem;
-    font-weight: 600;
-    background: var(--ind-input-bg) !important;
-    border: 2px solid var(--ind-border-light) !important;
-    border-radius: 0 !important;
-    color: var(--ind-text) !important;
-    padding: 0.4rem 0.6rem;
-    box-shadow: inset 2px 2px 0px rgba(0,0,0,0.05);
-}
-
-input[type="number"]:focus,
-.form-control:focus {
-    border-color: var(--ind-accent) !important;
-    background: var(--ind-input-focus-bg) !important;
-    outline: none !important;
-    box-shadow: inset 2px 2px 0px rgba(0,0,0,0.05), var(--ind-glow) !important;
-}
-
-/* ===========================================
-   LABELS & BADGES
-   =========================================== */
-
-.badge {
-    font-family: var(--font-mono) !important;
-    font-size: 0.7rem;
-    border-radius: 0;
-    padding: 0.3em 0.6em;
-    font-weight: 700;
-    border: 1px solid var(--ind-border);
-    --chamfer: 4px;
-    clip-path: var(--chamfer-clip);
-}
-
-/* ===========================================
-   3D VIEW CONTAINER (the monitor frame round assets/hexapod_view.js)
-   =========================================== */
-
-.graph-container {
-    background: #0a1428; /* Panoramic monitor navy, as the view's background */
-    border: 4px solid var(--ind-accent);
-    border-radius: 0;
-    padding: 4px;
-    box-shadow: var(--shadow-hard);
-    position: relative;
-}
-
-:root[data-theme="dark"] .graph-container {
-    box-shadow: var(--shadow-hard), var(--ind-glow);
-}
-
-/* HUD targeting brackets in the four corners of the monitor. Drawn over the
-   plot (an ::after paints above it) and never in the way of the mouse. */
-.graph-container::after {
-    --hud: rgba(76, 201, 240, 0.75);
-    --arm: 18px;
-    content: '';
-    position: absolute;
-    inset: 10px;
-    pointer-events: none;
-    background:
-        linear-gradient(var(--hud), var(--hud)) top left / var(--arm) 2px,
-        linear-gradient(var(--hud), var(--hud)) top left / 2px var(--arm),
-        linear-gradient(var(--hud), var(--hud)) top right / var(--arm) 2px,
-        linear-gradient(var(--hud), var(--hud)) top right / 2px var(--arm),
-        linear-gradient(var(--hud), var(--hud)) bottom left / var(--arm) 2px,
-        linear-gradient(var(--hud), var(--hud)) bottom left / 2px var(--arm),
-        linear-gradient(var(--hud), var(--hud)) bottom right / var(--arm) 2px,
-        linear-gradient(var(--hud), var(--hud)) bottom right / 2px var(--arm);
-    background-repeat: no-repeat;
-}
-
-/* In the cockpit the monitor also gets faint scanlines. */
-:root[data-theme="dark"] .graph-container::before {
-    content: '';
-    position: absolute;
-    inset: 4px;
-    z-index: 1;
-    pointer-events: none;
-    background: repeating-linear-gradient(
-        0deg,
-        rgba(76, 201, 240, 0.05) 0 1px,
-        transparent 1px 3px
-    );
-}
-
-/* ===========================================
-   LANDING PAGE
-   =========================================== */
-
-/* ===========================================
-   HOME — console hub
-
-   Reuses the plate-and-hard-shadow language of the cards. The one new idea is
-   the state chip, which shares its modifier names with the navbar readout
-   (.is-offline / .is-online / .is-streaming / .is-fault) so both are driven
-   from the same link status.
-   =========================================== */
-
-.landing {
-    padding-top: 0.5rem;
-}
-
-.ind-hero-title {
-    color: var(--ind-text);
-    font-weight: 400;
-    font-size: 2rem;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    font-family: var(--font-display);
-    display: inline-block;
-    padding-bottom: 9px;
-    /* Tricolour underline: blue, then a red and a yellow chip at the end. */
-    background: linear-gradient(
-        90deg,
-        var(--ind-accent) 0 calc(100% - 56px),
-        var(--ind-red) calc(100% - 56px) calc(100% - 24px),
-        var(--ind-accent-alt) calc(100% - 24px)
-    ) bottom / 100% 5px no-repeat;
-}
-
-.ind-hero-hr {
-    border: none;
-    height: 4px;
-    background: var(--ind-border-light);
-    margin: 1.25rem 0;
-}
-
-.landing-lede {
     color: var(--ind-text-muted);
-    font-size: 1.05rem;
-    line-height: 1.6;
-    margin-bottom: 1.25rem;
+    border-radius: var(--radius);
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s ease, background-color 0.15s ease;
 }
 
-/* The plot is the hero image, so it needs a height of its own -- nothing else
-   on this page constrains it. */
-.landing-stage {
-    height: 380px;
+.rail-item::before {
+    content: '';
+    width: 22px;
+    height: 22px;
+    background: currentColor;
+    -webkit-mask: var(--rail-icon) center / contain no-repeat;
+    mask: var(--rail-icon) center / contain no-repeat;
+}
+
+.rail-item:hover {
+    color: var(--ind-text);
+    background: var(--ind-hover);
+}
+
+.rail-item.active {
+    color: var(--ind-accent);
+    background: rgba(var(--ind-accent-rgb), 0.1);
+}
+
+.rail-item.active::after {
+    content: '';
+    position: absolute;
+    left: -0.4rem;
+    top: 20%;
+    bottom: 20%;
+    width: 3px;
+    border-radius: 0 2px 2px 0;
+    background: var(--ind-accent);
+}
+
+.btn-check:focus-visible + .rail-item {
+    box-shadow: var(--ind-glow);
+}
+
+/* Body: the hexagonal body over its centre. */
+.tool-rail .form-check:nth-child(1) .rail-item {
+    --rail-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linejoin='round'%3E%3Cpath d='M12 3l7.8 4.5v9L12 21l-7.8-4.5v-9z'/%3E%3Ccircle cx='12' cy='12' r='2.4' fill='black'/%3E%3C/svg%3E");
+}
+
+/* Feet: a leg down to its foot, and the move handle. */
+.tool-rail .form-check:nth-child(2) .rail-item {
+    --rail-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 8.5l7-2.5 4.5 9.5'/%3E%3Ccircle cx='14.5' cy='18.5' r='2.5' fill='black'/%3E%3Cpath d='M18.5 3v7M15 6.5h7'/%3E%3C/svg%3E");
+}
+
+/* Robot: the WiFi link to it. */
+.tool-rail .form-check:nth-child(3) .rail-item {
+    --rail-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M2.5 9a14 14 0 0 1 19 0M5.5 12.5a9.5 9.5 0 0 1 13 0M8.5 16a5 5 0 0 1 7 0'/%3E%3Ccircle cx='12' cy='19.5' r='1.6' fill='black'/%3E%3C/svg%3E");
 }
 
 @media (max-width: 991.98px) {
-    .landing-stage {
-        height: 300px;
+    .tool-rail {
+        flex-direction: row;
+    }
+
+    .tool-rail .form-check {
+        flex: 1 1 0;
+    }
+
+    .rail-item {
+        flex-direction: row;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.45rem 0;
+        font-size: 0.85rem;
+    }
+
+    .rail-item::before {
+        width: 18px;
+        height: 18px;
+    }
+
+    .rail-item.active::after {
+        left: 20%;
+        right: 20%;
+        top: auto;
+        bottom: -0.5rem;
+        width: auto;
+        height: 3px;
+        border-radius: 2px 2px 0 0;
     }
 }
 
-/* ---- Link state ---- */
+/* ===========================================
+   TOOL PANEL
+   Sections (panel_section() in widgets/section_maker.py) sit flat on the
+   panel, one under another, divided by a hairline.
+   =========================================== */
 
-.landing-link-panel {
-    border-top: 2px solid var(--ind-border-light);
-    padding-top: 1rem;
+.ws-panel .ind-section {
+    padding: 1rem 1.1rem 1.1rem;
+    border-bottom: 1px solid var(--ind-border);
 }
 
-.landing-status-label {
-    font-family: var(--font-mono);
+.ind-section > h6 {
+    font-family: var(--font-ui);
+    font-size: 0.78rem;
     font-weight: 700;
-    letter-spacing: 1px;
-    color: var(--ind-text-muted);
-}
-
-.landing-state {
-    font-family: var(--font-mono);
-    font-weight: 700;
-    letter-spacing: 1px;
-    padding: 2px 10px;
-    border: 2px solid var(--ind-border);
-    border-left-width: 6px;
-    background: var(--ind-surface);
-    color: var(--ind-text);
-}
-
-.landing-state.is-offline { border-left-color: var(--ind-text-muted); }
-.landing-state.is-online  { border-left-color: var(--ind-ok); }
-.landing-state.is-fault   { border-left-color: var(--ind-red); }
-
-.landing-state.is-streaming {
-    border-left-color: var(--ind-accent-alt);
-    animation: status-led-pulse 1s steps(1, end) infinite;
-}
-
-.landing-status-line {
-    font-family: var(--font-mono);
-    font-size: 0.9rem;
-}
-
-/* ---- Tool cards ---- */
-
-.landing-section-title {
-    font-family: var(--font-display);
-    font-weight: 400;
-    font-size: 1.05rem;
-    letter-spacing: 1.5px;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--ind-text);
-    border-bottom: 4px solid var(--ind-accent);
-    display: inline-block;
-    padding-bottom: 4px;
-    margin-bottom: 1rem;
 }
 
-.tool-link {
-    text-decoration: none;
-    display: block;
-    height: 100%;
+.ind-section > p {
+    font-size: 0.82rem;
+    line-height: 1.4;
 }
 
-.tool-card {
-    background: var(--ind-surface-alt);
-    border: 2px solid var(--ind-border);
-    box-shadow: var(--shadow-hard);
-    padding: 1.25rem 1rem 1rem;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    transition: transform 0.1s ease, box-shadow 0.1s ease,
-                border-color 0.1s ease;
+.panel-message {
+    padding: 0.75rem 1.1rem 0;
 }
 
-.tool-card:hover {
-    transform: translate(-2px, -2px);
-    box-shadow: var(--shadow-hover);
-    border-color: var(--ind-accent);
+.panel-message:empty {
+    display: none;
 }
 
-.tool-index {
+.robot-info {
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+}
+
+.robot-detail {
     font-family: var(--font-mono);
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--ind-accent);
-    letter-spacing: 1px;
+    font-size: 0.75rem;
+    overflow-wrap: anywhere;
 }
 
-.tool-title {
-    font-family: var(--font-display);
-    font-weight: 400;
-    letter-spacing: 0.3px;
-    color: var(--ind-text);
-    font-size: 0.95rem;
-    border-bottom: 2px solid var(--ind-border-light);
-    padding-bottom: 6px;
-    margin-bottom: 8px;
-}
-
-.tool-desc {
-    color: var(--ind-text-muted);
-    line-height: 1.5;
-    flex-grow: 1;
-    margin-bottom: 0.75rem;
-}
-
-/* What this page does to the hardware, which is not the same as what it draws
-   on screen -- worth its own line rather than buried in the description. */
-.tool-hardware {
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    letter-spacing: 0.3px;
-    color: var(--ind-accent);
-    border-top: 2px solid var(--ind-border-light);
-    padding-top: 8px;
-}
-
-.tool-hardware.is-sim-only {
-    color: var(--ind-text-muted);
-}
-
-/* ---- Build guide and safety ---- */
-
-.build-link {
-    text-decoration: none;
-    display: block;
-    margin-bottom: 1rem;
-}
-
-.build-card {
-    background: var(--ind-surface-alt);
-    border: 2px solid var(--ind-border);
-    box-shadow: var(--shadow-hard);
-    padding: 1.25rem;
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    transition: transform 0.1s ease, box-shadow 0.1s ease,
-                border-color 0.1s ease;
-}
-
-.build-card:hover {
-    transform: translate(-2px, -2px);
-    box-shadow: var(--shadow-hover);
-    border-color: var(--ind-accent);
-}
-
-.build-title {
-    font-family: var(--font-display);
-    font-weight: 400;
-    letter-spacing: 0.3px;
-    color: var(--ind-text);
-    font-size: 0.95rem;
-    margin-bottom: 4px;
-}
-
-.build-desc {
-    color: var(--ind-text-muted);
-    line-height: 1.5;
-}
-
-/* Leaves the app, so it says where it goes rather than just underlining. */
-.build-cue {
-    font-family: var(--font-mono);
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: #fff;
-    background: var(--ind-accent);
-    padding: 6px 14px;
-    white-space: nowrap;
-    flex-shrink: 0;
-}
-
-.safety-callout {
-    background: var(--ind-surface-alt);
-    border: 2px solid var(--ind-border);
-    border-left: 6px solid var(--ind-red);
-    box-shadow: var(--shadow-hard);
-    padding: 1rem 1.25rem;
-    margin-top: 0.5rem;
-}
-
-.safety-title {
-    font-family: var(--font-display);
-    font-weight: 400;
-    font-size: 0.95rem;
-    letter-spacing: 0.3px;
-    color: var(--ind-red);
-    margin-bottom: 0.5rem;
+.robot-detail:empty {
+    display: none;
 }
 
 .safety-list {
+    font-size: 0.8rem;
+    line-height: 1.4;
     color: var(--ind-text-muted);
-    line-height: 1.6;
-    margin-bottom: 0;
-    padding-left: 1.2rem;
+    padding-left: 1.1rem;
+    margin-bottom: 0.75rem;
+}
+
+.safety-list li + li {
+    margin-top: 0.3rem;
+}
+
+.build-link {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--ind-accent);
+    text-decoration: none;
+}
+
+.build-link:hover {
+    text-decoration: underline;
 }
 
 /* ===========================================
-   BUTTONS — Machine Controls
-
-   Every dbc.Button, restyled to match the navbar status button: heavy
-   border, chamfered mecha corners (--chamfer-clip), lifting and brightening on
-   hover and pressing back on click. The clip cuts off any box-shadow, so
-   these have none. Colours go through Bootstrap's own --bs-btn-* variables, so the
-   hover, active and disabled states all follow without restating them.
-   Link buttons (the drawer's ✕) are text, not machinery, and are left alone.
+   CONTROLS
    =========================================== */
 
-.btn:not(.btn-link) {
-    font-family: var(--font-heading);
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    border-width: 2px;
-    border-radius: 0;
-    box-shadow: none;
-    clip-path: var(--chamfer-clip);
-    transition: transform 0.1s ease, filter 0.1s ease,
-                background-color 0.1s ease, border-color 0.1s ease;
+.btn {
+    --bs-btn-font-family: var(--font-ui);
+    --bs-btn-font-weight: 600;
+    --bs-btn-border-radius: var(--radius);
+    --bs-btn-padding-x: 0.75rem;
+    --bs-btn-padding-y: 0.3rem;
+    --bs-btn-focus-box-shadow: var(--ind-glow);
+    letter-spacing: 0.2px;
+    white-space: nowrap;
 }
 
-.btn:not(.btn-link):hover {
-    transform: translate(-1px, -1px);
-    filter: brightness(1.08);
-}
-
-.btn:not(.btn-link):active {
-    transform: translate(1px, 1px);
-    filter: none;
-}
-
-.btn:not(.btn-link):disabled,
-.btn:not(.btn-link).disabled {
-    transform: none;
-    filter: none;
+.btn-sm {
+    --bs-btn-border-radius: var(--radius);
+    --bs-btn-padding-x: 0.65rem;
+    --bs-btn-padding-y: 0.25rem;
+    --bs-btn-font-size: 0.82rem;
 }
 
 .btn-primary {
     --bs-btn-color: #fff;
     --bs-btn-bg: var(--ind-accent);
-    --bs-btn-border-color: var(--ind-outline);
+    --bs-btn-border-color: var(--ind-accent);
     --bs-btn-hover-color: #fff;
     --bs-btn-hover-bg: var(--ind-accent-hover);
-    --bs-btn-hover-border-color: var(--ind-outline);
+    --bs-btn-hover-border-color: var(--ind-accent-hover);
     --bs-btn-active-color: #fff;
     --bs-btn-active-bg: var(--ind-accent-active);
-    --bs-btn-active-border-color: var(--ind-outline);
+    --bs-btn-active-border-color: var(--ind-accent-active);
     --bs-btn-disabled-color: #fff;
     --bs-btn-disabled-bg: var(--ind-accent);
-    --bs-btn-disabled-border-color: var(--ind-outline);
-    --bs-btn-focus-shadow-rgb: var(--ind-accent-rgb);
+    --bs-btn-disabled-border-color: var(--ind-accent);
 }
 
 .btn-secondary,
 .btn-outline-secondary {
     --bs-btn-color: var(--ind-text);
     --bs-btn-bg: var(--ind-surface-alt);
-    --bs-btn-border-color: var(--ind-border);
+    --bs-btn-border-color: var(--ind-border-strong);
     --bs-btn-hover-color: var(--ind-text);
     --bs-btn-hover-bg: var(--ind-hover);
-    --bs-btn-hover-border-color: var(--ind-text);
+    --bs-btn-hover-border-color: var(--ind-border-strong);
     --bs-btn-active-color: var(--ind-text);
-    --bs-btn-active-bg: var(--ind-bg);
-    --bs-btn-active-border-color: var(--ind-text);
+    --bs-btn-active-bg: var(--ind-hover);
+    --bs-btn-active-border-color: var(--ind-text-muted);
     --bs-btn-disabled-color: var(--ind-text-muted);
     --bs-btn-disabled-bg: var(--ind-surface-alt);
-    --bs-btn-disabled-border-color: var(--ind-border-light);
-    --bs-btn-focus-shadow-rgb: var(--ind-accent-rgb);
+    --bs-btn-disabled-border-color: var(--ind-border);
 }
 
-/* Same green as the ONLINE indicator, same red as FAULT and the armour. */
 .btn-success {
     --bs-btn-color: #fff;
     --bs-btn-bg: #16a34a;
-    --bs-btn-border-color: var(--ind-outline);
+    --bs-btn-border-color: #16a34a;
     --bs-btn-hover-color: #fff;
     --bs-btn-hover-bg: #15803d;
-    --bs-btn-hover-border-color: var(--ind-outline);
+    --bs-btn-hover-border-color: #15803d;
     --bs-btn-active-color: #fff;
     --bs-btn-active-bg: #166534;
-    --bs-btn-active-border-color: var(--ind-outline);
+    --bs-btn-active-border-color: #166534;
     --bs-btn-disabled-color: #fff;
     --bs-btn-disabled-bg: #16a34a;
-    --bs-btn-disabled-border-color: var(--ind-outline);
-    --bs-btn-focus-shadow-rgb: 22, 163, 74;
+    --bs-btn-disabled-border-color: #16a34a;
 }
 
-.btn-danger {
-    --bs-btn-color: #fff;
-    --bs-btn-bg: #d62828;
-    --bs-btn-border-color: var(--ind-outline);
+.btn-danger,
+.btn-outline-danger {
+    --bs-btn-color: var(--ind-red);
+    --bs-btn-bg: transparent;
+    --bs-btn-border-color: color-mix(in srgb, var(--ind-red) 55%, transparent);
     --bs-btn-hover-color: #fff;
-    --bs-btn-hover-bg: #b51f1f;
-    --bs-btn-hover-border-color: var(--ind-outline);
+    --bs-btn-hover-bg: var(--ind-red);
+    --bs-btn-hover-border-color: var(--ind-red);
     --bs-btn-active-color: #fff;
-    --bs-btn-active-bg: #8f1818;
-    --bs-btn-active-border-color: var(--ind-outline);
-    --bs-btn-disabled-color: #fff;
-    --bs-btn-disabled-bg: #d62828;
-    --bs-btn-disabled-border-color: var(--ind-outline);
-    --bs-btn-focus-shadow-rgb: 214, 40, 40;
+    --bs-btn-active-bg: var(--ind-red);
+    --bs-btn-active-border-color: var(--ind-red);
+    --bs-btn-disabled-color: var(--ind-red);
+    --bs-btn-disabled-bg: transparent;
+    --bs-btn-disabled-border-color: color-mix(in srgb, var(--ind-red) 55%, transparent);
 }
 
-/* ===========================================
-   GLOBAL DRAWER — app-wide robot controls
-
-   Slid out of view rather than hidden with `display: none`, so its widgets
-   stay mounted (Dash callbacks keep firing) and its sliders still measure a
-   real width before the drawer is ever opened.
-   =========================================== */
-
-.global-drawer {
-    position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: 420px;
-    max-width: 92vw;
-    z-index: 1045;
-    padding: 1rem;
-    overflow-y: auto;
-    background: var(--ind-bg);
-    border-left: 4px solid var(--ind-accent);
-    box-shadow: var(--shadow-drawer);
-    transform: translateX(105%);
-    visibility: hidden;
-    transition: transform 0.2s ease, visibility 0.2s ease;
+.form-control,
+.form-select {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--ind-text);
+    background-color: var(--ind-input-bg);
+    border: 1px solid var(--ind-border-strong);
+    border-radius: var(--radius);
 }
 
-.global-drawer-open {
-    transform: translateX(0);
-    visibility: visible;
+.form-control-sm,
+.form-select-sm {
+    border-radius: var(--radius);
+    font-size: 0.82rem;
 }
 
-.global-drawer h6 {
-    font-family: var(--font-display);
-    font-weight: 400;
-    letter-spacing: 0.3px;
+.form-control:focus,
+.form-select:focus {
+    color: var(--ind-text);
+    background-color: var(--ind-input-bg);
+    border-color: var(--ind-accent);
+    box-shadow: var(--ind-glow);
 }
 
-/* ===========================================
-   OFFLINE SECTIONS — controls with no robot to act on
+.form-control:disabled {
+    background-color: var(--ind-surface);
+    color: var(--ind-text-muted);
+}
 
-   Streaming a pose and running a gait both need an open session, so while the
-   link is down those controls are greyed out and made inert. Only the controls
-   carry this class: the heading, the blurb and the status line above them stay
-   at full strength, because they are what says why the rest is greyed out.
-   =========================================== */
+.form-check-input:checked {
+    background-color: var(--ind-accent);
+    border-color: var(--ind-accent);
+}
 
+.form-check-input:focus {
+    box-shadow: var(--ind-glow);
+}
+
+.form-switch .form-check-label {
+    font-size: 0.88rem;
+    font-weight: 600;
+}
+
+.input-group-sm > .form-control,
+.input-group-sm > .input-group-text {
+    border-radius: var(--radius);
+}
+
+/* Controls that need a robot: dimmed and inert while there is none. The
+   status line above them stays at full strength, since it says why. The
+   widgets keep their own `disabled` flags too; this also catches the
+   checklists, which have no single switch of their own. */
 .robot-section-controls {
-    transition: opacity 0.15s ease, filter 0.15s ease;
+    transition: opacity 0.15s ease;
 }
 
 .robot-section-controls.is-offline {
-    opacity: 0.4;
+    opacity: 0.45;
     filter: grayscale(1);
-    /* Belt and braces with the widgets' own `disabled` flags -- this also
-       catches the radio and checklist items, which have no single disabled
-       switch of their own. */
     pointer-events: none;
     user-select: none;
 }
 
-/* ===========================================
-   STATUS BUTTON — link readout and drawer handle
+/* ---- Fields ---- */
 
-   Chamfered like the buttons, so no shadow. The state modifier
-   (.is-offline / .is-online / .is-streaming / .is-fault) colours the LED and
-   the left accent bar; the label itself stays legible in every state.
-   =========================================== */
-
-.ind-status-btn {
-    font-family: var(--font-mono);
-    font-weight: 700;
-    font-size: 0.9rem;
-    white-space: nowrap;
-    letter-spacing: 0.3px;
-    color: var(--ind-text);
-    background: var(--ind-surface-alt);
-    border: 2px solid var(--ind-border);
-    border-radius: 0;
-    clip-path: var(--chamfer-clip);
-    padding: 0.35rem 0.9rem 0.35rem 0.75rem;
-    border-left-width: 6px;
-    border-left-color: var(--ind-text-muted);
-    transition: transform 0.1s ease, filter 0.1s ease,
-                border-left-color 0.1s ease;
-}
-
-.ind-status-btn::after {
-    content: '●';
-    margin-left: 0.5rem;
-    color: var(--ind-text-muted);
-}
-
-.ind-status-btn:hover {
-    transform: translate(-1px, -1px);
-    filter: brightness(1.08);
-}
-
-.ind-status-btn:active {
-    transform: translate(1px, 1px);
-    filter: none;
-}
-
-.ind-status-btn.is-online {
-    border-left-color: var(--ind-ok);
-}
-
-.ind-status-btn.is-online::after {
-    color: var(--ind-ok);
-}
-
-.ind-status-btn.is-streaming {
-    border-left-color: var(--ind-accent-alt);
-}
-
-.ind-status-btn.is-streaming::after {
-    color: var(--ind-accent-alt);
-    animation: status-led-pulse 1s steps(1, end) infinite;
-}
-
-.ind-status-btn.is-fault {
-    border-left-color: var(--ind-red);
-}
-
-.ind-status-btn.is-fault::after {
-    color: var(--ind-red);
-}
-
-@keyframes status-led-pulse {
-    50% { opacity: 0.25; }
-}
-
-/* Right-hand end of the navbar: theme toggle, then the status button. */
-.navbar-actions {
-    display: flex;
-    align-items: stretch;
-    gap: 0.6rem;
-    margin-left: auto;
-}
-
-/* Theme toggle: a chamfered plate in the status button's style, showing the
-   icon of the theme it switches to. */
-.ind-theme-btn {
-    min-width: 2.4rem;
-    font-size: 1.1rem;
-    line-height: 1;
-    color: var(--ind-text);
-    background: var(--ind-surface-alt);
-    border: 2px solid var(--ind-border);
-    border-radius: 0;
-    clip-path: var(--chamfer-clip);
-    transition: transform 0.1s ease, filter 0.1s ease, color 0.1s ease;
-}
-
-.ind-theme-btn:hover {
-    color: var(--ind-accent);
-    transform: translate(-1px, -1px);
-    filter: brightness(1.08);
-}
-
-.ind-theme-btn:active {
-    transform: translate(1px, 1px);
-    filter: none;
-}
-
-/* ===========================================
-   SIDEBAR FIELDS
-
-   The sidebar is a third of the window above `lg` and the full width below
-   it, so how much room a control gets has little to do with the viewport.
-   Every block here sizes itself from the width it is given -- wrapping,
-   auto-fill grids, full-width sliders -- instead of from Bootstrap column
-   counts, so there are no per-widget breakpoints to keep in step.
-   =========================================== */
-
-/* Dash's own components read their colours from these. Scoped to the two
-   places that hold controls, so nothing else in the app changes. */
-.page-panel,
-.page-dock,
-.global-drawer,
-.page-scroll {
-    --Dash-Fill-Interactive-Strong: var(--ind-accent);
-    --Dash-Fill-Interactive-Weak: rgba(var(--ind-accent-rgb), 0.15);
-    --Dash-Fill-Primary-Hover: var(--ind-accent-hover);
-    --Dash-Fill-Primary-Active: var(--ind-accent-active);
-    --Dash-Stroke-Strong: var(--ind-border);
-    --Dash-Stroke-Weak: var(--ind-border-light);
-    --Dash-Text-Strong: var(--ind-text);
-    --Dash-Text-Primary: var(--ind-text);
-    --Dash-Text-Weak: var(--ind-text-muted);
-    --Dash-Fill-Inverse-Strong: var(--ind-surface-alt);
-}
-
-/* The `.ind-card label` rule styles section headers; the labels that belong
-   to a checkbox, radio or switch are part of their control and keep to one
-   line beside it. */
-.ind-card label.form-check-label,
-.ind-card label.dash-options-list-option {
-    border-bottom: none;
-    padding-bottom: 0;
-    margin-bottom: 0;
-    font-size: 0.9rem;
-}
-
-.ind-card label.dash-options-list-option {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    cursor: pointer;
-}
-
-.ind-card .dash-options-list-option-checkbox {
-    accent-color: var(--ind-accent);
-}
-
-/* Field captions: a quiet one-line label over its control. More specific
-   than the `.ind-card label` section-header rule, which they must not look
-   like. */
-.ind-card label.ind-field-label,
 .ind-field-label {
     display: block;
     font-family: var(--font-mono);
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.3px;
-    color: var(--ind-text-muted) !important;
-    border-bottom: none;
-    padding-bottom: 0;
-    margin-bottom: 0.25rem;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--ind-text-muted);
+    margin-bottom: 0.2rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-/* A run of fields inside one card, e.g. Translate / Rotate. */
+/* A run of fields inside one section, e.g. Translate / Rotate. */
 .ind-group-header {
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     font-weight: 700;
-    color: var(--ind-text);
-    background: var(--ind-bg);
-    padding: 4px 8px;
-    border-left: 4px solid var(--ind-accent);
-    margin: 0.25rem 0 0.75rem;
+    color: var(--ind-text-muted);
+    margin: 0.5rem 0 0.6rem;
+    padding-bottom: 0.25rem;
+    border-bottom: 1px dashed var(--ind-border);
 }
 
 /* Label, then the slider with its value box: always the same two rows. */
 .ind-slider-field {
-    margin-bottom: 1rem;
+    margin-bottom: 0.8rem;
 }
 
 .ind-slider-field .dash-slider-container {
@@ -1267,26 +839,28 @@ input[type="number"]:focus,
 }
 
 /* The direct-input box. Dash hides it once the slider is under 300px wide,
-   which in this sidebar is most of the time; the value is half of what the
+   which in this panel is most of the time; the value is half of what the
    field shows, so it stays. A fixed width -- room for "-178.5" -- keeps the
    track from changing length as the value changes. */
-.ind-slider-field .dash-slider-container .dash-range-slider-input {
+.ind-slider-field .dash-slider-container .dash-range-slider-input,
+.ind-inline-slider .dash-slider-container .dash-range-slider-input {
     display: block;
     box-sizing: border-box;
     height: auto;
     max-width: none;
-    width: 7ch !important;
+    width: 6.5ch !important;
     flex: 0 0 auto;
     font-family: var(--font-mono) !important;
     font-variant-numeric: tabular-nums;
     text-align: right;
-    font-size: 0.85rem;
-    padding: 0.2rem 0.35rem;
+    font-size: 0.8rem;
+    padding: 0.15rem 0.35rem;
+    border-radius: var(--radius);
 }
 
 .ind-slider-field .dash-slider-mark {
     font-family: var(--font-mono);
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     color: var(--ind-text-muted);
 }
 
@@ -1306,137 +880,23 @@ input[type="number"]:focus,
     grid-auto-columns: minmax(0, 1fr);
 }
 
-/* Narrow enough that spinner arrows would hide the value, as in the joint
-   grid below. */
-.ind-field-row input {
+.ind-field-row input,
+.ind-joint-grid input {
     padding-inline: 0.35rem;
     -moz-appearance: textfield;
 }
 
+/* Spinner arrows would hide the value in inputs this narrow. */
 .ind-field-row input::-webkit-outer-spin-button,
-.ind-field-row input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-
-/* One input per leg and joint; joint names once, in the header. */
-.ind-joint-grid {
-    --bs-table-bg: transparent;
-    table-layout: fixed;
-    width: 100%;
-}
-
-.ind-joint-grid th,
-.ind-joint-grid td {
-    padding: 0.15rem 0.2rem;
-}
-
-/* "J1 coxia" wraps to "J1" over "coxia" when the columns are narrow; all
-   three columns are the same width, so they always wrap together. */
-.ind-joint-grid thead th {
-    font-family: var(--font-mono);
-    font-size: 0.7rem;
-    font-weight: 600;
-    line-height: 1.15;
-    color: var(--ind-text-muted);
-    vertical-align: bottom;
-}
-
-/* Row labels. Sized on the header cell too: a fixed-layout table takes its
-   column widths from the first row. */
-.ind-joint-grid tr > th:first-child {
-    width: 5.5rem;
-}
-
-.ind-joint-grid tbody th {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    font-weight: 700;
-    border-left: 3px solid var(--ind-accent);
-    padding-left: 0.4rem;
-}
-
-/* Sized so "-178.5", the widest value a joint takes, fits in the narrowest
-   column the side-by-side layout below allows. */
-.ind-joint-grid input {
-    width: 100%;
-    min-width: 0;
-    padding-inline: 0.2rem;
-    font-size: 0.8rem;
-    text-align: right;
-}
-
-/* Spinner arrows eat a third of an input this narrow. */
+.ind-field-row input::-webkit-inner-spin-button,
 .ind-joint-grid input::-webkit-outer-spin-button,
 .ind-joint-grid input::-webkit-inner-spin-button {
     -webkit-appearance: none;
     margin: 0;
 }
 
-.ind-joint-grid input[type="number"] {
-    -moz-appearance: textfield;
-}
-
-/* Joint grids (the Feet tool): a Left and a Right block, side by side when
-   both fit with a full value in every input, left above right when they do
-   not. The basis
-   is that width -- "L1" plus three inputs of "-178.5" -- so the wrap happens
-   exactly when the values would start to clip. */
-.ind-joint-sides {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0 0.75rem;
-}
-
-.ind-joint-sides > .ind-joint-side {
-    flex: 1 1 12rem;
-    min-width: 0;
-}
-
-/* Two characters ("L1"); the group header above already carries the side
-   and the accent bar. */
-.ind-joint-side .ind-joint-grid tr > th:first-child {
-    width: 1.75rem;
-}
-
-.ind-joint-side .ind-joint-grid tbody th {
-    border-left: none;
-    padding-left: 0.1rem;
-}
-
-.ind-joint-side .ind-joint-grid th,
-.ind-joint-side .ind-joint-grid td {
-    padding-inline: 0.1rem;
-}
-
-/* A read-only value in a joint grid (the solved IK angles): the same box
-   as an input, minus the field look. */
-.ind-readout {
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-    text-align: right;
-    padding: 0.2rem 0.3rem;
-    background: var(--ind-bg);
-    white-space: nowrap;
-}
-
-/* Solver warnings. Wraps, unlike the code block it replaced. */
-.ind-alert {
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--ind-alert-text);
-    background: var(--ind-alert-bg);
-    border-left: 4px solid var(--ind-red);
-    padding: 0.5rem 0.75rem;
-    /* Solver messages put their list of legs on a line of its own. */
-    white-space: pre-line;
-}
-
 /* A main control and a button that share a line while both fit, and stack
-   (both full width) when they do not. */
+   when they do not. */
 .ind-wrap-row {
     display: flex;
     flex-wrap: wrap;
@@ -1450,28 +910,100 @@ input[type="number"]:focus,
 }
 
 .ind-wrap-row > .ind-wrap-side {
-    flex: 1 1 6rem;
+    flex: 0 0 auto;
 }
 
-/* ===========================================
-   PANEL SECTIONS
+/* ---- Joint grids ----
+   One input (or readout) per leg and joint; the joint names once, in the
+   header. */
 
-   The blocks of a page's control panel (panel_section() in
-   widgets/section_maker.py) sit flat on the panel, divided by a rule, rather
-   than as cards nested inside it: one plate, not a stack of them. The rule
-   goes over every section that follows another, hidden ones included, so it
-   is right whichever of the pose page's tools is showing.
-   =========================================== */
-
-.ind-section ~ .ind-section {
-    border-top: 2px solid var(--ind-border-light);
-    margin-top: 1.25rem;
-    padding-top: 1.25rem;
+.ind-joint-grid {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--ind-text);
+    table-layout: fixed;
+    width: 100%;
 }
 
-/* A segmented switch: dbc.RadioItems drawn as a row of joined buttons, the
-   chosen one filled. The labels are buttons, so the section-header look the
-   `.ind-card label` rule gives labels is undone here. */
+.ind-joint-grid th,
+.ind-joint-grid td {
+    padding: 0.12rem 0.15rem;
+}
+
+.ind-joint-grid thead th {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 600;
+    line-height: 1.15;
+    color: var(--ind-text-muted);
+    vertical-align: bottom;
+}
+
+.ind-joint-grid tr > th:first-child {
+    width: 1.9rem;
+}
+
+.ind-joint-grid tbody th {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    vertical-align: middle;
+}
+
+.ind-joint-grid input {
+    width: 100%;
+    min-width: 0;
+    font-size: 0.78rem;
+    text-align: right;
+}
+
+/* The Feet tool's grids: Left and Right side by side when both fit with a
+   full value in every input -- "L1" plus three inputs of "-178.5" -- and
+   left above right when they do not. */
+.ind-joint-sides {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 0.75rem;
+}
+
+.ind-joint-sides > .ind-joint-side {
+    flex: 1 1 12rem;
+    min-width: 0;
+}
+
+/* A read-only value (the solved angles). */
+.ind-readout {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    padding: 0.1rem 0.3rem;
+    border-radius: 3px;
+    white-space: nowrap;
+}
+
+.ind-readout.is-bad {
+    text-align: center;
+    color: var(--ind-alert-text);
+    background: var(--ind-alert-bg);
+}
+
+.ind-alert {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--ind-alert-text);
+    background: var(--ind-alert-bg);
+    border-left: 3px solid var(--ind-red);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 0.45rem 0.7rem;
+    /* Solver messages put their list of legs on a line of its own. */
+    white-space: pre-line;
+}
+
+/* ---- Segmented switch ----
+   dbc.RadioItems drawn as joined buttons, the picked one filled. */
+
 .ind-segmented {
     display: inline-flex;
     flex-wrap: nowrap;
@@ -1483,128 +1015,283 @@ input[type="number"]:focus,
     min-height: 0;
 }
 
-.ind-segmented .form-check + .form-check {
-    margin-left: -2px;
-}
-
-.ind-card .ind-segmented label.btn {
+.ind-segmented label.btn {
     display: block;
     margin: 0;
-    padding: 0.3rem 0.8rem;
+    border-radius: 0;
+    font-size: 0.8rem;
+}
+
+.ind-segmented .form-check + .form-check label.btn {
+    margin-left: -1px;
+}
+
+.ind-segmented .form-check:first-child label.btn {
+    border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.ind-segmented .form-check:last-child label.btn {
+    border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.ind-segmented label.btn.active {
+    position: relative;
+    z-index: 1;
+    color: #fff;
+    background: var(--ind-accent);
+    border-color: var(--ind-accent);
+}
+
+/* Checklists (Loop, Ease) as a checkbox and its word. */
+.dock-check label.dash-options-list-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0;
     font-size: 0.85rem;
-    border: 2px solid var(--ind-border);
-    clip-path: none;
+    font-weight: 600;
+    cursor: pointer;
     white-space: nowrap;
 }
 
-.ind-card .ind-segmented label.btn.active {
-    color: #fff !important;
-    background: var(--ind-accent);
-    border-color: var(--ind-outline);
-    position: relative;
-    z-index: 1;
-}
-
-/* Full width, for the pose page's tool switch. */
-.ind-segmented.ind-segmented-fill {
-    display: flex;
-}
-
-.ind-segmented-fill .form-check {
-    flex: 1 1 0;
-}
-
-.ind-segmented-fill label.btn {
-    width: 100%;
-    text-align: center;
+.dock-check .dash-options-list-option-checkbox {
+    accent-color: var(--ind-accent);
 }
 
 /* ===========================================
-   DOCK — under the view, on the pose page
-
-   The joint angles on the left, the keyframe timeline on the right; the
-   timeline drops under the angles when the two do not fit side by side.
+   VIEW
+   The three.js view (assets/hexapod_view.js) fills its area; buttons sit in
+   the top-right corner and the angle readout in the bottom-left, both drawn
+   for the dark monitor in either theme.
    =========================================== */
 
-.page-dock {
-    flex: 0 0 auto;
-    margin-top: 0.75rem;
-    padding: 0.9rem 1rem 1.1rem;
+.hexapod-view-frame,
+.hexapod-view {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    position: relative;
+}
+
+.hexapod-view-overlay {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 3;
     display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    gap: 0.75rem 1.75rem;
+    gap: 0.4rem;
 }
 
-/* Fixed in the layout, like the page panel: no lift, no stencil over the
-   controls. */
-.page-dock:hover {
-    transform: none;
-    box-shadow: var(--shadow-hard);
+.view-btn.btn {
+    --bs-btn-color: var(--hud-text);
+    --bs-btn-bg: var(--hud-bg);
+    --bs-btn-border-color: var(--hud-border);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: rgba(40, 70, 130, 0.9);
+    --bs-btn-hover-border-color: rgba(160, 190, 240, 0.4);
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: rgba(40, 70, 130, 0.9);
+    --bs-btn-active-border-color: rgba(160, 190, 240, 0.4);
+    backdrop-filter: blur(6px);
 }
 
-.page-dock::after {
-    content: none;
-}
-
-.ind-dock-angles {
-    flex: 0 0 auto;
-    max-width: 100%;
+.hexapod-view-hud {
+    position: absolute;
+    left: 12px;
+    bottom: 12px;
+    z-index: 3;
+    max-width: calc(100% - 24px);
     overflow-x: auto;
 }
 
-.ind-dock-keyframes {
-    flex: 1 1 26rem;
-    min-width: 0;
+.angles-hud {
+    color: var(--hud-text);
+    background: var(--hud-bg);
+    border: 1px solid var(--hud-border);
+    border-radius: 8px;
+    padding: 0.35rem 0.6rem;
+    backdrop-filter: blur(6px);
+}
+
+.angles-hud[open] {
+    padding-bottom: 0.55rem;
+}
+
+.angles-hud > summary {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--hud-muted);
+    cursor: pointer;
+    user-select: none;
+}
+
+.angles-hud[open] > summary {
+    margin-bottom: 0.3rem;
+}
+
+.angles-hud .ind-joint-grid {
+    --bs-table-color: var(--hud-text);
+}
+
+.angles-hud .ind-joint-grid thead th,
+.angles-hud .ind-joint-grid tbody th {
+    color: var(--hud-muted);
+}
+
+.angles-hud .ind-readout {
+    min-width: 3.6rem;
+    background: rgba(160, 190, 240, 0.08);
+}
+
+.angles-hud .ind-readout.is-bad {
+    color: #ffb4b4;
+    background: rgba(255, 92, 92, 0.16);
+}
+
+.angles-hud .ind-alert {
+    color: #ffb4b4;
+    background: rgba(255, 92, 92, 0.12);
+    margin-top: 0.4rem;
+}
+
+/* The angle table: only as wide as its values. */
+.ind-joint-grid.ind-angle-strip {
+    width: auto;
+    table-layout: auto;
+}
+
+.ind-angle-strip tr > th:first-child {
+    width: auto;
+    padding-right: 0.35rem;
+}
+
+/* The name of the leg under the pointer. */
+.hexapod-view-label {
+    position: absolute;
+    z-index: 2;
+    pointer-events: none;
+    padding: 0.15rem 0.45rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--hud-text);
+    background: var(--hud-bg);
+    border: 1px solid var(--hud-border);
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+/* ===========================================
+   DOCK
+   Two rows: what is played (the keyframes or a gait), then playing it, in
+   the view and on the robot. Each row wraps when the window is narrow.
+   =========================================== */
+
+.dock {
     display: flex;
     flex-direction: column;
-    gap: 0.6rem;
+    gap: 0.55rem;
+    padding: 0.6rem 0.9rem 0.7rem;
 }
 
-.ind-dock-row {
+.dock-row,
+.dock-part {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.5rem 0.75rem;
+    gap: 0.5rem 0.9rem;
 }
 
-.ind-dock-row h6 {
-    margin-bottom: 0 !important;
+.dock-row + .dock-row {
+    padding-top: 0.55rem;
+    border-top: 1px solid var(--ind-border);
 }
 
-/* What belongs to one source -- keyframes or a gait -- and is hidden with
-   the other: its header tools share the line with the source switch, its
-   body is a column of rows. */
-.ind-dock-part {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.5rem 0.75rem;
+.dock-part {
     flex: 1 1 auto;
     min-width: 0;
 }
 
-.ind-dock-part-body {
+.dock-group {
     display: flex;
-    flex-direction: column;
-    gap: 0.6rem;
+    align-items: center;
+    gap: 0.4rem;
 }
 
-.ind-gait-select {
+.dock-grow {
+    flex: 1 1 18rem;
+    min-width: 0;
+}
+
+.dock-source {
+    flex: 0 0 auto;
+}
+
+.dock-note {
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    color: var(--ind-text-muted);
+    white-space: nowrap;
+}
+
+.dock-note:empty,
+.dock-message:empty {
+    display: none;
+}
+
+.dock-divider {
+    align-self: stretch;
+    width: 1px;
+    background: var(--ind-border);
+}
+
+.dock-robot-message {
     flex: 1 1 12rem;
+    white-space: normal;
 }
 
-.ind-gait-select select {
+.dock-gait-select {
+    flex: 0 1 15rem;
+}
+
+.dock-gait-select select {
     width: 100%;
 }
 
-/* A slider with its label on the same line, for the dock's one-line rows. */
+.ind-duration-input {
+    width: 7rem;
+    flex-wrap: nowrap;
+}
+
+.ind-duration-input .input-group-text {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--ind-text-muted);
+    background: var(--ind-surface);
+    border: 1px solid var(--ind-border-strong);
+}
+
+.ind-play-btn {
+    min-width: 6rem;
+}
+
+.ind-dock-scrubber {
+    flex: 1 1 8rem;
+    min-width: 6rem;
+}
+
+.ind-dock-scrubber .dash-slider-container {
+    width: 100%;
+}
+
+/* A slider with its label on the same line (the gait speed). */
 .ind-inline-slider {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    flex: 1 1 9rem;
-    min-width: 9rem;
+    min-width: 12rem;
 }
 
 .ind-inline-slider .ind-field-label {
@@ -1623,78 +1310,35 @@ input[type="number"]:focus,
     gap: 0.5rem;
 }
 
-/* The value box, as in a panel slider (SIDEBAR FIELDS). */
-.ind-inline-slider .dash-slider-container .dash-range-slider-input {
-    display: block;
-    box-sizing: border-box;
-    height: auto;
-    max-width: none;
-    width: 6ch !important;
-    flex: 0 0 auto;
-    font-family: var(--font-mono) !important;
-    font-variant-numeric: tabular-nums;
-    text-align: right;
-    font-size: 0.8rem;
-    padding: 0.15rem 0.3rem;
-}
-
-/* An empty message slot would still take a gap of its own. */
-.ind-dock-keyframes > div:empty {
-    display: none;
-}
-
-.ind-dock-scrubber {
-    flex: 1 1 4rem;
-    min-width: 4rem;
-}
-
-.ind-dock-scrubber .dash-slider-container {
-    width: 100%;
-}
-
-.ind-play-btn {
-    min-width: 6.5rem;
-}
-
-.ind-duration-input {
-    width: 7.5rem;
-    flex-wrap: nowrap;
-}
-
-.ind-duration-input .input-group-text {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    border: 2px solid var(--ind-border-light);
-    border-left: none;
-    border-radius: 0;
-    background: var(--ind-bg);
-    color: var(--ind-text-muted);
-}
-
-/* The keyframes, in order, as one row of chips that scrolls sideways. */
+/* The keyframes, in order, as a row of chips that scrolls sideways. */
 .ind-kf-strip {
+    flex: 0 1 auto;
     display: flex;
     align-items: center;
-    gap: 0.4rem;
-    min-height: 2.1rem;
+    gap: 0.35rem;
+    min-width: 0;
     overflow-x: auto;
-    padding-bottom: 2px;
+    padding: 2px 0;
+}
+
+.ind-kf-strip > .small {
+    white-space: nowrap;
 }
 
 .ind-kf-chip {
     flex: 0 0 auto;
     display: inline-flex;
     gap: 0.4rem;
-    padding: 0.2rem 0.6rem;
+    padding: 0.18rem 0.6rem;
     font-family: var(--font-mono);
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: 0.74rem;
+    font-weight: 500;
     white-space: nowrap;
     color: var(--ind-text);
-    background: var(--ind-input-bg);
-    border: 2px solid var(--ind-border-light);
-    border-radius: 0;
-    transition: border-color 0.1s ease;
+    background: var(--ind-surface-alt);
+    border: 1px solid var(--ind-border-strong);
+    border-radius: 999px;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
 .ind-kf-chip:hover {
@@ -1704,95 +1348,18 @@ input[type="number"]:focus,
 .ind-kf-chip.active {
     color: #fff;
     background: var(--ind-accent);
-    border-color: var(--ind-outline);
+    border-color: var(--ind-accent);
 }
 
 .ind-kf-index {
     font-weight: 700;
 }
 
-/* The joint angles: one table, a column per leg. Only as wide as its values. */
-.ind-joint-grid.ind-angle-strip {
-    width: auto;
-    table-layout: auto;
-}
-
-.ind-angle-strip tr > th:first-child {
-    width: auto;
-    padding-right: 0.35rem;
-}
-
-.ind-angle-strip th,
-.ind-angle-strip td {
-    padding: 0.1rem 0.15rem;
-}
-
-.ind-angle-strip .ind-readout {
-    min-width: 3.9rem;
-    font-size: 0.75rem;
-    padding: 0.15rem 0.3rem;
-}
-
-/* A leg whose foot is out of reach: its angles mean nothing. */
-.ind-readout.is-bad {
-    text-align: center;
-    color: var(--ind-alert-text);
-    background: var(--ind-alert-bg);
-}
-
-/* Buttons over the 3D view's corner (make_view's overlay). */
-.hexapod-view-overlay {
-    position: absolute;
-    top: 14px;
-    right: 14px;
-    z-index: 3;
-    display: flex;
-    gap: 0.4rem;
-}
-
 /* ===========================================
-   SCROLLBAR
+   SCROLLBARS
    =========================================== */
 
-::-webkit-scrollbar {
-    width: 10px;
-}
-::-webkit-scrollbar-track {
-    background: var(--ind-bg);
-    border-left: 1px solid var(--ind-border-light);
-}
-::-webkit-scrollbar-thumb {
-    background: var(--ind-border);
-    border: 1px solid var(--ind-bg);
-}
-::-webkit-scrollbar-thumb:hover {
-    background: var(--ind-accent);
-}
-
-/* ===========================================
-   3D VIEW
-   The three.js view (assets/hexapod_view.js) fills the monitor frame.
-   =========================================== */
-
-.hexapod-view-frame,
-.hexapod-view {
-    width: 100%;
-    height: 100%;
-    min-height: 0;
-    position: relative;
-}
-
-/* The name of the leg under the pointer, as a HUD tag. */
-.hexapod-view-label {
-    position: absolute;
-    z-index: 2;
-    pointer-events: none;
-    padding: 0.15rem 0.45rem;
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: #e4eeff;
-    background: rgba(10, 20, 40, 0.85);
-    border: 1px solid rgba(76, 201, 240, 0.75);
-    white-space: nowrap;
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ind-border-strong) transparent;
 }
