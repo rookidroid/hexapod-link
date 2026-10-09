@@ -5,9 +5,12 @@
    the tool picked on it, the view, and a dock along the bottom
    (pages/shared.py make_workspace, pages/workspace.py).
 
-   The colours are the RX-78-2 tricolour the app has always worn -- Federation
-   blue as the accent, yellow and red kept for state -- on quiet surfaces, so
-   the view is what draws the eye. Light is white armour, dark is the cockpit.
+   Styled after the RX-78-2 Gundam: white armour plates framed in navy,
+   Federation blue as the accent, red and V-fin yellow as trim. Light is the
+   armour, dark is the cockpit, with a cyan HUD glow on focus. The markings are
+   kept to a few -- the chest trim under the top bar, chamfered corners on the
+   controls and the HUD cards, and the display face on headings -- so the view
+   is still what draws the eye.
 
    Every colour that differs between the themes is a token on :root. The dark
    values override them when <html> carries data-theme="dark"; the attribute is
@@ -99,35 +102,53 @@
    =========================================== */
 
 :root {
-    --ind-bg: #e6ebf2;             /* Behind the panels */
-    --ind-surface: #f6f8fb;        /* Panels, top bar, dock */
-    --ind-surface-alt: #ffffff;    /* Inputs, buttons, chips */
-    --ind-border: #d3dbe7;         /* Hairlines between areas */
-    --ind-border-strong: #a9b6cc;  /* Control outlines */
+    --ind-bg: #dde3ec;             /* Panel-line grey */
+    --ind-surface: #f3f5f9;        /* White armour: panels, top bar, dock */
+    --ind-surface-alt: #ffffff;    /* Buttons, chips */
+    --ind-border: #c9d2e0;         /* Hairlines inside a panel */
+    --ind-border-strong: #a9b6cc;  /* Input outlines */
+    --ind-frame: #1b2a4a;          /* Navy frame between areas and on buttons */
     --ind-accent: #1d4fa3;         /* Federation blue */
     --ind-accent-hover: #163f84;
     --ind-accent-active: #10306a;
     --ind-accent-rgb: 29, 79, 163;
-    --ind-accent-alt: #e0a800;     /* V-fin yellow: streaming */
-    --ind-red: #d62828;            /* Faults and destructive actions */
+    --ind-accent-alt: #f2b705;     /* V-fin yellow: trim, streaming */
+    --ind-red: #d62828;            /* Chest red: trim, faults */
     --ind-ok: #16a34a;             /* Online */
-    --ind-text: #0f1a30;
-    --ind-text-muted: #56637d;
-    --ind-hover: #e9eef7;
-    --ind-input-bg: #ffffff;
+    --ind-outline: #0f1a30;        /* Outline on the solid buttons */
+    --ind-text: #0f1a30;           /* Navy black */
+    --ind-text-muted: #4a5875;
+    --ind-hover: #e8eef8;
+    --ind-input-bg: #eef2f8;
     --ind-alert-text: #9b1c1c;
     --ind-alert-bg: #fdecec;
-    --ind-track: #d3dbe7;          /* Slider tracks */
+    --ind-track: #c9d2e0;          /* Slider tracks */
 
-    --ind-glow: 0 0 0 3px rgba(29, 79, 163, 0.22);
-    --shadow-soft: 0 1px 2px rgba(15, 26, 48, 0.06), 0 2px 8px rgba(15, 26, 48, 0.06);
-    --radius: 6px;
+    /* Focus ring: a plain blue halo on the armour, a HUD glow in the cockpit.
+       The inset one is for the chamfered controls, whose clip-path would cut
+       off anything drawn outside them. */
+    --ind-glow: 0 0 0 2px rgba(29, 79, 163, 0.28);
+    --ind-glow-inset: inset 0 0 0 2px rgba(29, 79, 163, 0.55);
+    --shadow-soft: 0 2px 10px rgba(15, 26, 48, 0.12);
+    --radius: 0;
 
-    /* The 3D view is the same dark monitor in both themes, and so is what is
-       laid over it. */
+    /* Mecha corners: the top-right and bottom-left cut off at 45 degrees. */
+    --chamfer: 7px;
+    --chamfer-clip: polygon(
+        0 0,
+        calc(100% - var(--chamfer)) 0,
+        100% var(--chamfer),
+        100% 100%,
+        var(--chamfer) 100%,
+        0 calc(100% - var(--chamfer))
+    );
+
+    /* The 3D view is the cockpit's panoramic monitor in both themes, and so
+       is what is laid over it: navy plates edged in HUD cyan. */
     --view-bg: #0a1428;
-    --hud-bg: rgba(8, 16, 34, 0.82);
-    --hud-border: rgba(160, 190, 240, 0.18);
+    --hud-cyan-rgb: 76, 201, 240;
+    --hud-bg: rgba(8, 16, 34, 0.84);
+    --hud-border: rgba(var(--hud-cyan-rgb), 0.28);
     --hud-text: #e4eeff;
     --hud-muted: #8aa2c8;
 
@@ -144,27 +165,30 @@
     color-scheme: dark;
 
     --ind-bg: #060c18;
-    --ind-surface: #0b1529;
-    --ind-surface-alt: #0f1d38;
+    --ind-surface: #0c1730;
+    --ind-surface-alt: #11203f;
     --ind-border: #1a2b4d;
     --ind-border-strong: #2c4475;
+    --ind-frame: #2f5fb3;
     --ind-accent: #3d7cf0;
     --ind-accent-hover: #2f68d6;
     --ind-accent-active: #2455b4;
     --ind-accent-rgb: 61, 124, 240;
     --ind-accent-alt: #ffd23f;
-    --ind-red: #ff5c5c;
+    --ind-red: #ff4d4d;
     --ind-ok: #22c55e;
+    --ind-outline: #02060f;
     --ind-text: #e4eeff;
     --ind-text-muted: #8aa2c8;
-    --ind-hover: #15274a;
-    --ind-input-bg: #081227;
+    --ind-hover: #18294d;
+    --ind-input-bg: #08122a;
     --ind-alert-text: #ffb4b4;
-    --ind-alert-bg: rgba(255, 92, 92, 0.12);
+    --ind-alert-bg: rgba(255, 77, 77, 0.12);
     --ind-track: #24396a;
 
-    --ind-glow: 0 0 0 3px rgba(76, 201, 240, 0.3);
-    --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 10px rgba(0, 0, 0, 0.35);
+    --ind-glow: 0 0 0 1px rgba(76, 201, 240, 0.45), 0 0 14px rgba(76, 201, 240, 0.25);
+    --ind-glow-inset: inset 0 0 0 2px rgba(76, 201, 240, 0.7);
+    --shadow-soft: 0 2px 10px rgba(0, 0, 0, 0.55);
 }
 
 /* ===========================================
@@ -214,11 +238,28 @@ body {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0 0.75rem 0 1rem;
+    padding: 0 0.75rem 4px 1rem;
     background: var(--ind-surface);
-    border-bottom: 1px solid var(--ind-border);
+    box-shadow: var(--shadow-soft);
     position: relative;
     z-index: 5;
+}
+
+/* Chest trim along the bottom edge: a red block, a few yellow vent slats,
+   then Federation blue, the way the colours sit on the RX-78's torso. */
+.topbar::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 4px;
+    pointer-events: none;
+    background:
+        linear-gradient(90deg, var(--ind-red) 0 var(--rail-w), transparent var(--rail-w)),
+        repeating-linear-gradient(90deg, var(--ind-accent-alt) 0 10px, transparent 10px 16px)
+            calc(var(--rail-w) + 6px) 0 / 76px 100% no-repeat,
+        var(--ind-accent);
 }
 
 .topbar-brand {
@@ -231,28 +272,20 @@ body {
 
 .topbar-title {
     font-family: var(--font-display);
-    font-size: 1rem;
+    font-size: 1.05rem;
+    font-synthesis: none;
     letter-spacing: 2px;
     text-transform: uppercase;
 }
 
-/* One small accent mark in front of the brand: all that is left of the
-   armour's tricolour trim. */
-.topbar-title::before {
-    content: '';
-    display: inline-block;
-    width: 4px;
-    height: 0.95em;
-    margin-right: 0.6rem;
-    vertical-align: -0.1em;
-    background: linear-gradient(var(--ind-red) 0 33%, var(--ind-accent-alt) 33% 66%, var(--ind-accent) 66%);
-    border-radius: 1px;
-}
-
+/* Release stamp beside the brand: a small stencilled plate. */
 .topbar-version {
+    padding: 0.05rem 0.35rem;
     font-family: var(--font-mono);
-    font-size: 0.7rem;
+    font-size: 0.68rem;
+    font-weight: 600;
     color: var(--ind-text-muted);
+    border: 1px solid var(--ind-border-strong);
 }
 
 .topbar-connection {
@@ -289,8 +322,8 @@ body {
     text-overflow: ellipsis;
     color: var(--ind-text);
     background: var(--ind-surface-alt);
-    border: 1px solid var(--ind-border-strong);
-    border-radius: 999px;
+    border: 2px solid var(--ind-frame);
+    clip-path: var(--chamfer-clip);
     cursor: default;
     transition: border-color 0.15s ease;
 }
@@ -362,12 +395,14 @@ body {
     padding: 0.5rem 0.4rem;
 }
 
+/* The navy frame runs round the view: down the panel's edge and along the
+   dock's top. */
 .ws-panel {
     grid-area: panel;
     min-height: 0;
     overflow-y: auto;
     background: var(--ind-surface);
-    border-right: 1px solid var(--ind-border);
+    border-right: 2px solid var(--ind-frame);
 }
 
 .ws-view {
@@ -383,7 +418,7 @@ body {
     max-height: 40vh;
     overflow-y: auto;
     background: var(--ind-surface);
-    border-top: 1px solid var(--ind-border);
+    border-top: 2px solid var(--ind-frame);
 }
 
 /* Below `lg` there is no height to share: the rail turns into a row of tabs
@@ -419,6 +454,7 @@ body {
     .ws-panel {
         overflow: visible;
         border-right: none;
+        border-bottom: 2px solid var(--ind-frame);
     }
 
     .ws-view {
@@ -586,13 +622,19 @@ body {
     border-bottom: 1px solid var(--ind-border);
 }
 
+/* Section titles in the display face, underlined in V-fin yellow. Michroma
+   has one weight, so it stays at 400 rather than be faux-bolded. */
 .ind-section > h6 {
-    font-family: var(--font-ui);
-    font-size: 0.78rem;
-    font-weight: 700;
+    display: inline-block;
+    padding-bottom: 0.25rem;
+    font-family: var(--font-display);
+    font-size: 0.74rem;
+    font-weight: 400;
+    font-synthesis: none;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--ind-text);
+    border-bottom: 2px solid var(--ind-accent-alt);
 }
 
 .ind-section > p {
@@ -612,19 +654,30 @@ body {
    CONTROLS
    =========================================== */
 
+/* Buttons are armour plates: a heavy navy border and chamfered corners. The
+   clip cuts off anything drawn outside the button, so the focus ring is
+   drawn inside it. */
 .btn {
     --bs-btn-font-family: var(--font-ui);
-    --bs-btn-font-weight: 600;
-    --bs-btn-border-radius: var(--radius);
+    --bs-btn-font-weight: 700;
+    --bs-btn-border-width: 2px;
+    --bs-btn-border-radius: 0;
     --bs-btn-padding-x: 0.75rem;
     --bs-btn-padding-y: 0.3rem;
-    --bs-btn-focus-box-shadow: var(--ind-glow);
-    letter-spacing: 0.2px;
+    --bs-btn-focus-box-shadow: var(--ind-glow-inset);
+    letter-spacing: 0.4px;
     white-space: nowrap;
+    clip-path: var(--chamfer-clip);
+    transition: filter 0.1s ease, background-color 0.1s ease, border-color 0.1s ease;
+}
+
+.btn:not(:disabled):not(.disabled):hover {
+    filter: brightness(1.06);
 }
 
 .btn-sm {
-    --bs-btn-border-radius: var(--radius);
+    --chamfer: 6px;
+    --bs-btn-border-radius: 0;
     --bs-btn-padding-x: 0.65rem;
     --bs-btn-padding-y: 0.25rem;
     --bs-btn-font-size: 0.82rem;
@@ -633,47 +686,47 @@ body {
 .btn-primary {
     --bs-btn-color: #fff;
     --bs-btn-bg: var(--ind-accent);
-    --bs-btn-border-color: var(--ind-accent);
+    --bs-btn-border-color: var(--ind-outline);
     --bs-btn-hover-color: #fff;
     --bs-btn-hover-bg: var(--ind-accent-hover);
-    --bs-btn-hover-border-color: var(--ind-accent-hover);
+    --bs-btn-hover-border-color: var(--ind-outline);
     --bs-btn-active-color: #fff;
     --bs-btn-active-bg: var(--ind-accent-active);
-    --bs-btn-active-border-color: var(--ind-accent-active);
+    --bs-btn-active-border-color: var(--ind-outline);
     --bs-btn-disabled-color: #fff;
     --bs-btn-disabled-bg: var(--ind-accent);
-    --bs-btn-disabled-border-color: var(--ind-accent);
+    --bs-btn-disabled-border-color: var(--ind-outline);
 }
 
 .btn-secondary,
 .btn-outline-secondary {
     --bs-btn-color: var(--ind-text);
     --bs-btn-bg: var(--ind-surface-alt);
-    --bs-btn-border-color: var(--ind-border-strong);
+    --bs-btn-border-color: var(--ind-frame);
     --bs-btn-hover-color: var(--ind-text);
     --bs-btn-hover-bg: var(--ind-hover);
-    --bs-btn-hover-border-color: var(--ind-border-strong);
+    --bs-btn-hover-border-color: var(--ind-frame);
     --bs-btn-active-color: var(--ind-text);
     --bs-btn-active-bg: var(--ind-hover);
-    --bs-btn-active-border-color: var(--ind-text-muted);
+    --bs-btn-active-border-color: var(--ind-frame);
     --bs-btn-disabled-color: var(--ind-text-muted);
     --bs-btn-disabled-bg: var(--ind-surface-alt);
-    --bs-btn-disabled-border-color: var(--ind-border);
+    --bs-btn-disabled-border-color: var(--ind-border-strong);
 }
 
 .btn-success {
     --bs-btn-color: #fff;
     --bs-btn-bg: #16a34a;
-    --bs-btn-border-color: #16a34a;
+    --bs-btn-border-color: var(--ind-outline);
     --bs-btn-hover-color: #fff;
     --bs-btn-hover-bg: #15803d;
-    --bs-btn-hover-border-color: #15803d;
+    --bs-btn-hover-border-color: var(--ind-outline);
     --bs-btn-active-color: #fff;
     --bs-btn-active-bg: #166534;
-    --bs-btn-active-border-color: #166534;
+    --bs-btn-active-border-color: var(--ind-outline);
     --bs-btn-disabled-color: #fff;
     --bs-btn-disabled-bg: #16a34a;
-    --bs-btn-disabled-border-color: #16a34a;
+    --bs-btn-disabled-border-color: var(--ind-outline);
 }
 
 .btn-danger,
@@ -930,7 +983,6 @@ body {
     font-variant-numeric: tabular-nums;
     text-align: right;
     padding: 0.1rem 0.3rem;
-    border-radius: 3px;
     white-space: nowrap;
 }
 
@@ -967,23 +1019,24 @@ body {
     min-height: 0;
 }
 
+/* One plate cut into segments: only the ends carry the chamfer. */
 .ind-segmented label.btn {
     display: block;
     margin: 0;
-    border-radius: 0;
     font-size: 0.8rem;
+    clip-path: none;
 }
 
 .ind-segmented .form-check + .form-check label.btn {
-    margin-left: -1px;
+    margin-left: -2px;
 }
 
 .ind-segmented .form-check:first-child label.btn {
-    border-radius: var(--radius) 0 0 var(--radius);
+    clip-path: polygon(0 0, 100% 0, 100% 100%, var(--chamfer) 100%, 0 calc(100% - var(--chamfer)));
 }
 
 .ind-segmented .form-check:last-child label.btn {
-    border-radius: 0 var(--radius) var(--radius) 0;
+    clip-path: polygon(0 0, calc(100% - var(--chamfer)) 0, 100% var(--chamfer), 100% 100%, 0 100%);
 }
 
 .ind-segmented label.btn.active {
@@ -1053,16 +1106,17 @@ body {
    are redrawn for it. */
 .hud-panel,
 .angles-hud {
-    --Dash-Fill-Disabled: rgba(160, 190, 240, 0.22);
+    --Dash-Fill-Disabled: rgba(var(--hud-cyan-rgb), 0.2);
     --Dash-Fill-Inverse-Strong: var(--view-bg);
     --Dash-Text-Primary: var(--hud-text);
     --Dash-Text-Strong: var(--hud-text);
     --Dash-Stroke-Strong: var(--hud-border);
     --Dash-Stroke-Weak: var(--hud-border);
+    --chamfer: 9px;
     color: var(--hud-text);
     background: var(--hud-bg);
     border: 1px solid var(--hud-border);
-    border-radius: 8px;
+    clip-path: var(--chamfer-clip);
     backdrop-filter: blur(6px);
 }
 
@@ -1078,13 +1132,13 @@ body {
 .hud-panel .form-control,
 .hud-panel .dash-range-slider-input {
     color: var(--hud-text) !important;
-    background: rgba(160, 190, 240, 0.08) !important;
+    background: rgba(var(--hud-cyan-rgb), 0.06) !important;
     border: 1px solid var(--hud-border) !important;
 }
 
 .hud-panel .form-control:focus {
-    border-color: rgba(160, 190, 240, 0.6) !important;
-    box-shadow: var(--ind-glow);
+    border-color: rgba(var(--hud-cyan-rgb), 0.75) !important;
+    box-shadow: 0 0 10px rgba(var(--hud-cyan-rgb), 0.3);
 }
 
 .stream-hud > div {
@@ -1101,7 +1155,7 @@ body {
 }
 
 .stream-hud .form-check-input:not(:checked) {
-    background-color: rgba(160, 190, 240, 0.12);
+    background-color: rgba(var(--hud-cyan-rgb), 0.1);
     border-color: var(--hud-border);
 }
 
@@ -1147,11 +1201,12 @@ body {
     --bs-btn-bg: var(--hud-bg);
     --bs-btn-border-color: var(--hud-border);
     --bs-btn-hover-color: #fff;
-    --bs-btn-hover-bg: rgba(40, 70, 130, 0.9);
-    --bs-btn-hover-border-color: rgba(160, 190, 240, 0.4);
+    --bs-btn-hover-bg: rgba(29, 79, 163, 0.9);
+    --bs-btn-hover-border-color: rgba(var(--hud-cyan-rgb), 0.6);
     --bs-btn-active-color: #fff;
-    --bs-btn-active-bg: rgba(40, 70, 130, 0.9);
-    --bs-btn-active-border-color: rgba(160, 190, 240, 0.4);
+    --bs-btn-active-bg: rgba(29, 79, 163, 0.9);
+    --bs-btn-active-border-color: rgba(var(--hud-cyan-rgb), 0.6);
+    --bs-btn-border-width: 1px;
     backdrop-filter: blur(6px);
 }
 
@@ -1214,7 +1269,7 @@ body {
 
 .angles-hud .ind-readout {
     min-width: 3.6rem;
-    background: rgba(160, 190, 240, 0.08);
+    background: rgba(var(--hud-cyan-rgb), 0.06);
 }
 
 .angles-hud .ind-readout.is-bad {
@@ -1251,7 +1306,6 @@ body {
     color: var(--hud-text);
     background: var(--hud-bg);
     border: 1px solid var(--hud-border);
-    border-radius: 4px;
     white-space: nowrap;
 }
 
@@ -1408,8 +1462,9 @@ body {
     white-space: nowrap;
     color: var(--ind-text);
     background: var(--ind-surface-alt);
-    border: 1px solid var(--ind-border-strong);
-    border-radius: 999px;
+    border: 1px solid var(--ind-frame);
+    --chamfer: 5px;
+    clip-path: var(--chamfer-clip);
     transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
