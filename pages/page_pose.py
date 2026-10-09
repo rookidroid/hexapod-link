@@ -76,7 +76,6 @@ from widgets.pose_ui import (
     POSE_FRAME_DISPLAY_ID,
     POSE_FRAME_SLIDER_ID,
     POSE_GAIT_ID,
-    POSE_GAIT_MODE_ID,
     POSE_GAIT_SPEED_ID,
     POSE_INTERVAL_ID,
     POSE_KEYFRAMES_STORE_ID,
@@ -110,12 +109,14 @@ from widgets.pose_ui import (
     POSE_VIEW_ID,
     POSE_VIEW_MODE_ID,
     PREVIEW_FPS,
-    GAIT_NATIVE,
     SOURCE_GAIT,
     TOOL_FEET,
     TOOLS,
 )
 from widgets.robot_link_ui import (
+    DRIVE_BODY_CLASS,
+    DRIVE_CONTROLS_ID,
+    DRIVE_SPEED_ID,
     ROBOT_CONFIG_STORE_ID,
     ROBOT_POLL_INTERVAL_ID,
     SECTION_CONTROLS_CLASS,
@@ -956,7 +957,6 @@ clientside_callback(
     State(POSE_EASE_ID, "value"),
     State(POSE_SOURCE_ID, "value"),
     State(POSE_GAIT_ID, "value"),
-    State(POSE_GAIT_MODE_ID, "value"),
     DIMENSIONS_STATE,
     prevent_initial_call=True,
 )
@@ -967,7 +967,6 @@ def run_on_robot(
     ease_values,
     source,
     gait,
-    gait_mode,
     dimensions_json,
 ):
     if not ROBOT_LINK.connected:
@@ -976,7 +975,7 @@ def run_on_robot(
     robot_config = _robot(dimensions_json)
     loop, ease = _options(loop_values, ease_values)
     if source == SOURCE_GAIT:
-        return _run_gait(gait, gait_mode, loop, robot_config)
+        return _run_gait(gait, loop, robot_config)
 
     frames = keyframes_store["keyframes"] if _valid(keyframes_store, robot_config) else []
     if not frames:
@@ -999,22 +998,10 @@ def run_on_robot(
     )
 
 
-def _run_gait(gait, mode, loop, robot_config):
-    """Run a gait on the robot: its own, played from flash, or the
-    simulator's frames streamed to it, at the gait speed either way."""
-    if mode == GAIT_NATIVE:
-        if not ROBOT_LINK.has_motion_command(gait):
-            # "standup" is the firmware's boot sequence, not a motion LUT it
-            # can be commanded into; the robot's own command list says which
-            # motions it has.
-            return (
-                f"'{gait}' has no built-in equivalent on the robot. "
-                "Use 'Stream frames' instead."
-            )
-        if ROBOT_LINK.send_motion_command(gait):
-            return f"Robot running its own '{gait}' gait at {ROBOT_LINK.speed_pct}%."
-        return "Failed to send the motion command."
-
+def _run_gait(gait, loop, robot_config):
+    """Stream the simulator's frames of a gait to the robot, at the gait speed.
+    The robot's own gaits, played from its flash, are run from the controller
+    over the view instead (pages/drive.py)."""
     poses = generate_poses(gait, robot_config)
     if not ROBOT_LINK.play_sequence(poses, loop=loop):
         return "Nothing to stream for this gait."
@@ -1026,16 +1013,23 @@ def _run_gait(gait, mode, loop, robot_config):
 
 @callback(
     Output(POSE_GAIT_SPEED_ID, "value"),
+    Output(DRIVE_SPEED_ID, "value"),
     Input(POSE_GAIT_SPEED_ID, "value"),
+    Input(DRIVE_SPEED_ID, "value"),
     prevent_initial_call=True,
 )
-def set_gait_speed(speed_pct):
-    """Gait speed: sent to the robot now, and carried by every motion command.
-    Set without a robot too, so the next one connected starts at it."""
+def set_gait_speed(gait_speed, drive_speed):
+    """Gait speed, from the dock's slider or the controller's: sent to the
+    robot now, and carried by every motion command. Set without a robot too,
+    so the next one connected starts at it. Both sliders show what applied."""
+    speed_pct = drive_speed if ctx.triggered_id == DRIVE_SPEED_ID else gait_speed
     if speed_pct is None:
         raise PreventUpdate
     applied = ROBOT_LINK.set_motion_speed(speed_pct)
-    return no_update if applied == speed_pct else applied
+    return (
+        no_update if gait_speed == applied else applied,
+        no_update if drive_speed == applied else applied,
+    )
 
 
 @callback(
@@ -1054,36 +1048,46 @@ def stop_on_robot(_n_clicks):
 OFFLINE_MESSAGE = "Connect a robot to run this on the hardware."
 
 
+# Both speed sliders, the dock's and the controller's.
+SPEED_SLIDER_IDS = (POSE_GAIT_SPEED_ID, DRIVE_SPEED_ID)
+
+
 @callback(
-    Output(POSE_ROBOT_CONTROLS_ID, "className"),
-    Output(POSE_RUN_BTN_ID, "disabled"),
-    Output(POSE_STOP_BTN_ID, "disabled"),
-    Output(POSE_ROBOT_MESSAGE_ID, "children", allow_duplicate=True),
-    Output(POSE_GAIT_SPEED_ID, "min"),
-    Output(POSE_GAIT_SPEED_ID, "max"),
-    Output(POSE_GAIT_SPEED_ID, "value", allow_duplicate=True),
-    Input(ROBOT_POLL_INTERVAL_ID, "n_intervals"),
-    State(POSE_ROBOT_MESSAGE_ID, "children"),
-    State(POSE_GAIT_SPEED_ID, "value"),
-    State(POSE_GAIT_SPEED_ID, "min"),
-    State(POSE_GAIT_SPEED_ID, "max"),
+    output=dict(
+        controls_class=Output(POSE_ROBOT_CONTROLS_ID, "className"),
+        drive_class=Output(DRIVE_CONTROLS_ID, "className"),
+        run_off=Output(POSE_RUN_BTN_ID, "disabled"),
+        stop_off=Output(POSE_STOP_BTN_ID, "disabled"),
+        message=Output(POSE_ROBOT_MESSAGE_ID, "children", allow_duplicate=True),
+        speed_mins=[Output(slider_id, "min") for slider_id in SPEED_SLIDER_IDS],
+        speed_maxes=[Output(slider_id, "max") for slider_id in SPEED_SLIDER_IDS],
+        speed_values=[
+            Output(slider_id, "value", allow_duplicate=True) for slider_id in SPEED_SLIDER_IDS
+        ],
+    ),
+    inputs=dict(_n_intervals=Input(ROBOT_POLL_INTERVAL_ID, "n_intervals")),
+    state=dict(
+        message=State(POSE_ROBOT_MESSAGE_ID, "children"),
+        speed_values=[State(slider_id, "value") for slider_id in SPEED_SLIDER_IDS],
+        speed_mins=[State(slider_id, "min") for slider_id in SPEED_SLIDER_IDS],
+        speed_maxes=[State(slider_id, "max") for slider_id in SPEED_SLIDER_IDS],
+    ),
     prevent_initial_call="initial_duplicate",
 )
-def sync_robot_controls(_n_intervals, message, speed_value, speed_min, speed_max):
-    """Grey the robot controls out while there is no robot, and keep the gait
-    speed on the link's.
+def sync_robot_controls(_n_intervals, message, speed_values, speed_mins, speed_maxes):
+    """Grey the robot controls -- the dock's and the controller's -- out while
+    there is no robot, and keep both speed sliders on the link's speed.
 
-    The speed slider's range is the connected robot's, and its value the
-    link's -- the page may have been rendered before either was known. They
-    are only written when they differ, so the speed callback is not
-    retriggered every second.
+    The sliders' range is the connected robot's, and their value the link's
+    -- the page may have been rendered before either was known. They are
+    only written when they differ, so the speed callback is not retriggered
+    every second.
     """
     speed = ROBOT_LINK.robot_config["speed"]
-    range_out = [no_update] * 2
-    if (speed_min, speed_max) != (speed["min"], speed["max"]):
-        range_out = [speed["min"], speed["max"]]
     link_speed = ROBOT_LINK.speed_pct
-    speed_out = no_update if speed_value == link_speed else link_speed
+    mins_out = [no_update if value == speed["min"] else speed["min"] for value in speed_mins]
+    maxes_out = [no_update if value == speed["max"] else speed["max"] for value in speed_maxes]
+    values_out = [no_update if value == link_speed else link_speed for value in speed_values]
 
     offline = not ROBOT_LINK.connected
     if offline:
@@ -1091,11 +1095,13 @@ def sync_robot_controls(_n_intervals, message, speed_value, speed_min, speed_max
     else:
         new_message = "" if message == OFFLINE_MESSAGE else no_update
     controls_class = SECTION_CONTROLS_OFFLINE_CLASS if offline else SECTION_CONTROLS_CLASS
-    return (
-        f"d-flex gap-2 {controls_class}",
-        offline,
-        offline,
-        new_message,
-        *range_out,
-        speed_out,
+    return dict(
+        controls_class=f"d-flex gap-2 {controls_class}",
+        drive_class=f"{DRIVE_BODY_CLASS} {controls_class}",
+        run_off=offline,
+        stop_off=offline,
+        message=new_message,
+        speed_mins=mins_out,
+        speed_maxes=maxes_out,
+        speed_values=values_out,
     )

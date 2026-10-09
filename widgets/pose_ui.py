@@ -112,22 +112,17 @@ SOURCE_GAIT = "gait"
 SOURCES = (SOURCE_KEYFRAMES, SOURCE_GAIT)
 # The parts of the dock that belong to one source, shown only with it: the
 # keyframe track and editor, the keyframes' summary, ease and file buttons,
-# the gait picker and speed, and how the robot plays a gait.
+# and the gait picker and speed.
 POSE_KEYFRAMES_PART_ID = "pose-keyframes-part"
 POSE_KF_TOOLS_ID = "pose-keyframes-tools"
 POSE_GAIT_PART_ID = "pose-gait-part"
-POSE_GAIT_ROBOT_PART_ID = "pose-gait-robot-part"
 POSE_SOURCE_PARTS = (
     (POSE_KEYFRAMES_PART_ID, SOURCE_KEYFRAMES),
     (POSE_KF_TOOLS_ID, SOURCE_KEYFRAMES),
     (POSE_GAIT_PART_ID, SOURCE_GAIT),
-    (POSE_GAIT_ROBOT_PART_ID, SOURCE_GAIT),
 )
 POSE_GAIT_ID = "pose-gait"
-POSE_GAIT_MODE_ID = "pose-gait-mode"
 POSE_GAIT_SPEED_ID = "pose-gait-speed"
-GAIT_NATIVE = "native"
-GAIT_STREAM = "stream"
 
 POSE_SAVE_BTN_ID = "pose-save-btn"
 POSE_DOWNLOAD_ID = "pose-download"
@@ -140,8 +135,9 @@ POSE_UPLOAD_ID = "pose-upload"
 PREVIEW_FPS = 25
 
 # The gaits the path tool generates (hexapod/path_generator.py), by the
-# simulator's name for each; the robot's own command list says which it can
-# also play from flash.
+# simulator's name for each. A gait in the sequence is streamed to the robot
+# frame by frame; the robot's own, played from its flash, are driven from the
+# controller over the view (DRIVE_HUD in widgets/robot_link_ui.py).
 MOTION_TYPES = [
     {"label": "Standby (reset)", "value": "standby"},
     {"label": "Walk forward", "value": "walk_0"},
@@ -503,8 +499,10 @@ keyframes_part = html.Div(
 )
 
 # Gait speed, as a percent of the robot's tuned frame rate: how fast the robot
-# plays a gait, and so how fast it is previewed. Its range and value are
-# re-seeded from the connected robot (sync_robot_controls in page_pose.py).
+# plays a gait, and so how fast it is previewed. It is the link's one speed,
+# the controller's too, and the two sliders are kept in step; its range and
+# value are re-seeded from the connected robot (sync_robot_controls in
+# page_pose.py).
 _speed = ROBOT_LINK.robot_config["speed"]
 gait_part = html.Div(
     [
@@ -527,8 +525,8 @@ gait_part = html.Div(
             ],
             className="ind-inline-slider dock-grow",
             title=(
-                "How fast the robot plays the gait, of its tuned rate; the "
-                "preview plays at the same speed."
+                "How fast the gait plays, of the robot's tuned rate: streamed "
+                "to the robot and in the preview alike."
             ),
         ),
     ],
@@ -606,25 +604,6 @@ robot_section = _section(
             ],
             id=POSE_ROBOT_CONTROLS_ID,
             className=f"d-flex gap-2 {SECTION_CONTROLS_OFFLINE_CLASS}",
-        ),
-        # Only a gait can be played from the robot's own flash.
-        html.Div(
-            _segmented(
-                POSE_GAIT_MODE_ID,
-                [
-                    {"label": "Robot's own", "value": GAIT_NATIVE},
-                    {"label": "Stream frames", "value": GAIT_STREAM},
-                ],
-                GAIT_NATIVE,
-            ),
-            id=POSE_GAIT_ROBOT_PART_ID,
-            title=(
-                "Robot's own: the robot plays its built-in gait from flash, "
-                "smoother than streamed frames. Stream frames: the "
-                "simulator's frames are sent over WiFi, for gaits the robot "
-                "does not have."
-            ),
-            style={"display": "none"},
         ),
     ],
 )

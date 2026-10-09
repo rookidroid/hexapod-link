@@ -24,7 +24,8 @@ streaming control, and a rebuilt CI/test suite.
 |---|-----------|--------------|
 | 🎉 | Forward Kinematics | Given the angles of each joint, what does the robot look like? |
 | 🎉 | Inverse Kinematics | What are the angles of each joint to make the robot look the way I want? Is it even possible? Why or why not? |
-| 🎉 | Gaits | Preview the robot's gaits frame by frame, and run them on it. |
+| 🎉 | Gaits | Preview the robot's gaits frame by frame, and stream them to it. |
+| 🎉 | Controller | Drive the robot with its own built-in gaits from a controller over the 3D view, laid out like the Android app's: hold a pad to walk, turn or move the body, let go to stop. |
 | 🎉 | Pose Editor | Set a pose by moving the body and placing the feet in 3D, string the poses into a timed keyframe sequence, preview it and run it on the robot. |
 | 🎉 | Customizability | Set the dimensions of the robot's body and legs, and pose that body. |
 | 🎉 | Real-time Robot Control | Drive a physical ESP32 hexapod over WiFi, from single joints to whole-body gaits. Works with any robot in the family (Nougat, Mochi, Macaroon, ...): each one serves its own config. |
@@ -41,8 +42,9 @@ theme, dark shows the dark one.
 
 The whole app is one screen: pick a tool on the rail down the left — **Body**
 or **Feet** — and use it on the 3D view, with the joint angles, streaming to
-the robot and the robot's dimensions over the view. Along the bottom, string poses into a keyframe sequence or
-pick one of the robot's gaits, preview it and run it on the robot.
+the robot, the robot's dimensions and a controller to drive it over the view.
+Along the bottom, string poses into a keyframe sequence or pick one of the
+robot's gaits, preview it and run it on the robot.
 
 Everything above is generated from the running app by
 [`tools/make_screenshots.py`](./tools/make_screenshots.py), which captures it
@@ -239,16 +241,26 @@ rather than dragging it along the floor. Sequences save to and load from
 JSON files, which only load on the robot they were made for.
 
 With **Gait**, pick one of the gaits the path tool generates; it is shown
-played at the robot's own timing. Beside **Run on robot**, choose whether the
-robot plays its own built-in gait (**Robot's own**, recommended; the ESP32
-plays it from flash so smoothness does not depend on WiFi), or is streamed
-the simulator's frames, for paths the firmware does not have (**Stream
-frames**). **Speed**
-(20-100 % of the robot's tuned rate) applies to both and to the preview, and
-is sent to the robot as soon as it changes.
+played at the robot's own timing, and **Run on robot** streams the
+simulator's frames to the hardware. **Speed** (20-100 % of the robot's tuned
+rate) applies to the preview and to the robot, and is sent to the robot as
+soon as it changes.
 
-Until a robot is connected the stream and run controls are greyed out, since
-neither has anything to act on. Once connected, the controls in the view's
+To drive the robot with its own built-in gaits, which the ESP32 plays from
+flash so their smoothness does not depend on WiFi, use the **Controller** in
+the view's bottom-right corner. It is laid out like the control screen of the
+[Android app](https://play.google.com/store/apps/details?id=com.rookiedev.hexapod): on the left, a
+pad of moves on the spot (roll, pitch, wobble, twist, and climbing forward and
+back); on the right, a circle with standby in the middle, a ring of eight
+walking directions round it, and fast forward, fast backward and the two
+turns round that. Hold a pad and the robot plays that gait; slide onto
+another to change it; let go and it stands. While a pad is held the page
+renews it several times a second, and if that stops -- the window closed, the
+connection lost -- the robot stands on its own within a second. The
+controller's **Speed** is the same speed as the dock's.
+
+Until a robot is connected the stream, run and controller controls are greyed
+out, since none has anything to act on. Once connected, the controls in the view's
 top-left corner start the sending: turn on **Stream to robot**, and **Max
 speed** limits how fast any servo may slew (in servo ticks per cycle). The
 switch follows the robot's actual state, so it is right after a reload.

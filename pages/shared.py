@@ -70,12 +70,13 @@ def view_store_id(view_id):
     return f"{view_id}-scene"
 
 
-def make_view(view_id, scene=None, overlay=None, hud=None, controls=None):
+def make_view(view_id, scene=None, overlay=None, hud=None, controls=None, drive=None):
     """The element the view draws into, and the store its scene goes in.
 
     `overlay` is laid over the view's top-right corner, for a button or two
     that act on the view itself; `hud` over its bottom-left, for a readout;
-    `controls` over its top-left, for what acts on what the view shows.
+    `controls` over its top-left, for what acts on what the view shows; and
+    `drive` over its bottom-right, for driving the robot itself.
     """
     children = [
         html.Div(id=view_id, className="hexapod-view"),
@@ -88,6 +89,8 @@ def make_view(view_id, scene=None, overlay=None, hud=None, controls=None):
         children.append(html.Div(hud, className="hexapod-view-hud"))
     if controls:
         children.append(html.Div(controls, className="hexapod-view-controls"))
+    if drive:
+        children.append(html.Div(drive, className="hexapod-view-drive"))
     return html.Div(children, className="hexapod-view-frame")
 
 

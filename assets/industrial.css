@@ -1249,7 +1249,8 @@ body {
 }
 
 .angles-hud > summary,
-.dims-hud > summary {
+.dims-hud > summary,
+.drive-hud > summary {
     font-size: 0.75rem;
     font-weight: 700;
     letter-spacing: 0.06em;
@@ -1275,7 +1276,8 @@ body {
 }
 
 .angles-hud[open] > summary,
-.dims-hud[open] > summary {
+.dims-hud[open] > summary,
+.drive-hud[open] > summary {
     margin-bottom: 0.3rem;
 }
 
@@ -1302,6 +1304,161 @@ body {
     color: #ffb4b4;
     background: rgba(255, 92, 92, 0.12);
     margin-top: 0.4rem;
+}
+
+/* ---- Controller ----
+   On the view's bottom-right corner: the body pad and the move pad, drawn by
+   assets/drive_pads.js, over the readout and the speed. A held zone lights
+   in the accent, as a pressed button does. */
+
+.hexapod-view-drive {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    z-index: 3;
+    max-width: calc(100% - 24px);
+}
+
+.drive-hud {
+    padding: 0.35rem 0.6rem;
+}
+
+.drive-hud[open] {
+    padding-bottom: 0.55rem;
+}
+
+.drive-body {
+    display: grid;
+    grid-template-columns: auto auto;
+    align-items: center;
+    gap: 0.55rem 0.9rem;
+}
+
+.drive-pad {
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.drive-svg {
+    display: block;
+    overflow: visible;
+}
+
+.drive-pad-body .drive-svg {
+    width: 6.4rem;
+    height: 9.6rem;
+}
+
+.drive-pad-move .drive-svg {
+    width: 9.6rem;
+    height: 9.6rem;
+}
+
+.drive-zone {
+    cursor: pointer;
+}
+
+.drive-face {
+    fill: rgba(var(--hud-cyan-rgb), 0.08);
+    stroke: var(--view-bg);
+    stroke-width: 1.5;
+    transition: fill 0.12s ease;
+}
+
+.drive-face-outer {
+    fill: rgba(var(--hud-cyan-rgb), 0.05);
+}
+
+.drive-face-walk {
+    fill: rgba(var(--hud-cyan-rgb), 0.12);
+}
+
+/* Standby, in the middle: lit, as the Android app's button is. */
+.drive-face-centre {
+    fill: rgba(var(--ind-accent-rgb), 0.85);
+    stroke: rgba(var(--hud-cyan-rgb), 0.4);
+}
+
+.drive-zone:hover .drive-face {
+    fill: rgba(var(--hud-cyan-rgb), 0.2);
+}
+
+.drive-zone.is-active .drive-face {
+    fill: rgba(var(--ind-accent-rgb), 0.95);
+    stroke: rgba(var(--hud-cyan-rgb), 0.7);
+}
+
+.drive-icon,
+.drive-icon path {
+    fill: var(--hud-text);
+}
+
+.drive-icon .drive-stroke {
+    fill: none;
+    stroke: var(--hud-text);
+    stroke-width: 3;
+    stroke-linecap: round;
+}
+
+.drive-glyph {
+    fill: var(--hud-text);
+    font-family: var(--font-ui);
+    font-weight: 600;
+    pointer-events: none;
+}
+
+.drive-name {
+    fill: var(--hud-muted);
+    font-family: var(--font-mono);
+    letter-spacing: 0.06em;
+}
+
+.drive-zone.is-active .drive-name {
+    fill: #fff;
+}
+
+/* Under the pads, and only as wide as they are: zero width of its own, so
+   the readout changing as pads are pressed never resizes the panel. */
+.drive-footer {
+    grid-column: 1 / -1;
+    width: 0;
+    min-width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.75rem;
+}
+
+/* One line, cut short if it is too long, so its height stays put too. */
+.drive-readout {
+    flex: 1 1 100%;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    line-height: 1.1rem;
+    color: var(--hud-text);
+}
+
+.drive-speed.ind-inline-slider {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+/* Short windows: smaller pads, so they leave the robot in sight. */
+@media (max-height: 820px) {
+    .drive-pad-body .drive-svg {
+        width: 5.2rem;
+        height: 7.8rem;
+    }
+
+    .drive-pad-move .drive-svg {
+        width: 7.8rem;
+        height: 7.8rem;
+    }
 }
 
 /* The angle table: only as wide as its values. */

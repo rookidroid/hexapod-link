@@ -2,14 +2,14 @@
 
     rail | tool panel |  [stream]   3D view  [pose|sequence][reset pose][reset view]
          |            |  [dimensions]
-         |            |  [angles]
+         |            |  [angles]                                    [controller]
     ---------------------------------------------------------------------------
     dock: sequence (keyframes or a gait)  |  playback, then the robot
 
 The rail picks one tool -- Body or Feet -- and only that tool's panel shows;
 the other is hidden but stays mounted, so its callbacks keep firing. What
 belongs to the robot rather than to a tool -- streaming to it, its
-dimensions -- sits over the view.
+dimensions, the controller that drives it -- sits over the view.
 
 What the controls do is in pages/page_pose.py (the pose, the sequence) and
 pages/shared.py (the robot link); this module only puts them in place.
@@ -29,7 +29,7 @@ from widgets.pose_ui import (
     TOOL_RAIL,
     VIEW_OVERLAY,
 )
-from widgets.robot_link_ui import STREAM_OVERLAY
+from widgets.robot_link_ui import DRIVE_HUD, STREAM_OVERLAY
 
 WORKSPACE = shared.make_workspace(
     TOOL_RAIL,
@@ -42,6 +42,7 @@ WORKSPACE = shared.make_workspace(
         overlay=VIEW_OVERLAY,
         hud=ANGLES_HUD,
         controls=[STREAM_OVERLAY, DIMENSIONS_HUD],
+        drive=DRIVE_HUD,
     ),
     POSE_DOCK,
 )

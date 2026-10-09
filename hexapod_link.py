@@ -20,6 +20,7 @@ from dash import Dash, html
 
 from hexapod.preferences import load_theme
 from hexapod.robot_link import ROBOT_LINK
+from pages.drive import register_drive_route
 from pages.shared import make_topbar
 from pages.workspace import WORKSPACE
 from style_settings import EXTERNAL_STYLESHEETS
@@ -74,6 +75,7 @@ app = HexapodDash(
     title=APP_TITLE,
 )
 server = app.server
+register_drive_route(server)
 
 
 # ....................
