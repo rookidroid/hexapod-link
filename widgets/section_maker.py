@@ -1,6 +1,5 @@
-# Building blocks shared by the sidebar sections, so every page lays out its
-# controls the same way. Sizing is left to the CSS (see SIDEBAR FIELDS in
-# assets/industrial.css): each block adapts to whatever width the panel has
+# Building blocks of the tool panels, so every tool lays out its controls the
+# same way. Sizing is left to the CSS (see CONTROLS in assets/industrial.css): each block adapts to whatever width the panel has
 # rather than to Bootstrap column counts.
 import dash_bootstrap_components as dbc
 from dash import dcc, html
@@ -13,10 +12,10 @@ def field_label(text):
 
 
 def panel_section(header, children, blurb=None, **div_props):
-    """One titled block of a page's control panel.
+    """One titled block of a tool panel.
 
     Flat on the panel rather than a card inside it: sections are told apart by
-    the rule over each one (see PANEL SECTIONS in assets/industrial.css), so
+    the rule under each one (see TOOL PANEL in assets/industrial.css), so
     the panel is one plate instead of a stack of nested ones.
     """
     body = [html.H6(header, className="mb-2" if blurb else "mb-3")]
@@ -138,7 +137,7 @@ def make_leg_sides(make_cell):
     """A Left and a Right joint grid, side by side when the panel has room.
 
     `make_cell(leg_name, joint_index)` builds one cell. Left above right when
-    they do not fit together -- never interleaved. See SIDEBAR FIELDS in
+    they do not fit together -- never interleaved. See CONTROLS in
     assets/industrial.css.
     """
     blocks = [

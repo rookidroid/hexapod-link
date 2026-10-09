@@ -353,7 +353,7 @@ def get_simulator_dimensions(robot_config, mount_angles=True):
 def with_dimensions(robot_config, dimensions):
     """The robot's config with its body and legs measured as `dimensions`.
 
-    `dimensions` is in get_simulator_dimensions()'s terms, as the Robot drawer
+    `dimensions` is in get_simulator_dimensions()'s terms, as the Robot panel
     edits them. The mounts move with front, side and middle, each leg keeping
     its own side and mirroring; the legs take the new lengths. A real robot's
     legs keep the angles they are mounted at, whatever the body measures; the

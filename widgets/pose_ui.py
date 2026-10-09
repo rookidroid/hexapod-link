@@ -1,14 +1,15 @@
-# Controls of the pose page (pages/page_pose.py).
+# Controls of the workspace (pages/workspace.py, pages/page_pose.py).
 #
-# The control panel picks one of two tools, each setting part of the same
-# pose, and shows that tool's controls:
+# The rail down the left picks one tool and shows its panel:
 #
-#   Body  inverse kinematics: move and tilt the body over planted feet
-#   Feet  move each foot, by dragging it in the 3D view or typing where
+#   Body   inverse kinematics: move and tilt the body over planted feet
+#   Feet   move each foot, by dragging it in the 3D view or typing where
 #
-# Under the view, the dock reads the pose's joint angles out and plays a
-# sequence, which is either the keyframes collected here or one of the robot's
-# gaits: previewing it in the view, and running it on the robot.
+# Over the view, the joint angles are read out and the pose and the camera
+# can be reset; streaming to the robot and the robot's dimensions are there
+# too (widgets/robot_link_ui.py, widgets/dimensions_ui.py). Along the bottom, the dock plays a sequence, which is either
+# the keyframes collected here or one of the robot's gaits: previewing it in
+# the view, and running it on the robot.
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
@@ -17,11 +18,10 @@ from hexapod.keyframes import DEFAULT_DURATION_MS, MAX_DURATION_MS, MIN_DURATION
 from hexapod.naming import leg_label
 from widgets.ik_ui import IK_WIDGETS
 from hexapod.robot_link import ROBOT_LINK
-from widgets.robot_link_ui import SECTION_CONTROLS_OFFLINE_CLASS, STATUS_POLL_MS
+from widgets.robot_link_ui import SECTION_CONTROLS_OFFLINE_CLASS
 from widgets.section_maker import (
     LEG_SIDES,
     field_label,
-    group_header,
     make_field_grid,
     make_leg_sides,
     make_number_field,
@@ -36,7 +36,6 @@ POSE_SELECTED_LEG_ID = "pose-selected-leg"
 POSE_VIEW_ID = "view-pose"
 
 POSE_TOOL_ID = "pose-tool"
-POSE_TOOL_STORE_ID = "pose-tool-store"
 TOOL_BODY = "body"
 TOOL_FEET = "feet"
 TOOLS = (TOOL_BODY, TOOL_FEET)
@@ -49,7 +48,6 @@ POSE_PREVIEW_STORE_ID = "pose-preview"
 POSE_PLAY_STATE_STORE_ID = "pose-play-state"
 POSE_INTERVAL_ID = "pose-interval"
 
-POSE_SELECTION_ID = "pose-selection"
 # The Feet tool's picker and fields: which foot, and where it is.
 POSE_FOOT_LEG_ID = "pose-foot-leg"
 POSE_FOOT_X_ID = "pose-foot-x"
@@ -58,8 +56,8 @@ POSE_FOOT_UP_ID = "pose-foot-up"
 POSE_FOOT_FIELD_IDS = (POSE_FOOT_X_ID, POSE_FOOT_Y_ID, POSE_FOOT_UP_ID)
 
 
-# The Feet tool's joint grid, as the Kinematics page had it: one field per
-# leg and joint, e.g. "pose-joint-left-front-coxia".
+# The Feet tool's joint grid: one field per leg and joint, e.g.
+# "pose-joint-left-front-coxia".
 def pose_joint_id(leg_name, joint_name):
     return f"pose-joint-{leg_name}-{joint_name}"
 
@@ -72,6 +70,10 @@ POSE_JOINT_FIELDS = [
 ]
 POSE_JOINT_FIELD_IDS = [field_id for _, _, field_id in POSE_JOINT_FIELDS]
 POSE_ANGLES_ID = "pose-angles"
+ANGLES_HUD_ID = "pose-angles-hud"
+# The update_pose callback (pages/page_pose.py) adds "is-bad" to it while a
+# leg is out of reach.
+ANGLES_HUD_CLASS = "angles-hud"
 POSE_MESSAGE_ID = "pose-message"
 POSE_RESET_BTN_ID = "pose-reset-btn"
 POSE_CLEAR_FEET_BTN_ID = "pose-clear-feet-btn"
@@ -100,18 +102,16 @@ POSE_ROBOT_CONTROLS_ID = "pose-robot-controls"
 POSE_RUN_BTN_ID = "pose-run-btn"
 POSE_STOP_BTN_ID = "pose-stop-btn"
 POSE_ROBOT_MESSAGE_ID = "pose-robot-message"
-POSE_ROBOT_POLL_INTERVAL_ID = "pose-robot-poll-interval"
 
 # What the dock plays: the keyframes, or one of the robot's gaits.
 POSE_SOURCE_ID = "pose-source"
-POSE_SOURCE_STORE_ID = "pose-source-store"
 SOURCE_KEYFRAMES = "keyframes"
 SOURCE_GAIT = "gait"
 SOURCES = (SOURCE_KEYFRAMES, SOURCE_GAIT)
-# The parts of the dock that belong to one source, shown only with it.
+# The part of the dock that belongs to each source, shown only with it.
 POSE_SOURCE_PART_IDS = {
-    SOURCE_KEYFRAMES: ("pose-keyframes-head", "pose-keyframes-body"),
-    SOURCE_GAIT: ("pose-gait-head", "pose-gait-body"),
+    SOURCE_KEYFRAMES: "pose-keyframes-part",
+    SOURCE_GAIT: "pose-gait-part",
 }
 POSE_GAIT_ID = "pose-gait"
 POSE_GAIT_MODE_ID = "pose-gait-mode"
@@ -167,55 +167,72 @@ def _button(label, button_id=None, color="secondary", outline=False, class_name=
         color=color,
         outline=outline,
         size="sm",
-        className=f"fw-bold {class_name}".strip(),
+        className=class_name,
         **props,
     )
 
 
 def _row(children, class_name=""):
-    return html.Div(children, className=f"ind-dock-row {class_name}".strip())
+    return html.Div(children, className=f"dock-row {class_name}".strip())
+
+
+def _group(children, class_name=""):
+    return html.Div(children, className=f"dock-group {class_name}".strip())
+
+
+def _segmented(component_id, options, value, class_name="", **props):
+    return dbc.RadioItems(
+        id=component_id,
+        options=options,
+        value=value,
+        className=f"ind-segmented {class_name}".strip(),
+        inputClassName="btn-check",
+        labelClassName="btn btn-sm btn-outline-secondary",
+        labelCheckedClassName="active",
+        **props,
+    )
 
 
 # ................................
-# CONTROL PANEL
+# RAIL
 # ................................
 
-tool_section = panel_section(
-    "Pose",
-    [
-        dbc.RadioItems(
-            id=POSE_TOOL_ID,
-            options=[
-                {"label": "Body", "value": TOOL_BODY},
-                {"label": "Feet", "value": TOOL_FEET},
-            ],
-            value=TOOL_BODY,
-            className="ind-segmented ind-segmented-fill mb-3",
-            inputClassName="btn-check",
-            labelClassName="btn btn-sm btn-outline-secondary",
-            labelCheckedClassName="active",
-        ),
-        _button(
-            "Reset to standby",
-            POSE_RESET_BTN_ID,
-            title="Back to the robot's standby posture: undoes both tools",
-        ),
+# Remembered for the session, so a reload opens on the tool last picked. The
+# glyph over each label is drawn by the CSS (RAIL in assets/industrial.css).
+TOOL_RAIL = dbc.RadioItems(
+    id=POSE_TOOL_ID,
+    options=[
+        {"label": "Body", "value": TOOL_BODY},
+        {"label": "Feet", "value": TOOL_FEET},
     ],
-    blurb=(
-        "One pose, built from two layers that add up: Feet moves single feet "
-        "from standby, and Body moves the body over wherever the feet are "
-        "planted. Switching tools keeps both."
-    ),
+    value=TOOL_BODY,
+    className="tool-rail",
+    inputClassName="btn-check",
+    labelClassName="rail-item",
+    labelCheckedClassName="active",
+    # Named rather than True, so a session that remembered the Robot tool,
+    # which is gone, starts on Body instead of on no tool at all.
+    persistence="body-feet",
+    persistence_type="session",
 )
 
-# All three panels stay mounted, so their sliders keep their values and their
-# callbacks keep firing; the one not in use is only hidden.
-body_panel = panel_section(
-    "Body",
-    IK_WIDGETS,
-    blurb="Move and tilt the body; the joints are solved to keep the feet planted.",
+
+# ................................
+# TOOL PANELS
+#
+# All of them stay mounted, so their sliders keep their values and their
+# callbacks keep firing; the ones not in use are only hidden.
+# ................................
+
+BODY_PANEL = html.Div(
+    panel_section(
+        "Body",
+        IK_WIDGETS,
+        blurb="Move and tilt the body; the joints are solved to keep the feet planted.",
+    ),
     id=POSE_TOOL_PANEL_IDS[TOOL_BODY],
 )
+
 
 def _joint_field(leg_name, joint_index):
     # Applied when the field is left or Enter is pressed, not per digit.
@@ -228,123 +245,167 @@ def _joint_field(leg_name, joint_index):
     )
 
 
-feet_panel = panel_section(
-    "Feet",
+FEET_PANEL = html.Div(
     [
-        html.Div(
-            "Click a foot to pick it up and drag its arrows, or pick it here and "
-            "type where it goes.",
-            id=POSE_SELECTION_ID,
-            className="small text-muted mb-3",
-        ),
-        html.Div(
+        panel_section(
+            "Feet",
             [
-                field_label("Foot"),
-                dbc.Select(
-                    id=POSE_FOOT_LEG_ID,
-                    # Left legs then right, front to back, as in the angle table.
-                    options=[
-                        {"label": leg_label(name), "value": name}
-                        for _, legs in LEG_SIDES
-                        for name in legs
+                html.Div(
+                    [
+                        field_label("Foot"),
+                        dbc.Select(
+                            id=POSE_FOOT_LEG_ID,
+                            # Left legs then right, front to back, as in the
+                            # angle table.
+                            options=[
+                                {"label": leg_label(name), "value": name}
+                                for _, legs in LEG_SIDES
+                                for name in legs
+                            ],
+                            value="",
+                            placeholder="Pick a foot",
+                            size="sm",
+                        ),
                     ],
-                    value="",
-                    placeholder="Pick a foot",
-                    size="sm",
+                    className="mb-2",
+                ),
+                # In the view's coordinates: x right, y forward, up from the
+                # floor. Applied when the field is left or Enter is pressed,
+                # not per digit.
+                make_field_grid(
+                    [
+                        make_number_field(field_id, label, step=1, debounce=True, disabled=True)
+                        for field_id, label in zip(
+                            POSE_FOOT_FIELD_IDS, ("X (mm)", "Y (mm)", "Up (mm)")
+                        )
+                    ],
+                    one_row=True,
+                ),
+                _button(
+                    "Put feet back",
+                    POSE_CLEAR_FEET_BTN_ID,
+                    outline=True,
+                    title="Put every foot back where standby has it, keeping the body move",
                 ),
             ],
-            className="mb-2",
+            blurb=(
+                "Click a foot in the view and drag its arrows, or pick it here "
+                "and type where it goes. A moved foot stays put while the body "
+                "moves over it."
+            ),
         ),
-        # In the view's coordinates: x right, y forward, up from the floor.
-        # Applied when the field is left or Enter is pressed, not per digit.
-        make_field_grid(
-            [
-                make_number_field(field_id, label, step=1, debounce=True, disabled=True)
-                for field_id, label in zip(
-                    POSE_FOOT_FIELD_IDS, ("X (mm)", "Y (mm)", "Up (mm)")
-                )
-            ],
-            one_row=True,
-        ),
-        group_header("Joints (°)"),
-        html.Div(
-            "Or set a leg's joints: its foot goes where they put it.",
-            className="small text-muted mb-2",
-        ),
-        make_leg_sides(_joint_field),
-        _button(
-            "Put feet back",
-            POSE_CLEAR_FEET_BTN_ID,
-            title="Put every foot back where standby has it, keeping the body move",
+        panel_section(
+            "Joints (°)",
+            make_leg_sides(_joint_field),
+            blurb="Or set a leg's joints: its foot goes where they put it.",
         ),
     ],
-    blurb=(
-        "A moved foot stays where it was put in the world while the body moves "
-        "over it."
-    ),
     id=POSE_TOOL_PANEL_IDS[TOOL_FEET],
     style={"display": "none"},
 )
 
-POSE_PANEL_SECTIONS = [
-    tool_section,
-    body_panel,
-    feet_panel,
-    html.Div(id=POSE_MESSAGE_ID),
+POSE_MESSAGE = html.Div(id=POSE_MESSAGE_ID, className="panel-message")
+
+
+# ................................
+# OVER THE VIEW
+# ................................
+
+VIEW_OVERLAY = [
+    _button(
+        "Reset pose",
+        POSE_RESET_BTN_ID,
+        outline=True,
+        class_name="view-btn",
+        title="Back to the robot's standby posture: undoes both Body and Feet",
+    ),
+    _button(
+        "Reset view",
+        POSE_RESET_VIEW_BTN_ID,
+        outline=True,
+        class_name="view-btn",
+        title="Frame the robot again",
+    ),
 ]
 
-RESET_VIEW_BUTTON = _button(
-    "Reset view", POSE_RESET_VIEW_BTN_ID, outline=True, title="Frame the robot again"
+# A native <details>, so it folds away without a callback.
+ANGLES_HUD = html.Details(
+    [
+        html.Summary("Joint angles (°)"),
+        html.Div(id=POSE_ANGLES_ID),
+    ],
+    id=ANGLES_HUD_ID,
+    open=True,
+    className=ANGLES_HUD_CLASS,
 )
 
 
 # ................................
 # DOCK
+#
+# Two rows across the bottom of the window: what is played (the keyframes
+# being collected, or a gait), then playing it -- in the view, and on the
+# robot.
 # ................................
 
-angles_block = html.Div(
+keyframes_part = html.Div(
     [
-        html.H6("Joint angles (°)", className="mb-2"),
-        html.Div(id=POSE_ANGLES_ID),
-    ],
-    className="ind-dock-angles",
-)
-
-def _segmented(component_id, options, value):
-    return dbc.RadioItems(
-        id=component_id,
-        options=options,
-        value=value,
-        className="ind-segmented",
-        inputClassName="btn-check",
-        labelClassName="btn btn-sm btn-outline-secondary",
-        labelCheckedClassName="active",
-    )
-
-
-def _part(source, index, children, class_name):
-    """A part of the dock that belongs to one source, hidden with the other."""
-    hidden = {} if source == SOURCE_KEYFRAMES else {"display": "none"}
-    return html.Div(
-        children,
-        id=POSE_SOURCE_PART_IDS[source][index],
-        className=class_name,
-        style=hidden,
-    )
-
-
-keyframes_head = _part(
-    SOURCE_KEYFRAMES,
-    0,
-    [
-        html.Div(id=POSE_KF_SUMMARY_ID, className="small text-muted font-monospace"),
-        html.Div(
+        _group(
+            [
+                html.Div(id=POSE_KF_LIST_ID, className="ind-kf-strip"),
+                html.Div(id=POSE_KF_SUMMARY_ID, className="dock-note"),
+            ],
+            "dock-grow",
+        ),
+        _group(
+            [
+                html.Div(
+                    dbc.InputGroup(
+                        [
+                            dbc.Input(
+                                id=POSE_DURATION_ID,
+                                type="number",
+                                min=MIN_DURATION_MS,
+                                max=MAX_DURATION_MS,
+                                step=10,
+                                value=DEFAULT_DURATION_MS,
+                            ),
+                            dbc.InputGroupText("ms"),
+                        ],
+                        size="sm",
+                        className="ind-duration-input",
+                    ),
+                    title="Time to reach this pose from the keyframe before it",
+                ),
+                _button(
+                    "+ Add",
+                    POSE_ADD_BTN_ID,
+                    color="primary",
+                    title="Add the pose after the selected keyframe",
+                ),
+                _button(
+                    "Update",
+                    POSE_UPDATE_BTN_ID,
+                    outline=True,
+                    title="Overwrite the selected keyframe with the pose",
+                ),
+                _button("Delete", POSE_DELETE_BTN_ID, color="danger", outline=True),
+                html.Div(
+                    [
+                        _button("◀", POSE_EARLIER_BTN_ID, outline=True, title="Move earlier"),
+                        _button("▶", POSE_LATER_BTN_ID, outline=True, title="Move later"),
+                    ],
+                    className="btn-group",
+                ),
+            ]
+        ),
+        _group(
             [
                 dcc.Checklist(
                     id=POSE_EASE_ID,
-                    options=[{"label": " Ease", "value": "ease"}],
+                    options=[{"label": "Ease", "value": "ease"}],
                     value=["ease"],
-                    className="fw-bold",
+                    className="dock-check",
                 ),
                 _button("Save…", POSE_SAVE_BTN_ID, outline=True),
                 dcc.Upload(
@@ -353,21 +414,61 @@ keyframes_head = _part(
                     accept=".json,application/json",
                 ),
                 dcc.Download(id=POSE_DOWNLOAD_ID),
-            ],
-            className="d-flex align-items-center gap-2 ms-auto",
+            ]
         ),
     ],
-    "ind-dock-part",
+    id=POSE_SOURCE_PART_IDS[SOURCE_KEYFRAMES],
+    className="dock-part",
 )
 
-gait_head = _part(
-    SOURCE_GAIT,
-    0,
-    dbc.Select(id=POSE_GAIT_ID, options=MOTION_TYPES, value="walk_0", size="sm"),
-    "ind-dock-part ind-gait-select",
+# Gait speed, as a percent of the robot's tuned frame rate: how fast the robot
+# plays a gait, and so how fast it is previewed. Its range and value are
+# re-seeded from the connected robot (sync_robot_controls in page_pose.py).
+_speed = ROBOT_LINK.robot_config["speed"]
+gait_part = html.Div(
+    [
+        _group(
+            dbc.Select(id=POSE_GAIT_ID, options=MOTION_TYPES, value="walk_0", size="sm"),
+            "dock-gait-select",
+        ),
+        _group(
+            _segmented(
+                POSE_GAIT_MODE_ID,
+                [
+                    {"label": "Robot's own", "value": GAIT_NATIVE},
+                    {"label": "Stream frames", "value": GAIT_STREAM},
+                ],
+                GAIT_NATIVE,
+            ),
+            "dock-gait-mode",
+        ),
+        html.Div(
+            [
+                field_label("Speed (%)"),
+                dcc.Slider(
+                    id=POSE_GAIT_SPEED_ID,
+                    min=_speed["min"],
+                    max=_speed["max"],
+                    step=5,
+                    value=ROBOT_LINK.speed_pct,
+                    marks=None,
+                    allow_direct_input=True,
+                ),
+            ],
+            className="ind-inline-slider dock-grow",
+            title=(
+                "How fast the robot plays the gait, of its tuned rate; the "
+                "preview plays at the same speed. Played from flash, the "
+                "robot's own gait is smoother than streamed frames."
+            ),
+        ),
+    ],
+    id=POSE_SOURCE_PART_IDS[SOURCE_GAIT],
+    className="dock-part",
+    style={"display": "none"},
 )
 
-sequence_header = _row(
+sequence_row = _row(
     [
         _segmented(
             POSE_SOURCE_ID,
@@ -376,93 +477,17 @@ sequence_header = _row(
                 {"label": "Gait", "value": SOURCE_GAIT},
             ],
             SOURCE_KEYFRAMES,
+            class_name="dock-source",
+            persistence=True,
+            persistence_type="session",
         ),
-        keyframes_head,
-        gait_head,
+        keyframes_part,
+        gait_part,
     ]
-)
-
-keyframe_edit = _row(
-    [
-        html.Div(
-            dbc.InputGroup(
-                [
-                    dbc.Input(
-                        id=POSE_DURATION_ID,
-                        type="number",
-                        min=MIN_DURATION_MS,
-                        max=MAX_DURATION_MS,
-                        step=10,
-                        value=DEFAULT_DURATION_MS,
-                    ),
-                    dbc.InputGroupText("ms"),
-                ],
-                size="sm",
-                className="ind-duration-input",
-            ),
-            title="Time to reach this pose from the keyframe before it",
-        ),
-        _button("+ Add", POSE_ADD_BTN_ID, color="primary", title="Add the pose after the selected keyframe"),
-        _button("Update", POSE_UPDATE_BTN_ID, title="Overwrite the selected keyframe with the pose"),
-        _button("Delete", POSE_DELETE_BTN_ID, color="danger"),
-        _button("◀", POSE_EARLIER_BTN_ID, outline=True, title="Move earlier"),
-        _button("▶", POSE_LATER_BTN_ID, outline=True, title="Move later"),
-    ]
-)
-
-keyframes_body = _part(
-    SOURCE_KEYFRAMES,
-    1,
-    [html.Div(id=POSE_KF_LIST_ID, className="ind-kf-strip"), keyframe_edit],
-    "ind-dock-part-body",
-)
-
-# Gait speed, as a percent of the robot's tuned frame rate: how fast the robot
-# plays a gait, and so how fast it is previewed. Its range and value are
-# re-seeded from the connected robot (sync_robot_controls in page_pose.py).
-_speed = ROBOT_LINK.robot_config["speed"]
-gait_body = _part(
-    SOURCE_GAIT,
-    1,
-    _row(
-        [
-            dbc.RadioItems(
-                id=POSE_GAIT_MODE_ID,
-                options=[
-                    {"label": "Robot's own gait", "value": GAIT_NATIVE},
-                    {"label": "Stream frames", "value": GAIT_STREAM},
-                ],
-                value=GAIT_NATIVE,
-                inline=True,
-                className="small",
-            ),
-            html.Div(
-                [
-                    field_label("Speed (%)"),
-                    dcc.Slider(
-                        id=POSE_GAIT_SPEED_ID,
-                        min=_speed["min"],
-                        max=_speed["max"],
-                        step=5,
-                        value=ROBOT_LINK.speed_pct,
-                        marks=None,
-                        allow_direct_input=True,
-                    ),
-                ],
-                className="ind-inline-slider",
-                title=(
-                    "How fast the robot plays the gait, of its tuned rate; the "
-                    "preview plays at the same speed. Played from flash, the "
-                    "robot's own gait is smoother than streamed frames."
-                ),
-            ),
-        ]
-    ),
-    "ind-dock-part-body",
 )
 
 # The view shows the pose (which the tools edit) or the sequence (which plays).
-transport = _row(
+transport_row = _row(
     [
         _segmented(
             POSE_VIEW_MODE_ID,
@@ -471,6 +496,7 @@ transport = _row(
                 {"label": "Sequence", "value": MODE_PREVIEW},
             ],
             MODE_EDIT,
+            class_name="dock-source",
         ),
         _button("▶ Play", POSE_PLAY_BTN_ID, color="primary", class_name="ind-play-btn"),
         html.Div(
@@ -483,30 +509,24 @@ transport = _row(
                 marks=None,
                 disabled=True,
                 updatemode="drag",
+                # The frame counter beside it already says where it is.
+                allow_direct_input=False,
             ),
             className="ind-dock-scrubber",
         ),
-        html.Div(
-            "0/0 · 0.00 s",
-            id=POSE_FRAME_DISPLAY_ID,
-            className="small fw-bold font-monospace text-nowrap",
-        ),
-    ]
-)
-
-robot_row = _row(
-    [
+        html.Div("0/0 · 0.00 s", id=POSE_FRAME_DISPLAY_ID, className="dock-note text-nowrap"),
         # Loops the preview and what is run on the robot alike.
         dcc.Checklist(
             id=POSE_LOOP_ID,
-            options=[{"label": " Loop", "value": "loop"}],
+            options=[{"label": "Loop", "value": "loop"}],
             value=[],
-            className="fw-bold",
+            className="dock-check",
         ),
+        html.Div(className="dock-divider"),
         html.Div(
             [
                 _button("▶ Run on robot", POSE_RUN_BTN_ID, color="success", disabled=True),
-                _button("■ Standby", POSE_STOP_BTN_ID, disabled=True),
+                _button("■ Standby", POSE_STOP_BTN_ID, outline=True, disabled=True),
             ],
             id=POSE_ROBOT_CONTROLS_ID,
             className=f"d-flex gap-2 {SECTION_CONTROLS_OFFLINE_CLASS}",
@@ -514,25 +534,18 @@ robot_row = _row(
         html.Div(
             "Connect a robot to run this on the hardware.",
             id=POSE_ROBOT_MESSAGE_ID,
-            className="small text-muted font-monospace",
-        ),
-        dcc.Interval(
-            id=POSE_ROBOT_POLL_INTERVAL_ID,
-            interval=STATUS_POLL_MS,
-            n_intervals=0,
+            className="dock-note dock-robot-message",
         ),
     ]
 )
 
-# Session storage, so the pose and the sequence being built survive going to
-# another page and back. Each store records which robot it was made on; see
+# The pose and the sequence being built live in session storage, so they
+# survive a reload. Each store records which robot it was made on; see
 # pages/page_pose.py.
 hidden_components = html.Div(
     [
         dcc.Store(id=POSE_FOOT_TARGET_ID),
         dcc.Store(id=POSE_SELECTED_LEG_ID),
-        dcc.Store(id=POSE_TOOL_STORE_ID, storage_type="session"),
-        dcc.Store(id=POSE_SOURCE_STORE_ID, storage_type="session"),
         dcc.Store(id=POSE_STATE_STORE_ID, storage_type="session"),
         dcc.Store(id=POSE_KEYFRAMES_STORE_ID, storage_type="session"),
         dcc.Store(id=POSE_SELECTED_KF_STORE_ID, storage_type="session"),
@@ -547,19 +560,12 @@ hidden_components = html.Div(
     ]
 )
 
-sequence_block = html.Div(
-    [
-        sequence_header,
-        keyframes_body,
-        gait_body,
-        transport,
-        html.Div(id=POSE_PREVIEW_MESSAGE_ID),
-        robot_row,
-    ],
-    className="ind-dock-keyframes",
-)
-
 POSE_DOCK = html.Div(
-    [angles_block, sequence_block, hidden_components],
-    className="ind-card page-dock",
+    [
+        sequence_row,
+        transport_row,
+        html.Div(id=POSE_PREVIEW_MESSAGE_ID, className="dock-message"),
+        hidden_components,
+    ],
+    className="dock",
 )

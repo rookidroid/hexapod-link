@@ -15,37 +15,15 @@ import sys
 import threading
 import time
 
-import dash_bootstrap_components as dbc
 import waitress
-from dash import Dash, Input, Output, callback, dcc, html
+from dash import Dash, html
 
 from hexapod.preferences import load_theme
 from hexapod.robot_link import ROBOT_LINK
-from pages import (
-    page_calibration,
-    page_landing,
-    page_pose,
-)
-from pages.shared import (
-    GLOBAL_CONTROLS_PANEL,
-    GLOBAL_PANEL_TOGGLE_CLASS,
-    GLOBAL_PANEL_TOGGLE_ID,
-    GLOBAL_PANEL_TOGGLE_LABEL,
-    make_theme_toggle,
-)
-from style_settings import EXTERNAL_STYLESHEETS, GLOBAL_PAGE_STYLE
-from texts import (
-    APP_TITLE,
-    APP_VERSION,
-    CALIBRATION_PAGE_PATH,
-    IK_PAGE_PATH,
-    KINEMATICS_PAGE_PATH,
-    MOTION_PAGE_PATH,
-    PATTERNS_PAGE_PATH,
-    POSE_PAGE_PATH,
-    POSER_PAGE_PATH,
-    ROOT_PATH,
-)
+from pages.shared import make_topbar
+from pages.workspace import WORKSPACE
+from style_settings import EXTERNAL_STYLESHEETS
+from texts import APP_TITLE
 
 
 # ....................
@@ -102,99 +80,14 @@ server = app.server
 # Layout
 # ....................
 
-NAV_LINKS = dbc.Nav(
-    [
-        dbc.NavItem(dbc.NavLink("Pose", href=POSE_PAGE_PATH)),
-    ],
-    navbar=True,
-)
-
-
-def make_navbar(theme):
-    return dbc.Navbar(
-        dbc.Container(
-            [
-                dbc.NavbarBrand(
-                    [
-                        APP_TITLE,
-                        html.Span(f"v{APP_VERSION}", className="navbar-version"),
-                    ],
-                    href=ROOT_PATH,
-                ),
-                NAV_LINKS,
-                html.Div(
-                    [
-                        make_theme_toggle(theme),
-                        # Doubles as the app's status readout and as the handle
-                        # for the global robot panel. ONLINE means the link to
-                        # the hexapod is up.
-                        html.Button(
-                            GLOBAL_PANEL_TOGGLE_LABEL,
-                            id=GLOBAL_PANEL_TOGGLE_ID,
-                            className=GLOBAL_PANEL_TOGGLE_CLASS,
-                            title="Robot link and dimensions",
-                        ),
-                    ],
-                    className="navbar-actions",
-                ),
-            ],
-            fluid=True,
-        ),
-        className="mb-3 ind-navbar",
-        sticky="top",
-        # Always laid out horizontally: there is no collapse toggler, so the
-        # default (collapse below `md`) would just stack the links into a tall
-        # list. Narrow windows wrap them onto a second row instead -- see NAVBAR
-        # in industrial.css.
-        expand=True,
-    )
-
 
 def serve_layout():
-    """Built per page load, so the navbar's theme button matches the saved
-    theme (see HexapodDash above)."""
-    return dbc.Container(
-        [
-            make_navbar(load_theme()),
-            dcc.Location(id="url", refresh=False),
-            GLOBAL_CONTROLS_PANEL,
-            # Sizing and scrolling live in the PAGE LAYOUT block of
-            # industrial.css: it takes a media query to say that this scrolls
-            # only once the columns have stacked, and an inline style cannot
-            # carry one.
-            html.Div(id="page-content", className="flex-grow-1"),
-        ],
-        fluid=True,
-        style={
-            **GLOBAL_PAGE_STYLE,
-            "height": "100vh",
-            "display": "flex",
-            "flexDirection": "column",
-            "overflow": "hidden",
-            # Breathing room under the content now that there is no footer bar.
-            "paddingBottom": "1rem",
-        },
-    )
+    """Built per page load, so the top bar's theme button matches the saved
+    theme (see HexapodDash above). There is one screen, served at any path."""
+    return html.Div([make_topbar(load_theme()), WORKSPACE], className="app-shell")
 
 
 app.layout = serve_layout
-
-PAGES = {
-    POSE_PAGE_PATH: page_pose.layout,
-    # The pages the pose page replaced; it opens on the matching tool.
-    KINEMATICS_PAGE_PATH: page_pose.layout,
-    MOTION_PAGE_PATH: page_pose.layout,
-    IK_PAGE_PATH: page_pose.layout,
-    PATTERNS_PAGE_PATH: page_pose.layout,
-    POSER_PAGE_PATH: page_pose.layout,
-    CALIBRATION_PAGE_PATH: page_calibration.layout,
-    ROOT_PATH: page_landing.layout,
-}
-
-
-@callback(Output("page-content", "children"), Input("url", "pathname"))
-def display_page(pathname):
-    return PAGES.get(pathname, PAGES[ROOT_PATH])
 
 
 # ....................

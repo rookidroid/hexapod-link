@@ -24,5 +24,5 @@ BASE_HEXAPOD = VirtualHexapod(BASE_DIMENSIONS)
 
 HEXAPOD = deepcopy(BASE_HEXAPOD)
 HEXAPOD.update(HEXAPOD_POSE)
-# The neutral hexapod as the 3D view draws it, for the landing page.
+# The neutral hexapod as the 3D view draws it, before the first pose is drawn.
 BASE_SCENE = hexapod_to_scene(HEXAPOD)

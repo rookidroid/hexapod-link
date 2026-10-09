@@ -1,11 +1,11 @@
-// The 3D view of the hexapod, on every page that shows one.
+// The 3D view of the hexapod, in the middle of the workspace.
 //
 // It draws a scene the server builds (hexapod/scene.py) and nothing else: the
-// kinematics all happen in Python. Each page puts the scene in a dcc.Store and
-// a clientside callback hands it to hexapodView.render() -- see
-// register_view() in pages/shared.py.
+// kinematics all happen in Python. The scene goes in a dcc.Store and a
+// clientside callback hands it to hexapodView.render() -- see
+// pages/page_pose.py.
 //
-// On the pose page's Feet tool (pages/page_pose.py) the view is also editable:
+// With the Feet tool (pages/page_pose.py) the view is also editable:
 // a foot can be clicked to pick it up and dragged with the arrows. A drag
 // becomes a foot target in the "pose-foot-target" store; the server solves the leg's
 // joints and, if the foot can get there, sends back the new scene. A foot that
@@ -260,7 +260,14 @@
         v.renderer.setSize(width, height, false);
         v.camera.aspect = width / height;
         v.camera.updateProjectionMatrix();
-        requestFrame(v);
+        // Resizing the canvas clears it. Drawn again straight away rather than
+        // on the next frame, so it is never caught blank in between: the view
+        // is resized whenever the panels around it change height.
+        if (views[v.id] === v) {
+            v.renderer.render(v.scene, v.camera);
+        } else {
+            requestFrame(v);
+        }
     }
 
     function requestFrame(v) {

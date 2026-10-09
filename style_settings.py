@@ -3,19 +3,6 @@ EXTERNAL_STYLESHEETS = ["/assets/bootstrap.min.css"]
 
 
 # ***************************************
-# GLOBAL PAGE STYLE
-# ***************************************
-
-GLOBAL_PAGE_STYLE = {
-    # Theme tokens from industrial.css, so the light/dark switch reaches them.
-    "background": "var(--ind-bg)",
-    "color": "var(--ind-text)",
-    "padding": "0em",
-    "fontFamily": "'Chakra Petch', sans-serif"
-}
-
-
-# ***************************************
 # HEXAPOD VIEW
 # ***************************************
 
