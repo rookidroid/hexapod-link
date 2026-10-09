@@ -278,3 +278,54 @@ def test_stored_feet_hold_no_negative_zero(robot):
     assert not has_negative_zero(make_keyframe([[-0.0, -0.0, -0.0]] * 6)["feet"])
     pose, _ = feet_to_pose(standby_feet(robot), robot)
     assert not has_negative_zero(pose_to_scene(pose, robot)["legs"][4])
+
+
+def test_a_keyframe_can_be_moved_into_without_easing():
+    """Each keyframe says whether the move into it eases: one that does not
+    (as a gait's) is reached at a steady speed, one that does gently."""
+    robot = ROBOT_CONFIGS["nougat"]
+    start = np.asarray(standby_feet(robot))
+    end = start + [0.0, 20.0, 0.0]
+    steady = [make_keyframe(start.tolist()), make_keyframe(end.tolist(), 500, ease=False)]
+    gentle = [make_keyframe(start.tolist()), make_keyframe(end.tolist(), 500)]
+
+    def y_steps(keyframes):
+        ys = np.array(interpolate_feet(keyframes, fps=20, ease=True))[:, 0, 1]
+        return np.diff(ys)
+
+    np.testing.assert_allclose(y_steps(steady), 2.0)
+    assert y_steps(gentle)[0] < y_steps(gentle)[5]
+
+
+def test_speed_scales_the_whole_sequence():
+    feet = standby_feet(ROBOT_CONFIGS["nougat"])
+    keyframes = [make_keyframe(feet, 100), make_keyframe(feet, 400), make_keyframe(feet, 600)]
+    assert sequence_duration_ms(keyframes, speed=2.0) == 500
+    assert sequence_duration_ms(keyframes, loop=True, speed=0.5) == 2200
+    assert len(interpolate_feet(keyframes, fps=20, speed=2.0)) == 1 + 4 + 6
+    assert len(interpolate_feet(keyframes, fps=20)) == 1 + 8 + 12
+
+
+def test_a_keyframes_easing_is_saved_and_loaded():
+    robot = ROBOT_CONFIGS["nougat"]
+    feet = standby_feet(robot)
+    keyframes = [make_keyframe(feet, 300), make_keyframe(feet, 24, ease=False)]
+    loaded = load(dump(keyframes, robot), robot)
+    assert "ease" not in loaded[0]
+    assert loaded[1]["ease"] is False
+
+    document = json.loads(dump(keyframes, robot))
+    document["keyframes"][1]["ease"] = "no"
+    with pytest.raises(KeyframeFileError):
+        load(json.dumps(document), robot)
+
+
+def test_moves_shorter_than_a_frame_keep_their_time():
+    """A gait's keyframes are a frame or two of the robot's apart, far less
+    than one of the preview's: the preview then skips between them rather
+    than giving each a frame of its own and playing slower."""
+    feet = standby_feet(ROBOT_CONFIGS["nougat"])
+    keyframes = [make_keyframe(feet, 12, ease=False) for _ in range(30)]
+    frames = interpolate_feet(keyframes, fps=25, loop=True)
+    assert len(frames) == round(30 * 0.012 * 25)
+    assert len(interpolate_feet(keyframes, fps=25, loop=True, speed=0.5)) == round(30 * 0.024 * 25)

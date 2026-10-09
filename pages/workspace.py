@@ -4,7 +4,7 @@
          |            |  [dimensions]
          |            |  [angles]                                    [controller]
     ---------------------------------------------------------------------------
-    dock: sequence (keyframes or a gait)  |  playback, then the robot
+    dock: sequence (poses and gaits, as keyframes)  |  playback, then the robot
 
 The rail picks one tool -- Body or Feet -- and only that tool's panel shows;
 the other is hidden but stays mounted, so its callbacks keep firing. What

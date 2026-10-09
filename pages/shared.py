@@ -100,9 +100,9 @@ def make_view(view_id, scene=None, overlay=None, hud=None, controls=None, drive=
 # One screen: the top bar, then the workspace -- the tool rail, the panel of
 # the tool picked on it, the view, and the dock along the bottom. The grid is
 # laid out in the WORKSPACE block of assets/industrial.css, which also
-# decides who scrolls: above `lg` only the tool panel and the dock do, and
-# the view takes whatever height is left; below it everything stacks and the
-# page scrolls as a whole.
+# decides who scrolls: above `lg` only the tool panel does, the dock is as
+# tall as it needs, and the view takes whatever height is left; below it
+# everything stacks and the page scrolls as a whole.
 # ......................
 
 

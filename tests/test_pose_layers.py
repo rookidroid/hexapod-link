@@ -13,7 +13,6 @@ import pytest
 
 from hexapod import keyframes as kf
 from hexapod import pose_layers as pl
-from hexapod.path_generator import generate_poses
 from hexapod.robot_config import GENERIC_CONFIG, get_simulator_dimensions, with_dimensions
 from tests.robots import ROBOT_CONFIGS
 
@@ -194,14 +193,3 @@ def test_a_resized_robot_is_measured_as_asked_and_still_poses(robot):
     np.testing.assert_allclose(
         pl.body_feet(pl.standby_state(), resized), kf.standby_feet(resized), atol=1e-2
     )
-
-
-@pytest.mark.parametrize("robot", ROBOTS, ids=ROBOT_IDS)
-@pytest.mark.parametrize("gait", ["rotate_x", "rotate_y", "rotate_z", "twist", "climb_forward", "walk_0"])
-def test_a_gait_is_drawn_standing_on_the_floor(robot, gait):
-    # The rotate gaits tilt the body over planted feet. Drawn with the body
-    # held level, those feet swung through the floor.
-    for pose in generate_poses(gait, robot):
-        feet = np.array(pl.settled_scene(pose, robot)["feet"])
-        assert feet[:, 2].min() >= -kf.GROUND_TOLERANCE
-        assert (feet[:, 2] <= kf.GROUND_TOLERANCE).sum() >= 3
