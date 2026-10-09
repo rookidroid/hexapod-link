@@ -21,7 +21,7 @@ click>=8.5.0
 itsdangerous>=2.2.0
 Jinja2>=3.1.6
 MarkupSafe>=3.0.3
-Werkzeug>=3.1.8
+Werkzeug>=3.1.9
 retrying>=1.4.2
 
 # WSGI server the app runs on, with or without the native window.
