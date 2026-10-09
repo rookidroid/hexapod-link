@@ -7,8 +7,8 @@
 #
 # Over the view, the joint angles are read out and the pose and the camera
 # can be reset; streaming to the robot and the robot's dimensions are there
-# too (widgets/robot_link_ui.py, widgets/dimensions_ui.py), with the switch
-# between showing the pose and the sequence. Along the bottom, the dock builds
+# too (widgets/robot_link_ui.py, widgets/dimensions_ui.py). Along the bottom,
+# the dock builds
 # a sequence of keyframes -- poses collected here, and the robot's gaits --
 # and plays it: previewing it in the view, and running it on the robot.
 import dash_bootstrap_components as dbc
@@ -91,7 +91,15 @@ POSE_KF_EDITOR_LABEL_ID = "pose-keyframe-editor-label"
 # Pattern-matching id of one entry in the keyframe list.
 POSE_KF_ITEM_TYPE = "pose-keyframe-item"
 
+# What the view shows, MODE_EDIT or MODE_PREVIEW: the pose, or the sequence.
+# Nothing picks it by hand: Play and grabbing the scrubber show the sequence
+# (assets/sequence_scrubber.js), editing the pose or loading a keyframe shows
+# the pose.
 POSE_VIEW_MODE_ID = "pose-view-mode"
+# Where playback came to rest, as {"frame", "n"}: written when it is paused or
+# runs out, and when the scrubber is let go (assets/sequence_scrubber.js).
+# That frame becomes the pose (edit() in pages/page_pose.py).
+POSE_PLAYHEAD_ID = "pose-playhead"
 POSE_LOOP_ID = "pose-loop"
 POSE_KF_EASE_ID = "pose-keyframe-ease"
 POSE_PLAY_BTN_ID = "pose-play-btn"
@@ -177,19 +185,6 @@ def _button(label, button_id=None, color="secondary", outline=False, class_name=
         outline=outline,
         size="sm",
         className=class_name,
-        **props,
-    )
-
-
-def _segmented(component_id, options, value, class_name="", **props):
-    return dbc.RadioItems(
-        id=component_id,
-        options=options,
-        value=value,
-        className=f"ind-segmented {class_name}".strip(),
-        inputClassName="btn-check",
-        labelClassName="btn btn-sm btn-outline-secondary",
-        labelCheckedClassName="active",
         **props,
     )
 
@@ -313,17 +308,6 @@ POSE_MESSAGE = html.Div(id=POSE_MESSAGE_ID, className="panel-message")
 # ................................
 
 VIEW_OVERLAY = [
-    # What the view shows: the pose the tools edit, or the sequence the dock
-    # plays. Playing switches to the sequence, and editing back to the pose.
-    _segmented(
-        POSE_VIEW_MODE_ID,
-        [
-            {"label": "Pose", "value": MODE_EDIT},
-            {"label": "Sequence", "value": MODE_PREVIEW},
-        ],
-        MODE_EDIT,
-        class_name="view-mode",
-    ),
     _button(
         "Reset pose",
         POSE_RESET_BTN_ID,
@@ -584,7 +568,6 @@ playback_section = _section(
                 step=1,
                 value=0,
                 marks=None,
-                disabled=True,
                 updatemode="drag",
                 # The frame counter beside it already says where it is.
                 allow_direct_input=False,
@@ -628,6 +611,8 @@ hidden_components = html.Div(
         dcc.Store(id=POSE_SELECTED_KF_STORE_ID, storage_type="session"),
         dcc.Store(id=POSE_PREVIEW_STORE_ID),
         dcc.Store(id=POSE_PLAY_STATE_STORE_ID, data=False),
+        dcc.Store(id=POSE_VIEW_MODE_ID, data=MODE_EDIT),
+        dcc.Store(id=POSE_PLAYHEAD_ID),
         dcc.Interval(
             id=POSE_INTERVAL_ID,
             interval=1000 // PREVIEW_FPS,

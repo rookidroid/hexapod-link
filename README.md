@@ -220,10 +220,14 @@ sequence are remembered across a reload.
 The dock has two halves. On the left, **Sequence** is what is played: a track
 of keyframes, made of poses of your own and of the robot's gaits. On the
 right, **Playback** previews it in the view and **Robot** runs it on the
-hardware. **Play** switches the view to the sequence and editing the pose
-switches it back; the **Pose** / **Sequence** switch over the view does the
-same by hand. **Speed** plays the whole sequence faster or slower (25-200 %),
-in the view and on the robot, and **Loop** repeats it.
+hardware. **Play**, or dragging the frame slider beside it, plays the
+sequence in the view. Wherever it comes to rest -- paused, run to the end, or
+the slider let go -- that frame becomes the pose, ready to edit: on a
+keyframe, that keyframe is selected; between two, the bar reads **New keyframe
+at** that time, and **+ Add pose at** puts the pose in there, splitting the
+move it was on so that everything after it is still reached when it was.
+**Speed** plays the whole sequence faster or slower (25-200 %), in the view
+and on the robot, and **Loop** repeats it.
 
 **+ Add pose** records the pose as a keyframe. The
 keyframes run along a track, each with the time it is reached; the arrow into

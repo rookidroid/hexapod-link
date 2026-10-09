@@ -18,9 +18,11 @@ from hexapod.keyframes import (
     KeyframeFileError,
     dump,
     feet_to_pose,
+    frame_times,
     ground_height,
     interpolate,
     interpolate_feet,
+    keyframe_times_ms,
     load,
     make_keyframe,
     pose_to_feet,
@@ -329,3 +331,29 @@ def test_moves_shorter_than_a_frame_keep_their_time():
     frames = interpolate_feet(keyframes, fps=25, loop=True)
     assert len(frames) == round(30 * 0.012 * 25)
     assert len(interpolate_feet(keyframes, fps=25, loop=True, speed=0.5)) == round(30 * 0.024 * 25)
+
+
+@pytest.mark.parametrize("loop", [False, True])
+def test_every_frame_knows_where_it_falls_in_the_keyframes_time(loop):
+    """So a frame playback comes to rest on can be put back into the sequence
+    where it was: on the move from one keyframe to the next, so far in, in
+    the keyframes' own time whatever the playback speed."""
+    feet = standby_feet(ROBOT_CONFIGS["nougat"])
+    keyframes = [make_keyframe(feet, 100), make_keyframe(feet, 400), make_keyframe(feet, 200)]
+    for speed in (1.0, 2.0):
+        times = frame_times(keyframes, fps=20, loop=loop, speed=speed)
+        assert len(times) == len(interpolate_feet(keyframes, fps=20, loop=loop, speed=speed))
+        assert times[0] == (0, 0, 0.0)
+        # Half way through the 400 ms move into the second keyframe.
+        assert (0, 1, pytest.approx(200.0)) in [(s, e, ms) for s, e, ms in times]
+        if not loop:
+            assert times[-1] == (1, 2, pytest.approx(200.0))
+    if loop:
+        # The move back round to the first keyframe has frames of its own.
+        assert frame_times(keyframes, fps=20, loop=True)[-1] == (2, 0, pytest.approx(50.0))
+
+
+def test_keyframe_times_add_up_the_moves():
+    feet = standby_feet(ROBOT_CONFIGS["nougat"])
+    keyframes = [make_keyframe(feet, 100), make_keyframe(feet, 400), make_keyframe(feet, 200)]
+    assert keyframe_times_ms(keyframes) == [0, 400, 600]

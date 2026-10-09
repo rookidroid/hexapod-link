@@ -1,6 +1,6 @@
 """The workspace: the whole app below the top bar, on one screen.
 
-    rail | tool panel |  [stream]   3D view  [pose|sequence][reset pose][reset view]
+    rail | tool panel |  [stream]      3D view       [reset pose][reset view]
          |            |  [dimensions]
          |            |  [angles]                                    [controller]
     ---------------------------------------------------------------------------

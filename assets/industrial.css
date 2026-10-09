@@ -1003,49 +1003,7 @@ body {
     white-space: pre-line;
 }
 
-/* ---- Segmented switch ----
-   dbc.RadioItems drawn as joined buttons, the picked one filled. */
-
-.ind-segmented {
-    display: inline-flex;
-    flex-wrap: nowrap;
-}
-
-.ind-segmented .form-check {
-    padding: 0;
-    margin: 0;
-    min-height: 0;
-}
-
-/* One plate cut into segments: only the ends carry the chamfer. */
-.ind-segmented label.btn {
-    display: block;
-    margin: 0;
-    font-size: 0.8rem;
-    clip-path: none;
-}
-
-.ind-segmented .form-check + .form-check label.btn {
-    margin-left: -2px;
-}
-
-.ind-segmented .form-check:first-child label.btn {
-    clip-path: polygon(0 0, 100% 0, 100% 100%, var(--chamfer) 100%, 0 calc(100% - var(--chamfer)));
-}
-
-.ind-segmented .form-check:last-child label.btn {
-    clip-path: polygon(0 0, calc(100% - var(--chamfer)) 0, 100% var(--chamfer), 100% 100%, 0 100%);
-}
-
-.ind-segmented label.btn.active {
-    position: relative;
-    z-index: 1;
-    color: #fff;
-    background: var(--ind-accent);
-    border-color: var(--ind-accent);
-}
-
-/* Checklists (Loop, Ease) as a checkbox and its word. */
+/* Checklists (Loop, Ease in) as a checkbox and its word. */
 .dock-check label.dash-options-list-option {
     display: inline-flex;
     align-items: center;
@@ -1206,27 +1164,6 @@ body {
     --bs-btn-active-border-color: rgba(var(--hud-cyan-rgb), 0.6);
     --bs-btn-border-width: 1px;
     backdrop-filter: blur(6px);
-}
-
-/* Pose | Sequence, beside the reset buttons: a segmented switch drawn for the
-   dark view, the side being shown lit in the accent. */
-.view-mode {
-    margin-right: 0.4rem;
-}
-
-.view-mode label.btn {
-    --bs-btn-color: var(--hud-muted);
-    --bs-btn-bg: var(--hud-bg);
-    --bs-btn-border-color: var(--hud-border);
-    --bs-btn-hover-color: var(--hud-text);
-    --bs-btn-hover-bg: rgba(29, 79, 163, 0.6);
-    --bs-btn-hover-border-color: rgba(var(--hud-cyan-rgb), 0.6);
-    --bs-btn-border-width: 1px;
-    backdrop-filter: blur(6px);
-}
-
-.view-mode label.btn.active {
-    border-color: rgba(var(--hud-cyan-rgb), 0.6);
 }
 
 .hexapod-view-hud {

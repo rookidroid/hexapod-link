@@ -23,7 +23,9 @@
 # What is being edited lives in session stores, so it survives a reload:
 #
 #   pose       {"robot", "state": the layers, "feet": 6x3 in the body frame,
-#               "seq"}
+#               "seq", "at"}; "at" says, for a pose taken from where playback
+#               came to rest between two keyframes, where that is:
+#               {"after": keyframe index, "ms": into the move from it}
 #   keyframes  {"robot", "keyframes": [...]}   see hexapod/keyframes.py
 #   selected   index of the keyframe the pose was loaded from, or None
 #
@@ -85,6 +87,7 @@ from widgets.pose_ui import (
     POSE_MESSAGE_ID,
     POSE_PLAY_BTN_ID,
     POSE_PLAY_STATE_STORE_ID,
+    POSE_PLAYHEAD_ID,
     POSE_PREVIEW_MESSAGE_ID,
     POSE_PREVIEW_STORE_ID,
     POSE_RESET_BTN_ID,
@@ -168,13 +171,22 @@ def _robot(dimensions_json=None):
     return with_dimensions(ROBOT_LINK.robot_config, dimensions)
 
 
-def _pose_store(robot_config, state, seq=0):
-    return {
+def _pose_store(robot_config, state, seq=0, at=None):
+    store = {
         "robot": robot_config["name"],
         "state": state,
         "feet": pl.body_feet(state, robot_config),
         "seq": seq,
     }
+    if at is not None:
+        store["at"] = at
+    return store
+
+
+def _at_ms(frames, at):
+    """When a pose "at" a point of the sequence (see the stores above) is,
+    from the first keyframe, in ms."""
+    return kf.keyframe_times_ms(frames)[at["after"]] + at["ms"]
 
 
 def _fresh_keyframes(robot_config):
@@ -216,7 +228,7 @@ def _keyframe_state(keyframe, robot_config):
         message=Output(POSE_MESSAGE_ID, "children"),
         duration=Output(POSE_DURATION_ID, "value"),
         ease=Output(POSE_KF_EASE_ID, "value"),
-        mode=Output(POSE_VIEW_MODE_ID, "value", allow_duplicate=True),
+        mode=Output(POSE_VIEW_MODE_ID, "data", allow_duplicate=True),
         body_sliders=[Output(widget_id, "value") for widget_id in IK_WIDGETS_IDS],
         foot_fields=[Output(field_id, "value") for field_id in POSE_FOOT_FIELD_IDS],
         foot_fields_off=[Output(field_id, "disabled") for field_id in POSE_FOOT_FIELD_IDS],
@@ -241,6 +253,7 @@ def _keyframe_state(keyframe, robot_config):
         joint_values=[Input(field_id, "value") for field_id in POSE_JOINT_FIELD_IDS],
         duration=Input(POSE_DURATION_ID, "value"),
         ease_values=Input(POSE_KF_EASE_ID, "value"),
+        playhead=Input(POSE_PLAYHEAD_ID, "data"),
         # Resizing the robot moves every foot field and joint.
         dimensions_json=DIMENSIONS_INPUT,
     ),
@@ -248,6 +261,7 @@ def _keyframe_state(keyframe, robot_config):
         pose_store=State(POSE_STATE_STORE_ID, "data"),
         keyframes_store=State(POSE_KEYFRAMES_STORE_ID, "data"),
         selected=State(POSE_SELECTED_KF_STORE_ID, "data"),
+        preview=State(POSE_PREVIEW_STORE_ID, "data"),
     ),
     prevent_initial_call="initial_duplicate",
 )
@@ -270,10 +284,12 @@ def edit(
     joint_values,
     duration,
     ease_values,
+    playhead,
     dimensions_json,
     pose_store,
     keyframes_store,
     selected,
+    preview,
 ):
     """Every change to the pose, the keyframes or which keyframe is selected.
 
@@ -321,11 +337,12 @@ def edit(
 
     state = pose_store["state"]
 
-    def bump(new_state):
+    def bump(new_state, at=pose_store.get("at")):
         # The sequence number makes the pose differ from the one before even
         # when the feet do not, so a refused drag is still redrawn and the
-        # foot springs back to where it was.
-        return _pose_store(robot_config, new_state, pose_store.get("seq", 0) + 1)
+        # foot springs back to where it was. A pose edited stays where in the
+        # sequence it was taken from.
+        return _pose_store(robot_config, new_state, pose_store.get("seq", 0) + 1, at)
 
     def set_frames(new_frames):
         return {"robot": robot_config["name"], "keyframes": new_frames}
@@ -406,13 +423,56 @@ def edit(
         message = ""
 
     elif trigger == POSE_ADD_BTN_ID:
-        index = len(frames) if selected is None else selected + 1
         feet = pl.body_feet(state, robot_config)
         eased = bool(ease_values) and "ease" in ease_values
-        frames.insert(index, kf.make_keyframe(feet, duration, state, ease=eased))
+        at = pose_store.get("at")
+        if selected is None and at and 0 <= at["after"] < len(frames):
+            # Taken from where playback came to rest: it goes in there,
+            # splitting the move it was on. The time field is its share of the
+            # move, as far in as it was; the keyframe after it keeps the rest,
+            # so everything after is reached when it was. It eases as that
+            # move did.
+            index = at["after"] + 1
+            following = frames[index % len(frames)]
+            share = kf.clamp_duration(duration)
+            rest = kf.clamp_duration(following["duration_ms"] - share)
+            frames[index % len(frames)] = {**following, "duration_ms": rest}
+            frames.insert(index, kf.make_keyframe(feet, share, state, ease=kf.eases(following)))
+        else:
+            index = len(frames) if selected is None else selected + 1
+            frames.insert(index, kf.make_keyframe(feet, duration, state, ease=eased))
         out_keyframes = set_frames(frames)
         out_selected = index
         out_duration = frames[index]["duration_ms"]
+        message = ""
+
+    elif trigger == POSE_PLAYHEAD_ID and playhead:
+        # Playback came to rest: the frame it stopped on becomes the pose. On
+        # a keyframe, that keyframe is selected, as if clicked; between two,
+        # nothing is, and the pose remembers where it is in the sequence, for
+        # + Add pose to put it there.
+        frame = playhead.get("frame")
+        if (
+            not isinstance(preview, dict)
+            or preview.get("count") != len(frames)
+            or not isinstance(frame, int)
+            or not 0 <= frame < len(preview.get("states", []))
+        ):
+            raise PreventUpdate
+        start, end, ms = preview["times"][frame]
+        move_ms = kf.clamp_duration(frames[end]["duration_ms"])
+        on_keyframe = start if ms < 0.5 else end if move_ms - ms < 0.5 else None
+        if on_keyframe is not None:
+            out_selected = on_keyframe
+            out_pose = bump(_keyframe_state(frames[on_keyframe], robot_config), at=None)
+        else:
+            raw = preview["states"][frame]
+            out_selected = None
+            out_pose = bump(
+                pl.make_state(raw["body"], raw["offsets"]),
+                at={"after": start, "ms": round(ms, 1)},
+            )
+        out_mode = MODE_EDIT
         message = ""
 
     elif isinstance(trigger, dict) and trigger.get("type") == POSE_GAIT_ITEM_TYPE:
@@ -554,6 +614,17 @@ def edit(
         out_duration = kf.DEFAULT_DURATION_MS
         out_ease = ["ease"]
 
+    # A pose stays "at" its point of the sequence only while the keyframes
+    # are as they were and none is selected; then the bar is the keyframe it
+    # would become: as far into its move as it is, easing as the move does.
+    at = (pose_store if out_pose is no_update else out_pose).get("at")
+    if at and (out_keyframes is not no_update or shown_selected is not None):
+        out_pose = {key: value for key, value in shown_pose.items() if key != "at"}
+    elif at and trigger == POSE_PLAYHEAD_ID:
+        out_duration = max(kf.MIN_DURATION_MS, round(at["ms"]))
+        following = frames[(at["after"] + 1) % len(frames)]
+        out_ease = ["ease"] if kf.eases(following) else []
+
     return dict(
         pose=out_pose,
         keyframes=out_keyframes,
@@ -662,7 +733,7 @@ clientside_callback(
     Output(POSE_RENDER_ACK_ID, "data"),
     Input(POSE_SCENE_STORE_ID, "data"),
     Input(POSE_FRAME_SLIDER_ID, "value"),
-    Input(POSE_VIEW_MODE_ID, "value"),
+    Input(POSE_VIEW_MODE_ID, "data"),
     Input(POSE_PREVIEW_STORE_ID, "data"),
     Input(POSE_TOOL_ID, "value"),
 )
@@ -703,8 +774,6 @@ def _kf_link(label, arrow, title):
 @callback(
     Output(POSE_KF_LIST_ID, "children"),
     Output(POSE_KF_SUMMARY_ID, "children"),
-    Output(POSE_KF_EDITOR_LABEL_ID, "children"),
-    Output(POSE_ADD_BTN_ID, "children"),
     Output(POSE_UPDATE_BTN_ID, "children"),
     Output(POSE_UPDATE_BTN_ID, "disabled"),
     Output(POSE_DELETE_BTN_ID, "disabled"),
@@ -765,21 +834,34 @@ def list_keyframes(keyframes_store, selected, loop_values):
         summary = ""
 
     if selected is None:
-        return items, summary, "New keyframe", "+ Add pose", "Save pose", True, True, True, True
+        return items, summary, "Save pose", True, True, True, True
 
     number = selected + 1
     last = selected == len(frames) - 1
-    return (
-        items,
-        summary,
-        f"Keyframe #{number}",
-        "+ Add pose" if last else f"+ Insert after #{number}",
-        f"Save pose to #{number}",
-        False,
-        False,
-        selected == 0,
-        last,
-    )
+    return items, summary, f"Save pose to #{number}", False, False, selected == 0, last
+
+
+@callback(
+    Output(POSE_KF_EDITOR_LABEL_ID, "children"),
+    Output(POSE_ADD_BTN_ID, "children"),
+    Input(POSE_KEYFRAMES_STORE_ID, "data"),
+    Input(POSE_SELECTED_KF_STORE_ID, "data"),
+    Input(POSE_STATE_STORE_ID, "data"),
+)
+def label_editor(keyframes_store, selected, pose_store):
+    """What the bar is about, and where + Add pose puts the pose: after the
+    keyframe selected, at the point of the sequence the pose was taken from,
+    or at the end."""
+    frames = keyframes_store["keyframes"] if isinstance(keyframes_store, dict) else []
+    at = pose_store.get("at") if isinstance(pose_store, dict) else None
+    if selected is not None and 0 <= selected < len(frames):
+        number = selected + 1
+        last = selected == len(frames) - 1
+        return f"Keyframe #{number}", "+ Add pose" if last else f"+ Insert after #{number}"
+    if at and 0 <= at["after"] < len(frames):
+        seconds = _at_ms(frames, at) / 1000.0
+        return f"New keyframe at {seconds:.2f} s", f"+ Add pose at {seconds:.2f} s"
+    return "New keyframe", "+ Add pose"
 
 
 @callback(
@@ -862,11 +944,20 @@ def build_preview(keyframes_store, loop_values, speed_pct, dimensions_json):
         states = [pl.from_feet(frame_feet, robot_config) for frame_feet in feet]
     scenes = [pl.scene(state, pose, robot_config) for state, pose in zip(states, poses)]
     message = _bad_frames_message(bad_frames, len(poses)) if bad_frames else ""
-    preview = {"scenes": scenes, "fps": PREVIEW_FPS}
+    # With each frame's layers and where it falls among the keyframes, so a
+    # frame playback comes to rest on can become the pose (edit()).
+    preview = {
+        "scenes": scenes,
+        "fps": PREVIEW_FPS,
+        "states": states,
+        "times": kf.frame_times(frames, PREVIEW_FPS, loop, speed),
+        "count": len(frames),
+    }
     return preview, max(len(scenes) - 1, 1), 0, message
 
 
-# Play/Pause. Playing always shows the sequence, so it switches to it.
+# Play/Pause. Playing always shows the sequence, so it switches to it; pausing
+# makes the frame it stopped on the pose.
 clientside_callback(
     """
     function(n_clicks, is_playing, frame, max_frame) {
@@ -875,13 +966,16 @@ clientside_callback(
         if (playing && frame >= max_frame) {
             next = 0;
         }
+        var skip = window.dash_clientside.no_update;
         return [
             playing,
             playing ? "⏸ Pause" : "▶ Play",
             playing ? "danger" : "primary",
             !playing,
             next,
-            playing ? "%s" : window.dash_clientside.no_update,
+            playing ? "%s" : skip,
+            // Paused: the frame it stopped on becomes the pose.
+            playing ? skip : {frame: frame, n: Date.now()},
         ];
     }
     """
@@ -891,7 +985,8 @@ clientside_callback(
     Output(POSE_PLAY_BTN_ID, "color"),
     Output(POSE_INTERVAL_ID, "disabled"),
     Output(POSE_FRAME_SLIDER_ID, "value", allow_duplicate=True),
-    Output(POSE_VIEW_MODE_ID, "value", allow_duplicate=True),
+    Output(POSE_VIEW_MODE_ID, "data", allow_duplicate=True),
+    Output(POSE_PLAYHEAD_ID, "data", allow_duplicate=True),
     Input(POSE_PLAY_BTN_ID, "n_clicks"),
     State(POSE_PLAY_STATE_STORE_ID, "data"),
     State(POSE_FRAME_SLIDER_ID, "value"),
@@ -909,11 +1004,13 @@ clientside_callback(
             if (loop) {
                 next = 0;
             } else {
-                return [max_frame, false, "▶ Play", "primary", true];
+                // Run out: the last frame becomes the pose.
+                var rest = {frame: max_frame, n: Date.now()};
+                return [max_frame, false, "▶ Play", "primary", true, rest];
             }
         }
         var skip = window.dash_clientside.no_update;
-        return [next, skip, skip, skip, skip];
+        return [next, skip, skip, skip, skip, skip];
     }
     """,
     Output(POSE_FRAME_SLIDER_ID, "value", allow_duplicate=True),
@@ -921,6 +1018,7 @@ clientside_callback(
     Output(POSE_PLAY_BTN_ID, "children", allow_duplicate=True),
     Output(POSE_PLAY_BTN_ID, "color", allow_duplicate=True),
     Output(POSE_INTERVAL_ID, "disabled", allow_duplicate=True),
+    Output(POSE_PLAYHEAD_ID, "data", allow_duplicate=True),
     Input(POSE_INTERVAL_ID, "n_intervals"),
     State(POSE_FRAME_SLIDER_ID, "value"),
     State(POSE_FRAME_SLIDER_ID, "max"),
@@ -928,16 +1026,14 @@ clientside_callback(
     prevent_initial_call=True,
 )
 
-# Back to the pose stops playback; the scrubber only means something while
-# the sequence is shown.
+# Back to the pose -- the pose edited, or a keyframe loaded -- stops playback.
 clientside_callback(
     """
     function(mode) {
         if (mode === "%s") {
-            return [false, "▶ Play", "primary", true, true];
+            return [false, "▶ Play", "primary", true];
         }
-        var skip = window.dash_clientside.no_update;
-        return [skip, skip, skip, skip, false];
+        return window.dash_clientside.no_update;
     }
     """
     % MODE_EDIT,
@@ -945,9 +1041,8 @@ clientside_callback(
     Output(POSE_PLAY_BTN_ID, "children", allow_duplicate=True),
     Output(POSE_PLAY_BTN_ID, "color", allow_duplicate=True),
     Output(POSE_INTERVAL_ID, "disabled", allow_duplicate=True),
-    Output(POSE_FRAME_SLIDER_ID, "disabled"),
-    Input(POSE_VIEW_MODE_ID, "value"),
-    prevent_initial_call="initial_duplicate",
+    Input(POSE_VIEW_MODE_ID, "data"),
+    prevent_initial_call=True,
 )
 
 clientside_callback(

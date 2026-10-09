@@ -257,6 +257,28 @@ def interpolate_arrays(points, keyframes, fps, loop=False, ease=True, speed=1.0)
     return frames
 
 
+def frame_times(keyframes, fps, loop=False, speed=1.0):
+    """For each frame interpolate_arrays() gives, where it falls in the
+    keyframes' own time, whatever the speed: (start, end, ms), `ms` into the
+    move from keyframe `start` to keyframe `end`. The first frame is (0, 0, 0)."""
+    if not keyframes:
+        return []
+    return [
+        (start, end, t * clamp_duration(keyframes[end]["duration_ms"]) if t else 0.0)
+        for start, end, t in _samples(keyframes, fps, loop, speed)
+    ]
+
+
+def keyframe_times_ms(keyframes):
+    """When each keyframe is reached, from the first, in ms."""
+    times, total = [], 0
+    for index, frame in enumerate(keyframes):
+        if index:
+            total += clamp_duration(frame["duration_ms"])
+        times.append(total)
+    return times
+
+
 def interpolate(keyframes, robot_config, fps, loop=False, ease=True, speed=1.0):
     """Simulator poses frame by frame through the keyframes.
 
