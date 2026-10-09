@@ -1,10 +1,10 @@
 """The workspace: the whole app below the top bar, on one screen.
 
-    rail | tool panel |  [stream]      3D view  [reset pose][reset view]
+    rail | tool panel |  [stream]   3D view  [pose|sequence][reset pose][reset view]
          |            |  [dimensions]
          |            |  [angles]
-    ---------------------------------------------------------------
-    dock: what is played (keyframes or a gait), then playing it
+    ---------------------------------------------------------------------------
+    dock: sequence (keyframes or a gait)  |  playback, then the robot
 
 The rail picks one tool -- Body or Feet -- and only that tool's panel shows;
 the other is hidden but stays mounted, so its callbacks keep firing. What

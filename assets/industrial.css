@@ -1210,6 +1210,27 @@ body {
     backdrop-filter: blur(6px);
 }
 
+/* Pose | Sequence, beside the reset buttons: a segmented switch drawn for the
+   dark view, the side being shown lit in the accent. */
+.view-mode {
+    margin-right: 0.4rem;
+}
+
+.view-mode label.btn {
+    --bs-btn-color: var(--hud-muted);
+    --bs-btn-bg: var(--hud-bg);
+    --bs-btn-border-color: var(--hud-border);
+    --bs-btn-hover-color: var(--hud-text);
+    --bs-btn-hover-bg: rgba(29, 79, 163, 0.6);
+    --bs-btn-hover-border-color: rgba(var(--hud-cyan-rgb), 0.6);
+    --bs-btn-border-width: 1px;
+    backdrop-filter: blur(6px);
+}
+
+.view-mode label.btn.active {
+    border-color: rgba(var(--hud-cyan-rgb), 0.6);
+}
+
 .hexapod-view-hud {
     position: absolute;
     left: 12px;
@@ -1311,33 +1332,76 @@ body {
 
 /* ===========================================
    DOCK
-   Two rows: what is played (the keyframes or a gait), then playing it, in
-   the view and on the robot. Each row wraps when the window is narrow.
+   Two columns: on the left the sequence -- the keyframes, or a gait -- and
+   on the right playing it, in the view and then on the robot. Each block is
+   titled like a panel section, with what belongs to it on the same line.
+   The columns stack below `lg`, with the rest of the workspace.
    =========================================== */
 
 .dock {
-    display: flex;
-    flex-direction: column;
-    gap: 0.55rem;
-    padding: 0.6rem 0.9rem 0.7rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(22rem, 38%, 34rem);
 }
 
-.dock-row,
+.dock-col {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.dock-col-run {
+    border-left: 1px solid var(--ind-border);
+}
+
+.dock-section + .dock-section {
+    border-top: 1px solid var(--ind-border);
+}
+
+.dock-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.5rem 0.9rem 0.6rem;
+}
+
+.dock-section-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.6rem;
+    min-height: 2rem;
+}
+
+/* As the tool panel's section titles, a size down. */
+.dock-section-title {
+    flex: 0 0 auto;
+    margin: 0;
+    padding-bottom: 0.15rem;
+    font-family: var(--font-display);
+    font-size: 0.66rem;
+    font-weight: 400;
+    font-synthesis: none;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ind-text);
+    border-bottom: 2px solid var(--ind-accent-alt);
+}
+
 .dock-part {
+    flex: 1 1 auto;
+    min-width: 0;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 0.5rem 0.9rem;
 }
 
-.dock-row + .dock-row {
-    padding-top: 0.55rem;
-    border-top: 1px solid var(--ind-border);
-}
-
-.dock-part {
-    flex: 1 1 auto;
-    min-width: 0;
+/* The keyframes part: the track, then the editor under it. */
+.dock-part-stack {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 0.5rem;
 }
 
 .dock-group {
@@ -1346,13 +1410,13 @@ body {
     gap: 0.4rem;
 }
 
-.dock-grow {
-    flex: 1 1 18rem;
-    min-width: 0;
+.dock-push {
+    margin-left: auto;
 }
 
-.dock-source {
-    flex: 0 0 auto;
+.dock-grow {
+    flex: 1 1 14rem;
+    min-width: 0;
 }
 
 .dock-note {
@@ -1367,14 +1431,7 @@ body {
     display: none;
 }
 
-.dock-divider {
-    align-self: stretch;
-    width: 1px;
-    background: var(--ind-border);
-}
-
 .dock-robot-message {
-    flex: 1 1 12rem;
     white-space: normal;
 }
 
@@ -1387,7 +1444,7 @@ body {
 }
 
 .ind-duration-input {
-    width: 7rem;
+    width: 6.5rem;
     flex-wrap: nowrap;
 }
 
@@ -1400,12 +1457,12 @@ body {
 }
 
 .ind-play-btn {
-    min-width: 6rem;
+    min-width: 5.5rem;
 }
 
 .ind-dock-scrubber {
-    flex: 1 1 8rem;
-    min-width: 6rem;
+    flex: 1 1 3rem;
+    min-width: 3rem;
 }
 
 .ind-dock-scrubber .dash-slider-container {
@@ -1436,50 +1493,156 @@ body {
     gap: 0.5rem;
 }
 
-/* The keyframes, in order, as a row of chips that scrolls sideways. */
-.ind-kf-strip {
-    flex: 0 1 auto;
+/* ---- Keyframe track ----
+   The keyframes in order as cards, joined by arrows that carry the time each
+   move takes; it scrolls sideways when they do not fit. */
+
+.dock-track {
     display: flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: 0.75rem;
+}
+
+.ind-kf-strip {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
     min-width: 0;
     overflow-x: auto;
-    padding: 2px 0;
+    padding: 3px 0;
 }
 
-.ind-kf-strip > .small {
-    white-space: nowrap;
+.dock-add-btn {
+    flex: 0 0 auto;
 }
 
-.ind-kf-chip {
+.dock-empty {
+    flex: 1 1 auto;
+    padding: 0.45rem 0.7rem;
+    font-size: 0.82rem;
+    color: var(--ind-text-muted);
+    border: 1px dashed var(--ind-border-strong);
+}
+
+.ind-kf-card {
     flex: 0 0 auto;
     display: inline-flex;
-    gap: 0.4rem;
-    padding: 0.18rem 0.6rem;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 4rem;
+    padding: 0.22rem 0.65rem 0.28rem;
     font-family: var(--font-mono);
-    font-size: 0.74rem;
-    font-weight: 500;
-    white-space: nowrap;
+    line-height: 1.2;
+    text-align: left;
     color: var(--ind-text);
     background: var(--ind-surface-alt);
     border: 1px solid var(--ind-frame);
-    --chamfer: 5px;
+    --chamfer: 6px;
     clip-path: var(--chamfer-clip);
     transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
-.ind-kf-chip:hover {
+.ind-kf-card:hover {
     border-color: var(--ind-accent);
+    background: var(--ind-hover);
 }
 
-.ind-kf-chip.active {
+.ind-kf-card.active {
     color: #fff;
     background: var(--ind-accent);
     border-color: var(--ind-accent);
 }
 
 .ind-kf-index {
+    font-size: 0.8rem;
     font-weight: 700;
+}
+
+.ind-kf-time {
+    font-size: 0.66rem;
+    color: var(--ind-text-muted);
+}
+
+.ind-kf-card.active .ind-kf-time {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* The time over a line that ends in an arrowhead (or, looping, in ↺). */
+.ind-kf-link {
+    flex: 0 0 auto;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: stretch;
+    min-width: 3.8rem;
+    padding: 0 0.15rem;
+    font-family: var(--font-mono);
+    text-align: center;
+    white-space: nowrap;
+    cursor: default;
+}
+
+.ind-kf-link-label {
+    font-size: 0.66rem;
+    color: var(--ind-text-muted);
+}
+
+.ind-kf-arrow {
+    display: flex;
+    align-items: center;
+    font-size: 0.8rem;
+    line-height: 0.8;
+    color: var(--ind-border-strong);
+}
+
+.ind-kf-arrow::before {
+    content: '';
+    flex: 1 1 auto;
+    height: 1px;
+    background: currentColor;
+}
+
+/* ---- Keyframe editor ----
+   Under the track, about the card selected: tinted and edged in the accent
+   so it reads as belonging to it. */
+
+.dock-kf-editor {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.6rem;
+    padding: 0.35rem 0.6rem;
+    background: var(--ind-input-bg);
+    border-left: 3px solid var(--ind-accent);
+}
+
+.dock-kf-label {
+    min-width: 7.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.dock-inline-field {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.dock-inline-field .ind-field-label {
+    margin: 0;
+    overflow: visible;
+}
+
+@media (max-width: 991.98px) {
+    .dock {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .dock-col-run {
+        border-left: none;
+        border-top: 1px solid var(--ind-border);
+    }
 }
 
 /* ===========================================

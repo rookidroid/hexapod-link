@@ -215,26 +215,35 @@ and with **Stream to robot** on, in the view's top-left corner, every
 reachable pose is sent to the servos as it changes. The tool and what the dock plays are remembered across
 a reload.
 
-The dock plays a sequence: the **Keyframes** collected here, or a **Gait**.
-**Play** previews it in the view (**Pose** / **Sequence** switch the view
-between the pose being edited and the preview), **Loop** repeats it there and
-on the robot, and **Run on robot** runs it on the hardware.
+The dock has two halves. On the left, **Sequence** is what is played: the
+**Keyframes** collected here, or a **Gait**. On the right, **Playback**
+previews it in the view and **Robot** runs it on the hardware. **Play**
+switches the view to the sequence and editing the pose switches it back; the
+**Pose** / **Sequence** switch over the view does the same by hand. **Loop**
+repeats the sequence, in the view and on the robot.
 
-With **Keyframes**, **+ Add** records the pose as a keyframe with the time it
-takes to get there from the one before; click a keyframe to load it back.
-**Run on robot** streams the keyframes to the hardware in real time, smoothed
-to the robot's own frame rate (with gentle starts and stops, unless **Ease**
-is off). Between keyframes each layer moves on its own, so a body tilting
+With **Keyframes**, **+ Add pose** records the pose as a keyframe. The
+keyframes run along a track, each with the time it is reached; the arrow into
+each one shows how long the move there takes, and with **Loop** on a last
+arrow shows the move back to the start. Click a keyframe to load it back into
+the pose and select it. The bar under the track edits the selected keyframe:
+its **Transition** time is changed as soon as it is typed, **Save pose to
+#n** overwrites it with the pose, **◀** / **▶** move it, and **Delete**
+removes it. With a keyframe selected, **+ Insert after #n** puts the next one
+straight after it. **Run on robot** streams the keyframes to the hardware in
+real time, smoothed to the robot's own frame rate (with gentle starts and
+stops, unless **Ease** is off). Between keyframes each layer moves on its own, so a body tilting
 from one keyframe to the next tilts over planted feet, while a moved foot
 travels in a straight line: add a keyframe in between to lift a foot over
 rather than dragging it along the floor. Sequences save to and load from
 JSON files, which only load on the robot they were made for.
 
 With **Gait**, pick one of the gaits the path tool generates; it is shown
-played at the robot's own timing. **Run on robot** either triggers the
-robot's own built-in gait (**Robot's own**, recommended; the ESP32 plays it
-from flash so smoothness does not depend on WiFi), or streams the simulator's
-frames for paths the firmware does not have (**Stream frames**). **Speed**
+played at the robot's own timing. Beside **Run on robot**, choose whether the
+robot plays its own built-in gait (**Robot's own**, recommended; the ESP32
+plays it from flash so smoothness does not depend on WiFi), or is streamed
+the simulator's frames, for paths the firmware does not have (**Stream
+frames**). **Speed**
 (20-100 % of the robot's tuned rate) applies to both and to the preview, and
 is sent to the robot as soon as it changes.
 

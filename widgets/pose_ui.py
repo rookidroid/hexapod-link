@@ -7,9 +7,10 @@
 #
 # Over the view, the joint angles are read out and the pose and the camera
 # can be reset; streaming to the robot and the robot's dimensions are there
-# too (widgets/robot_link_ui.py, widgets/dimensions_ui.py). Along the bottom, the dock plays a sequence, which is either
-# the keyframes collected here or one of the robot's gaits: previewing it in
-# the view, and running it on the robot.
+# too (widgets/robot_link_ui.py, widgets/dimensions_ui.py), with the switch
+# between showing the pose and the sequence. Along the bottom, the dock builds
+# a sequence -- the keyframes collected here, or one of the robot's gaits --
+# and plays it: previewing it in the view, and running it on the robot.
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
@@ -87,6 +88,7 @@ POSE_EARLIER_BTN_ID = "pose-earlier-btn"
 POSE_LATER_BTN_ID = "pose-later-btn"
 POSE_KF_LIST_ID = "pose-keyframe-list"
 POSE_KF_SUMMARY_ID = "pose-keyframe-summary"
+POSE_KF_EDITOR_LABEL_ID = "pose-keyframe-editor-label"
 # Pattern-matching id of one entry in the keyframe list.
 POSE_KF_ITEM_TYPE = "pose-keyframe-item"
 
@@ -108,11 +110,19 @@ POSE_SOURCE_ID = "pose-source"
 SOURCE_KEYFRAMES = "keyframes"
 SOURCE_GAIT = "gait"
 SOURCES = (SOURCE_KEYFRAMES, SOURCE_GAIT)
-# The part of the dock that belongs to each source, shown only with it.
-POSE_SOURCE_PART_IDS = {
-    SOURCE_KEYFRAMES: "pose-keyframes-part",
-    SOURCE_GAIT: "pose-gait-part",
-}
+# The parts of the dock that belong to one source, shown only with it: the
+# keyframe track and editor, the keyframes' summary, ease and file buttons,
+# the gait picker and speed, and how the robot plays a gait.
+POSE_KEYFRAMES_PART_ID = "pose-keyframes-part"
+POSE_KF_TOOLS_ID = "pose-keyframes-tools"
+POSE_GAIT_PART_ID = "pose-gait-part"
+POSE_GAIT_ROBOT_PART_ID = "pose-gait-robot-part"
+POSE_SOURCE_PARTS = (
+    (POSE_KEYFRAMES_PART_ID, SOURCE_KEYFRAMES),
+    (POSE_KF_TOOLS_ID, SOURCE_KEYFRAMES),
+    (POSE_GAIT_PART_ID, SOURCE_GAIT),
+    (POSE_GAIT_ROBOT_PART_ID, SOURCE_GAIT),
+)
 POSE_GAIT_ID = "pose-gait"
 POSE_GAIT_MODE_ID = "pose-gait-mode"
 POSE_GAIT_SPEED_ID = "pose-gait-speed"
@@ -170,10 +180,6 @@ def _button(label, button_id=None, color="secondary", outline=False, class_name=
         className=class_name,
         **props,
     )
-
-
-def _row(children, class_name=""):
-    return html.Div(children, className=f"dock-row {class_name}".strip())
 
 
 def _group(children, class_name=""):
@@ -312,6 +318,17 @@ POSE_MESSAGE = html.Div(id=POSE_MESSAGE_ID, className="panel-message")
 # ................................
 
 VIEW_OVERLAY = [
+    # What the view shows: the pose the tools edit, or the sequence the dock
+    # plays. Playing switches to the sequence, and editing back to the pose.
+    _segmented(
+        POSE_VIEW_MODE_ID,
+        [
+            {"label": "Pose", "value": MODE_EDIT},
+            {"label": "Sequence", "value": MODE_PREVIEW},
+        ],
+        MODE_EDIT,
+        class_name="view-mode",
+    ),
     _button(
         "Reset pose",
         POSE_RESET_BTN_ID,
@@ -343,82 +360,146 @@ ANGLES_HUD = html.Details(
 # ................................
 # DOCK
 #
-# Two rows across the bottom of the window: what is played (the keyframes
-# being collected, or a gait), then playing it -- in the view, and on the
-# robot.
+# Two columns across the bottom of the window. On the left, the sequence:
+# what is played -- the keyframes being collected, or a gait -- and, for the
+# keyframes, the track of them and an editor for the one selected. On the
+# right, playing it: in the view, then on the robot.
 # ................................
 
-keyframes_part = html.Div(
+
+def _section(title, children, head=None, class_name=""):
+    """A titled block of the dock: the title, with `head` beside it, over the
+    block's rows."""
+    head_row = html.Div(
+        [html.H6(title, className="dock-section-title"), *(head or [])],
+        className="dock-section-head",
+    )
+    return html.Section(
+        [head_row, *children],
+        className=f"dock-section {class_name}".strip(),
+    )
+
+
+# Beside the source switch, for the keyframes only: their count and length,
+# how they are played, and their file.
+keyframes_tools = html.Div(
     [
-        _group(
-            [
-                html.Div(id=POSE_KF_LIST_ID, className="ind-kf-strip"),
-                html.Div(id=POSE_KF_SUMMARY_ID, className="dock-note"),
-            ],
-            "dock-grow",
-        ),
-        _group(
+        html.Div(id=POSE_KF_SUMMARY_ID, className="dock-note"),
+        html.Div(
             [
                 html.Div(
-                    dbc.InputGroup(
-                        [
-                            dbc.Input(
-                                id=POSE_DURATION_ID,
-                                type="number",
-                                min=MIN_DURATION_MS,
-                                max=MAX_DURATION_MS,
-                                step=10,
-                                value=DEFAULT_DURATION_MS,
-                            ),
-                            dbc.InputGroupText("ms"),
-                        ],
-                        size="sm",
-                        className="ind-duration-input",
+                    dcc.Checklist(
+                        id=POSE_EASE_ID,
+                        options=[{"label": "Ease", "value": "ease"}],
+                        value=["ease"],
+                        className="dock-check",
                     ),
-                    title="Time to reach this pose from the keyframe before it",
+                    title="Start and stop each move gently rather than with a jolt",
                 ),
-                _button(
-                    "+ Add",
-                    POSE_ADD_BTN_ID,
-                    color="primary",
-                    title="Add the pose after the selected keyframe",
-                ),
-                _button(
-                    "Update",
-                    POSE_UPDATE_BTN_ID,
-                    outline=True,
-                    title="Overwrite the selected keyframe with the pose",
-                ),
-                _button("Delete", POSE_DELETE_BTN_ID, color="danger", outline=True),
-                html.Div(
-                    [
-                        _button("◀", POSE_EARLIER_BTN_ID, outline=True, title="Move earlier"),
-                        _button("▶", POSE_LATER_BTN_ID, outline=True, title="Move later"),
-                    ],
-                    className="btn-group",
-                ),
-            ]
-        ),
-        _group(
-            [
-                dcc.Checklist(
-                    id=POSE_EASE_ID,
-                    options=[{"label": "Ease", "value": "ease"}],
-                    value=["ease"],
-                    className="dock-check",
-                ),
-                _button("Save…", POSE_SAVE_BTN_ID, outline=True),
                 dcc.Upload(
-                    _button("Load…", outline=True),
+                    _button("Load…", outline=True, title="Load keyframes from a file"),
                     id=POSE_UPLOAD_ID,
                     accept=".json,application/json",
                 ),
+                _button(
+                    "Save…", POSE_SAVE_BTN_ID, outline=True, title="Save the keyframes to a file"
+                ),
                 dcc.Download(id=POSE_DOWNLOAD_ID),
-            ]
+            ],
+            className="dock-group dock-push",
         ),
     ],
-    id=POSE_SOURCE_PART_IDS[SOURCE_KEYFRAMES],
+    id=POSE_KF_TOOLS_ID,
     className="dock-part",
+)
+
+keyframes_part = html.Div(
+    [
+        # The keyframes in order, each with when it is reached and, on the
+        # arrow into it, how long it takes to get there (list_keyframes in
+        # pages/page_pose.py).
+        html.Div(
+            [
+                html.Div(id=POSE_KF_LIST_ID, className="ind-kf-strip"),
+                _button(
+                    "+ Add pose",
+                    POSE_ADD_BTN_ID,
+                    color="primary",
+                    class_name="dock-add-btn",
+                    title="Record the pose as a keyframe",
+                ),
+            ],
+            className="dock-track",
+        ),
+        # The keyframe selected; with none, the time is the next one's.
+        html.Div(
+            [
+                html.Span("New keyframe", id=POSE_KF_EDITOR_LABEL_ID, className="dock-kf-label"),
+                html.Div(
+                    [
+                        field_label("Transition"),
+                        dbc.InputGroup(
+                            [
+                                # Applied when the field is left or Enter is
+                                # pressed, not per digit.
+                                dbc.Input(
+                                    id=POSE_DURATION_ID,
+                                    type="number",
+                                    min=MIN_DURATION_MS,
+                                    max=MAX_DURATION_MS,
+                                    step=10,
+                                    value=DEFAULT_DURATION_MS,
+                                    debounce=True,
+                                ),
+                                dbc.InputGroupText("ms"),
+                            ],
+                            size="sm",
+                            className="ind-duration-input",
+                        ),
+                    ],
+                    className="dock-inline-field",
+                    title="Time to reach this keyframe from the one before it",
+                ),
+                _button(
+                    "Save pose",
+                    POSE_UPDATE_BTN_ID,
+                    outline=True,
+                    disabled=True,
+                    title="Overwrite the selected keyframe with the pose",
+                ),
+                html.Div(
+                    [
+                        _button(
+                            "◀",
+                            POSE_EARLIER_BTN_ID,
+                            outline=True,
+                            disabled=True,
+                            title="Move earlier",
+                        ),
+                        _button(
+                            "▶",
+                            POSE_LATER_BTN_ID,
+                            outline=True,
+                            disabled=True,
+                            title="Move later",
+                        ),
+                    ],
+                    className="btn-group",
+                ),
+                _button(
+                    "Delete",
+                    POSE_DELETE_BTN_ID,
+                    color="danger",
+                    outline=True,
+                    disabled=True,
+                    title="Delete the selected keyframe",
+                ),
+            ],
+            className="dock-kf-editor",
+        ),
+    ],
+    id=POSE_KEYFRAMES_PART_ID,
+    className="dock-part dock-part-stack",
 )
 
 # Gait speed, as a percent of the robot's tuned frame rate: how fast the robot
@@ -430,17 +511,6 @@ gait_part = html.Div(
         _group(
             dbc.Select(id=POSE_GAIT_ID, options=MOTION_TYPES, value="walk_0", size="sm"),
             "dock-gait-select",
-        ),
-        _group(
-            _segmented(
-                POSE_GAIT_MODE_ID,
-                [
-                    {"label": "Robot's own", "value": GAIT_NATIVE},
-                    {"label": "Stream frames", "value": GAIT_STREAM},
-                ],
-                GAIT_NATIVE,
-            ),
-            "dock-gait-mode",
         ),
         html.Div(
             [
@@ -458,18 +528,19 @@ gait_part = html.Div(
             className="ind-inline-slider dock-grow",
             title=(
                 "How fast the robot plays the gait, of its tuned rate; the "
-                "preview plays at the same speed. Played from flash, the "
-                "robot's own gait is smoother than streamed frames."
+                "preview plays at the same speed."
             ),
         ),
     ],
-    id=POSE_SOURCE_PART_IDS[SOURCE_GAIT],
+    id=POSE_GAIT_PART_ID,
     className="dock-part",
     style={"display": "none"},
 )
 
-sequence_row = _row(
-    [
+sequence_section = _section(
+    "Sequence",
+    [keyframes_part, gait_part, html.Div(id=POSE_PREVIEW_MESSAGE_ID, className="dock-message")],
+    head=[
         _segmented(
             POSE_SOURCE_ID,
             [
@@ -477,27 +548,20 @@ sequence_row = _row(
                 {"label": "Gait", "value": SOURCE_GAIT},
             ],
             SOURCE_KEYFRAMES,
-            class_name="dock-source",
             persistence=True,
             persistence_type="session",
         ),
-        keyframes_part,
-        gait_part,
-    ]
+        keyframes_tools,
+    ],
+    class_name="dock-sequence",
 )
 
-# The view shows the pose (which the tools edit) or the sequence (which plays).
-transport_row = _row(
-    [
-        _segmented(
-            POSE_VIEW_MODE_ID,
-            [
-                {"label": "Pose", "value": MODE_EDIT},
-                {"label": "Sequence", "value": MODE_PREVIEW},
-            ],
-            MODE_EDIT,
-            class_name="dock-source",
-        ),
+# One line each: the transport beside its title, the robot's buttons beside
+# theirs, so the dock takes no more height than the sequence needs.
+playback_section = _section(
+    "Playback",
+    [],
+    head=[
         _button("▶ Play", POSE_PLAY_BTN_ID, color="primary", class_name="ind-play-btn"),
         html.Div(
             dcc.Slider(
@@ -522,7 +586,19 @@ transport_row = _row(
             value=[],
             className="dock-check",
         ),
-        html.Div(className="dock-divider"),
+    ],
+)
+
+robot_section = _section(
+    "Robot",
+    [
+        html.Div(
+            "Connect a robot to run this on the hardware.",
+            id=POSE_ROBOT_MESSAGE_ID,
+            className="dock-note dock-robot-message",
+        ),
+    ],
+    head=[
         html.Div(
             [
                 _button("▶ Run on robot", POSE_RUN_BTN_ID, color="success", disabled=True),
@@ -531,12 +607,26 @@ transport_row = _row(
             id=POSE_ROBOT_CONTROLS_ID,
             className=f"d-flex gap-2 {SECTION_CONTROLS_OFFLINE_CLASS}",
         ),
+        # Only a gait can be played from the robot's own flash.
         html.Div(
-            "Connect a robot to run this on the hardware.",
-            id=POSE_ROBOT_MESSAGE_ID,
-            className="dock-note dock-robot-message",
+            _segmented(
+                POSE_GAIT_MODE_ID,
+                [
+                    {"label": "Robot's own", "value": GAIT_NATIVE},
+                    {"label": "Stream frames", "value": GAIT_STREAM},
+                ],
+                GAIT_NATIVE,
+            ),
+            id=POSE_GAIT_ROBOT_PART_ID,
+            title=(
+                "Robot's own: the robot plays its built-in gait from flash, "
+                "smoother than streamed frames. Stream frames: the "
+                "simulator's frames are sent over WiFi, for gaits the robot "
+                "does not have."
+            ),
+            style={"display": "none"},
         ),
-    ]
+    ],
 )
 
 # The pose and the sequence being built live in session storage, so they
@@ -557,14 +647,15 @@ hidden_components = html.Div(
             n_intervals=0,
             disabled=True,
         ),
-    ]
+    ],
+    # Nothing to see, and kept out of the dock's grid.
+    style={"display": "none"},
 )
 
 POSE_DOCK = html.Div(
     [
-        sequence_row,
-        transport_row,
-        html.Div(id=POSE_PREVIEW_MESSAGE_ID, className="dock-message"),
+        html.Div(sequence_section, className="dock-col"),
+        html.Div([playback_section, robot_section], className="dock-col dock-col-run"),
         hidden_components,
     ],
     className="dock",
