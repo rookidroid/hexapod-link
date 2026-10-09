@@ -20,7 +20,7 @@ from hexapod.path_generator import (
 )
 from hexapod.robot_config import get_leg_signs
 from tests.robots import ROBOT_CONFIGS
-from widgets.motion_ui import MOTION_TYPES
+from widgets.pose_ui import MOTION_TYPES
 
 UI_MOTIONS = [option["value"] for option in MOTION_TYPES]
 

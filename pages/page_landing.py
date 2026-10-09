@@ -18,7 +18,6 @@ from hexapod.const import BASE_SCENE
 from hexapod.robot_link import ROBOT_LINK
 from pages import shared
 from texts import (
-    MOTION_PAGE_PATH,
     POSE_PAGE_PATH,
     URL_BUILD_GUIDE,
 )
@@ -109,8 +108,8 @@ hero = dbc.Row(
 #
 # Each card says what the page does on screen and what it does to the hardware,
 # because those are different questions and the second one is easy to get
-# wrong: the pose page streams as you pose, and the motion page commands the
-# robot's own gait.
+# wrong: the pose page streams as you pose, and plays sequences and gaits on
+# the robot only when asked to.
 # ......................
 
 
@@ -149,17 +148,10 @@ tools = html.Div(
                 _tool(
                     1,
                     "Pose",
-                    "Tilt and shift the body, move the feet, then string the "
-                    "poses into a timed sequence.",
-                    "Streams each reachable pose; the sequence on Run",
+                    "Tilt and shift the body, move the feet, string the poses "
+                    "into a timed sequence, or play the robot's gaits.",
+                    "Streams each reachable pose; sequences and gaits on Run",
                     POSE_PAGE_PATH,
-                ),
-                _tool(
-                    2,
-                    "Motion",
-                    "Play the generated gaits frame by frame and scrub them.",
-                    "Runs the robot's own gait from flash",
-                    MOTION_PAGE_PATH,
                 ),
             ],
             className="g-3",

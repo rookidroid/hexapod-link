@@ -12,8 +12,7 @@ But this is not true for all possible
 angle combinations (18 angles) that can be defined in
 the kinematics page.
 
-This module is what VirtualHexapod.update() uses by default
-(the motion page).
+This module is what VirtualHexapod.update() uses by default.
 
 The other module will be used for the kinematics page.
 ❗❗❗

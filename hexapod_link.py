@@ -24,7 +24,6 @@ from hexapod.robot_link import ROBOT_LINK
 from pages import (
     page_calibration,
     page_landing,
-    page_motion,
     page_pose,
 )
 from pages.shared import (
@@ -106,7 +105,6 @@ server = app.server
 NAV_LINKS = dbc.Nav(
     [
         dbc.NavItem(dbc.NavLink("Pose", href=POSE_PAGE_PATH)),
-        dbc.NavItem(dbc.NavLink("Motion", href=MOTION_PAGE_PATH)),
     ],
     navbar=True,
 )
@@ -185,10 +183,10 @@ PAGES = {
     POSE_PAGE_PATH: page_pose.layout,
     # The pages the pose page replaced; it opens on the matching tool.
     KINEMATICS_PAGE_PATH: page_pose.layout,
+    MOTION_PAGE_PATH: page_pose.layout,
     IK_PAGE_PATH: page_pose.layout,
     PATTERNS_PAGE_PATH: page_pose.layout,
     POSER_PAGE_PATH: page_pose.layout,
-    MOTION_PAGE_PATH: page_motion.layout,
     CALIBRATION_PAGE_PATH: page_calibration.layout,
     ROOT_PATH: page_landing.layout,
 }

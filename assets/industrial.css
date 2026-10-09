@@ -1572,14 +1572,80 @@ input[type="number"]:focus,
     margin-bottom: 0 !important;
 }
 
+/* What belongs to one source -- keyframes or a gait -- and is hidden with
+   the other: its header tools share the line with the source switch, its
+   body is a column of rows. */
+.ind-dock-part {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.ind-dock-part-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.ind-gait-select {
+    flex: 1 1 12rem;
+}
+
+.ind-gait-select select {
+    width: 100%;
+}
+
+/* A slider with its label on the same line, for the dock's one-line rows. */
+.ind-inline-slider {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1 1 9rem;
+    min-width: 9rem;
+}
+
+.ind-inline-slider .ind-field-label {
+    margin: 0;
+    flex: 0 0 auto;
+    overflow: visible;
+}
+
+.ind-inline-slider > :last-child {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.ind-inline-slider .dash-slider-container {
+    width: 100%;
+    gap: 0.5rem;
+}
+
+/* The value box, as in a panel slider (SIDEBAR FIELDS). */
+.ind-inline-slider .dash-slider-container .dash-range-slider-input {
+    display: block;
+    box-sizing: border-box;
+    height: auto;
+    max-width: none;
+    width: 6ch !important;
+    flex: 0 0 auto;
+    font-family: var(--font-mono) !important;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    font-size: 0.8rem;
+    padding: 0.15rem 0.3rem;
+}
+
 /* An empty message slot would still take a gap of its own. */
 .ind-dock-keyframes > div:empty {
     display: none;
 }
 
 .ind-dock-scrubber {
-    flex: 1 1 5rem;
-    min-width: 5rem;
+    flex: 1 1 4rem;
+    min-width: 4rem;
 }
 
 .ind-dock-scrubber .dash-slider-container {

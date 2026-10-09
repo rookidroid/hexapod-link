@@ -1,5 +1,5 @@
 # The pose page: set a pose, collect poses as keyframes, preview the sequence
-# and run it on the robot.
+# and run it on the robot -- or preview one of the robot's gaits and run that.
 #
 # There is one pose: the robot's standby posture with two layers on top
 # (hexapod/pose_layers.py), and a tool for each:
@@ -40,6 +40,7 @@
 
 import base64
 import json
+from math import ceil
 
 import numpy as np
 from dash import ALL, callback, clientside_callback, ctx, html, no_update
@@ -50,10 +51,17 @@ from hexapod import keyframes as kf
 from hexapod import pose_layers as pl
 from hexapod.const import NAMES_LEG
 from hexapod.naming import leg_index, leg_label
+from hexapod.path_generator import generate_poses
 from hexapod.robot_config import get_sequence_fps, with_dimensions
 from hexapod.robot_link import ROBOT_LINK
 from pages import helpers, shared
-from texts import IK_PAGE_PATH, KINEMATICS_PAGE_PATH, PATTERNS_PAGE_PATH, POSER_PAGE_PATH
+from texts import (
+    IK_PAGE_PATH,
+    KINEMATICS_PAGE_PATH,
+    MOTION_PAGE_PATH,
+    PATTERNS_PAGE_PATH,
+    POSER_PAGE_PATH,
+)
 from widgets.ik_ui import IK_WIDGETS_IDS
 from widgets.pose_ui import (
     MODE_EDIT,
@@ -74,6 +82,9 @@ from widgets.pose_ui import (
     POSE_FOOT_TARGET_ID,
     POSE_FRAME_DISPLAY_ID,
     POSE_FRAME_SLIDER_ID,
+    POSE_GAIT_ID,
+    POSE_GAIT_MODE_ID,
+    POSE_GAIT_SPEED_ID,
     POSE_INTERVAL_ID,
     POSE_KEYFRAMES_STORE_ID,
     POSE_KF_ITEM_TYPE,
@@ -97,6 +108,9 @@ from widgets.pose_ui import (
     POSE_SELECTED_KF_STORE_ID,
     POSE_SELECTED_LEG_ID,
     POSE_STATE_STORE_ID,
+    POSE_SOURCE_ID,
+    POSE_SOURCE_PART_IDS,
+    POSE_SOURCE_STORE_ID,
     POSE_STOP_BTN_ID,
     POSE_TOOL_ID,
     POSE_TOOL_PANEL_IDS,
@@ -107,6 +121,10 @@ from widgets.pose_ui import (
     POSE_VIEW_MODE_ID,
     PREVIEW_FPS,
     RESET_VIEW_BUTTON,
+    GAIT_NATIVE,
+    SOURCE_GAIT,
+    SOURCE_KEYFRAMES,
+    SOURCES,
     TOOL_BODY,
     TOOL_FEET,
     TOOLS,
@@ -163,6 +181,45 @@ def pick_tool(pathname, remembered):
     """The tool to open on: the one the address names, else the last used."""
     tool = PATH_TOOLS.get(pathname, remembered)
     return tool if tool in TOOLS else TOOL_BODY
+
+
+@callback(
+    Output(POSE_SOURCE_ID, "value"),
+    Output(POSE_VIEW_MODE_ID, "value", allow_duplicate=True),
+    Input("url", "pathname"),
+    State(POSE_SOURCE_STORE_ID, "data"),
+    prevent_initial_call="initial_duplicate",
+)
+def pick_source(pathname, remembered):
+    """What the dock plays: the Motion page's address opens it on the gaits,
+    which that page used to play, already showing one; otherwise whatever was
+    last played."""
+    if pathname == MOTION_PAGE_PATH:
+        return SOURCE_GAIT, MODE_PREVIEW
+    return (remembered if remembered in SOURCES else SOURCE_KEYFRAMES), no_update
+
+
+# Remember the source, and show the parts of the dock that belong to it.
+clientside_callback(
+    """
+    function(source) {
+        var show = {}, hide = {display: "none"};
+        return [source, %s];
+    }
+    """
+    % ", ".join(
+        f'source === "{source}" ? show : hide'
+        for source in SOURCES
+        for _ in POSE_SOURCE_PART_IDS[source]
+    ),
+    Output(POSE_SOURCE_STORE_ID, "data"),
+    *[
+        Output(part_id, "style")
+        for source in SOURCES
+        for part_id in POSE_SOURCE_PART_IDS[source]
+    ],
+    Input(POSE_SOURCE_ID, "value"),
+)
 
 
 # Remember the tool, and show its controls. The other panels are only hidden,
@@ -729,33 +786,71 @@ def _bad_frames_message(bad_frames, total):
     )
 
 
+def _gait_frames(gait, robot_config, speed_pct, max_fps):
+    """A gait's poses and the frame rate they play at, at `speed_pct` of the
+    robot's tuned rate: every frame, or every so many if that is faster than
+    `max_fps`, so the timing is the robot's either way."""
+    poses = generate_poses(gait, robot_config)
+    fps = get_sequence_fps(robot_config, speed_pct or 100)
+    step = max(1, ceil(fps / max_fps)) if max_fps else 1
+    return poses[::step], fps / step
+
+
 @callback(
     Output(POSE_PREVIEW_STORE_ID, "data"),
     Output(POSE_FRAME_SLIDER_ID, "max"),
     Output(POSE_FRAME_SLIDER_ID, "value"),
     Output(POSE_PREVIEW_MESSAGE_ID, "children"),
+    Output(POSE_INTERVAL_ID, "interval"),
+    Output(POSE_VIEW_MODE_ID, "value", allow_duplicate=True),
+    Input(POSE_SOURCE_ID, "value"),
     Input(POSE_KEYFRAMES_STORE_ID, "data"),
+    Input(POSE_GAIT_ID, "value"),
+    Input(POSE_GAIT_SPEED_ID, "value"),
     Input(POSE_LOOP_ID, "value"),
     Input(POSE_EASE_ID, "value"),
     DIMENSIONS_INPUT,
+    prevent_initial_call="initial_duplicate",
 )
-def build_preview(keyframes_store, loop_values, ease_values, dimensions_json):
+def build_preview(
+    source, keyframes_store, gait, speed_pct, loop_values, ease_values, dimensions_json
+):
+    """The frames the view plays in Sequence: the keyframes, or a gait."""
     robot_config = _robot(dimensions_json)
-    frames = keyframes_store["keyframes"] if _valid(keyframes_store, robot_config) else []
     loop, ease = _options(loop_values, ease_values)
+    mode = no_update
 
-    feet, states, poses, bad_frames = pl.sequence(
-        frames, robot_config, PREVIEW_FPS, loop, ease
-    )
-    if states is None:
-        # Keyframes that did not keep their layers: drawn with the body
-        # unmoved.
-        states = [pl.from_feet(frame_feet, robot_config) for frame_feet in feet]
-    scenes = [pl.scene(state, pose, robot_config) for state, pose in zip(states, poses)]
+    if source == SOURCE_GAIT:
+        poses, fps = _gait_frames(gait, robot_config, speed_pct, PREVIEW_FPS)
+        # Drawn as the robot sees it: the body held still over feet moved
+        # from standby.
+        scenes = [
+            pl.scene(pl.from_feet(kf.pose_to_feet(pose, robot_config), robot_config), pose, robot_config)
+            for pose in poses
+        ]
+        message = ""
+        # Picking a gait is asking to see it.
+        if ctx.triggered_id in (POSE_SOURCE_ID, POSE_GAIT_ID):
+            mode = MODE_PREVIEW
+    else:
+        frames = keyframes_store["keyframes"] if _valid(keyframes_store, robot_config) else []
+        feet, states, poses, bad_frames = pl.sequence(
+            frames, robot_config, PREVIEW_FPS, loop, ease
+        )
+        if states is None:
+            # Keyframes that did not keep their layers: drawn with the body
+            # unmoved.
+            states = [pl.from_feet(frame_feet, robot_config) for frame_feet in feet]
+        scenes = [pl.scene(state, pose, robot_config) for state, pose in zip(states, poses)]
+        fps = PREVIEW_FPS
+        message = _bad_frames_message(bad_frames, len(poses)) if bad_frames else ""
+        # Back from a gait to the pose being edited.
+        if ctx.triggered_id == POSE_SOURCE_ID:
+            mode = MODE_EDIT
 
     last = max(len(scenes) - 1, 1)
-    message = _bad_frames_message(bad_frames, len(poses)) if bad_frames else ""
-    return {"scenes": scenes}, last, 0, message
+    preview = {"scenes": scenes, "fps": fps}
+    return preview, last, 0, message, round(1000 / fps), mode
 
 
 # Play/Pause. Playing always shows the sequence, so it switches to it.
@@ -846,7 +941,7 @@ clientside_callback(
     """
     function(frame, preview) {
         var frames = preview && preview.scenes ? preview.scenes.length : 0;
-        var fps = %d;
+        var fps = (preview && preview.fps) || %d;
         var last = Math.max(frames - 1, 0);
         var at = Math.min(frame || 0, last);
         return at + "/" + last + " · " + (at / fps).toFixed(2) + " s";
@@ -870,22 +965,37 @@ clientside_callback(
     State(POSE_KEYFRAMES_STORE_ID, "data"),
     State(POSE_LOOP_ID, "value"),
     State(POSE_EASE_ID, "value"),
+    State(POSE_SOURCE_ID, "value"),
+    State(POSE_GAIT_ID, "value"),
+    State(POSE_GAIT_MODE_ID, "value"),
     DIMENSIONS_STATE,
     prevent_initial_call=True,
 )
-def run_on_robot(_n_clicks, keyframes_store, loop_values, ease_values, dimensions_json):
+def run_on_robot(
+    _n_clicks,
+    keyframes_store,
+    loop_values,
+    ease_values,
+    source,
+    gait,
+    gait_mode,
+    dimensions_json,
+):
     if not ROBOT_LINK.connected:
         return "Not connected — connect in the Robot panel first."
 
     robot_config = _robot(dimensions_json)
+    loop, ease = _options(loop_values, ease_values)
+    if source == SOURCE_GAIT:
+        return _run_gait(gait, gait_mode, loop, robot_config)
+
     frames = keyframes_store["keyframes"] if _valid(keyframes_store, robot_config) else []
     if not frames:
         return "Add a keyframe first."
 
     # The robot gets frames at the rate it plays its own gaits at full speed,
     # so the sequence is as smooth as they are, and in real time: the durations
-    # are what was asked for, whatever the gait speed on the Motion page is.
-    loop, ease = _options(loop_values, ease_values)
+    # are what was asked for, whatever the gait speed is.
     fps = get_sequence_fps(robot_config, 100)
     _, _, poses, bad_frames = pl.sequence(frames, robot_config, fps, loop, ease)
     if bad_frames:
@@ -898,6 +1008,45 @@ def run_on_robot(_n_clicks, keyframes_store, loop_values, ease_values, dimension
         f"Streaming {len(frames)} keyframes — {seconds:.2f} s"
         f"{', looping' if loop else ''}."
     )
+
+
+def _run_gait(gait, mode, loop, robot_config):
+    """Run a gait on the robot: its own, played from flash, or the
+    simulator's frames streamed to it, at the gait speed either way."""
+    if mode == GAIT_NATIVE:
+        if not ROBOT_LINK.has_motion_command(gait):
+            # "standup" is the firmware's boot sequence, not a motion LUT it
+            # can be commanded into; the robot's own command list says which
+            # motions it has.
+            return (
+                f"'{gait}' has no built-in equivalent on the robot. "
+                "Use 'Stream frames' instead."
+            )
+        if ROBOT_LINK.send_motion_command(gait):
+            return f"Robot running its own '{gait}' gait at {ROBOT_LINK.speed_pct}%."
+        return "Failed to send the motion command."
+
+    poses = generate_poses(gait, robot_config)
+    if not ROBOT_LINK.play_sequence(poses, loop=loop):
+        return "Nothing to stream for this gait."
+    return (
+        f"Streaming '{gait}' — {len(poses)} frames at "
+        f"{ROBOT_LINK.speed_pct}%{', looping' if loop else ''}."
+    )
+
+
+@callback(
+    Output(POSE_GAIT_SPEED_ID, "value"),
+    Input(POSE_GAIT_SPEED_ID, "value"),
+    prevent_initial_call=True,
+)
+def set_gait_speed(speed_pct):
+    """Gait speed: sent to the robot now, and carried by every motion command.
+    Set without a robot too, so the next one connected starts at it."""
+    if speed_pct is None:
+        raise PreventUpdate
+    applied = ROBOT_LINK.set_motion_speed(speed_pct)
+    return no_update if applied == speed_pct else applied
 
 
 @callback(
@@ -921,12 +1070,32 @@ OFFLINE_MESSAGE = "Connect a robot to run this on the hardware."
     Output(POSE_RUN_BTN_ID, "disabled"),
     Output(POSE_STOP_BTN_ID, "disabled"),
     Output(POSE_ROBOT_MESSAGE_ID, "children", allow_duplicate=True),
+    Output(POSE_GAIT_SPEED_ID, "min"),
+    Output(POSE_GAIT_SPEED_ID, "max"),
+    Output(POSE_GAIT_SPEED_ID, "value", allow_duplicate=True),
     Input(POSE_ROBOT_POLL_INTERVAL_ID, "n_intervals"),
     State(POSE_ROBOT_MESSAGE_ID, "children"),
+    State(POSE_GAIT_SPEED_ID, "value"),
+    State(POSE_GAIT_SPEED_ID, "min"),
+    State(POSE_GAIT_SPEED_ID, "max"),
     prevent_initial_call="initial_duplicate",
 )
-def sync_robot_controls(_n_intervals, message):
-    """Grey the robot controls out while there is no robot, as on the Motion page."""
+def sync_robot_controls(_n_intervals, message, speed_value, speed_min, speed_max):
+    """Grey the robot controls out while there is no robot, and keep the gait
+    speed on the link's.
+
+    The speed slider's range is the connected robot's, and its value the
+    link's -- the page may have been rendered before either was known. They
+    are only written when they differ, so the speed callback is not
+    retriggered every second.
+    """
+    speed = ROBOT_LINK.robot_config["speed"]
+    range_out = [no_update] * 2
+    if (speed_min, speed_max) != (speed["min"], speed["max"]):
+        range_out = [speed["min"], speed["max"]]
+    link_speed = ROBOT_LINK.speed_pct
+    speed_out = no_update if speed_value == link_speed else link_speed
+
     offline = not ROBOT_LINK.connected
     if offline:
         new_message = no_update if message == OFFLINE_MESSAGE else OFFLINE_MESSAGE
@@ -938,4 +1107,6 @@ def sync_robot_controls(_n_intervals, message):
         offline,
         offline,
         new_message,
+        *range_out,
+        speed_out,
     )

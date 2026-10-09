@@ -45,7 +45,7 @@ from hexapod.robot_link import (
     servo_angle_to_ticks,
 )
 from tests.robots import ROBOT_CONFIGS, load_firmware_luts
-from widgets.motion_ui import MOTION_TYPES
+from widgets.pose_ui import MOTION_TYPES
 
 SERVO_MIN_TICKS = 102
 SERVO_MAX_TICKS = 512
@@ -378,7 +378,7 @@ def test_every_robot_command_is_a_motion_the_ui_offers():
 
     'standup' is the exception in the other direction: it is the firmware's boot
     sequence rather than a LUT it can be commanded into, so the UI offers it for
-    streaming only. pages/page_motion.py depends on exactly that asymmetry.
+    streaming only. pages/page_pose.py depends on exactly that asymmetry.
     """
     ui_motions = {option["value"] for option in MOTION_TYPES}
     assert set(MOTION_COMMANDS) <= ui_motions, (

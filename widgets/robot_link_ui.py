@@ -26,16 +26,6 @@ ROBOT_STATUS_ID = "robot-status"
 ROBOT_STATE_STORE_ID = "robot-state-store"
 ROBOT_POLL_INTERVAL_ID = "robot-poll-interval"
 
-ROBOT_MOTION_MODE_ID = "robot-motion-mode"
-ROBOT_MOTION_SPEED_ID = "robot-motion-speed"
-ROBOT_MOTION_LOOP_ID = "robot-motion-loop"
-ROBOT_MOTION_RUN_BTN_ID = "robot-motion-run-btn"
-ROBOT_MOTION_STOP_BTN_ID = "robot-motion-stop-btn"
-ROBOT_MOTION_MESSAGE_ID = "robot-motion-message"
-
-ROBOT_MOTION_CONTROLS_ID = "robot-motion-controls"
-ROBOT_MOTION_POLL_INTERVAL_ID = "robot-motion-poll-interval"
-
 # Poll the link often enough that the status badge feels live, but not so often
 # that it adds noticeable callback traffic.
 STATUS_POLL_MS = 1000
@@ -211,87 +201,3 @@ def make_stream_controls_section(ids):
         ],
         blurb="Put the hexapod on a stand before streaming.",
     )
-
-
-# ................................
-# RUN ON ROBOT (motion page)
-#
-# Commands the hardware to play a whole gait, which only the motion page has a
-# motion to name -- it supplies the selection from its own dropdown, so there is
-# no second motion list to keep in step with the one being previewed.
-# ................................
-
-motion_mode = dbc.RadioItems(
-    id=ROBOT_MOTION_MODE_ID,
-    options=[
-        {"label": " Robot's own gait (recommended)", "value": "native"},
-        {"label": " Stream frames from simulator", "value": "stream"},
-    ],
-    value="native",
-    className="mb-2",
-)
-
-motion_loop = dcc.Checklist(
-    id=ROBOT_MOTION_LOOP_ID,
-    options=[{"label": " Loop streamed frames", "value": "loop"}],
-    value=["loop"],
-    className="fw-bold mb-3",
-)
-
-# Gait playback speed, as a percent of the robot's tuned frame rate. Its range
-# and value are re-seeded from the connected robot by the motion page.
-_speed = ROBOT_LINK.robot_config["speed"]
-motion_speed = make_slider_field(
-    ROBOT_MOTION_SPEED_ID,
-    "Gait speed (%)",
-    _speed["min"],
-    _speed["max"],
-    5,
-    ROBOT_LINK.speed_pct,
-    disabled=True,
-)
-
-motion_buttons = html.Div(
-    [
-        dbc.Button(
-            "▶ Run on robot",
-            id=ROBOT_MOTION_RUN_BTN_ID,
-            color="success",
-            disabled=True,
-            className="fw-bold ind-wrap-main",
-        ),
-        dbc.Button(
-            "■ Standby",
-            id=ROBOT_MOTION_STOP_BTN_ID,
-            color="secondary",
-            disabled=True,
-            className="fw-bold ind-wrap-side",
-        ),
-    ],
-    className="ind-wrap-row",
-)
-
-ROBOT_MOTION_WIDGETS_SECTION = panel_section(
-    "Run on robot",
-    [
-        html.Div(
-            [motion_mode, motion_loop, motion_speed, motion_buttons],
-            id=ROBOT_MOTION_CONTROLS_ID,
-            className=SECTION_CONTROLS_OFFLINE_CLASS,
-        ),
-        html.Div(
-            "Connect a robot to run this on the hardware.",
-            id=ROBOT_MOTION_MESSAGE_ID,
-            className="small text-muted font-monospace text-center mt-2",
-        ),
-        # Its own interval rather than the global one: this section is mounted
-        # with the motion page, and a callback whose output is not on the
-        # current page has nothing to write to.
-        dcc.Interval(
-            id=ROBOT_MOTION_POLL_INTERVAL_ID,
-            interval=STATUS_POLL_MS,
-            n_intervals=0,
-        ),
-    ],
-    blurb="Runs the motion selected above on the hardware.",
-)

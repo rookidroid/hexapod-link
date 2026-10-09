@@ -39,7 +39,6 @@ OUTPUT_WIDTH = 1600
 PAGES = [
     ("home", "/", 1400, 1700),
     ("pose", "/pose", 1400, 1000),
-    ("motion", "/motion-animations", 1400, 1150),
 ]
 
 # Every page is captured once per theme, with this suffix on the file name.

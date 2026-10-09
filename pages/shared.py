@@ -174,43 +174,6 @@ def make_scrollable_page(children):
 
 
 # ......................
-# Make standard sidebar
-# ......................
-
-
-def make_standard_page_sidebar(
-    message_section_id,
-    params_hidden_section_id,
-    params_widgets_section,
-    robot_section=None,
-):
-    """Sidebar holding only what is specific to one page.
-
-    Robot dimensions and the link to the hardware are deliberately absent: they
-    describe the robot rather than the page, so they live in
-    GLOBAL_CONTROLS_PANEL, mounted once for the whole app. Controls that act on
-    what this page is showing -- streaming its pose, running its motion -- go
-    in `robot_section`, below the page's message, so a solved pose or an alert
-    sits right under the controls that produced it.
-    """
-    params_hidden_section = html.Div(
-        id=params_hidden_section_id, style={"display": "none"}
-    )
-    message_section = html.Div(id=message_section_id)
-
-    # Flattened, so every section is a direct child of the panel: the rule
-    # between sections is drawn by a sibling selector (PANEL SECTIONS in
-    # assets/industrial.css), which a wrapping div would hide them from.
-    if not isinstance(params_widgets_section, list):
-        params_widgets_section = [params_widgets_section]
-    sections = [*params_widgets_section, message_section]
-    if robot_section is not None:
-        sections.append(robot_section)
-    sections.append(params_hidden_section)
-    return sections
-
-
-# ......................
 # Global controls panel
 #
 # Dimensions and the robot link describe one robot, not one page, so they are

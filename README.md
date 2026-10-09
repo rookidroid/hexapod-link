@@ -24,7 +24,7 @@ streaming control, and a rebuilt CI/test suite.
 |---|-----------|--------------|
 | 🎉 | Forward Kinematics | Given the angles of each joint, what does the robot look like? |
 | 🎉 | Inverse Kinematics | What are the angles of each joint to make the robot look the way I want? Is it even possible? Why or why not? |
-| 🎉 | Motion | Preview predefined gaits frame by frame. |
+| 🎉 | Gaits | Preview the robot's gaits frame by frame, and run them on it. |
 | 🎉 | Pose Editor | Set a pose by moving the body and placing the feet in 3D, string the poses into a timed keyframe sequence, preview it and run it on the robot. |
 | 🎉 | Customizability | Set the dimensions of the robot's body and legs, and pose that body. |
 | 🎉 | Real-time Robot Control | Drive a physical ESP32 hexapod over WiFi, from single joints to whole-body gaits. Works with any robot in the family (Nougat, Mochi, Macaroon, ...): each one serves its own config. |
@@ -39,16 +39,11 @@ theme, dark shows the dark one.
 
 <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/home-dark.png"><img src="docs/images/home.png" alt="The landing page"></picture>
 
-<table>
-  <tr>
-    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/pose-dark.png"><img src="docs/images/pose.png" alt="The pose page"></picture></td>
-    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/motion-dark.png"><img src="docs/images/motion.png" alt="The motion page"></picture></td>
-  </tr>
-  <tr>
-    <td><b>Pose</b> — move single feet in 3D or set their joints, tilt and shift the body over them (inverse kinematics), then string the poses into a keyframe sequence to run on the robot.</td>
-    <td><b>Motion</b> — play the generated gaits frame by frame and scrub them.</td>
-  </tr>
-</table>
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/pose-dark.png"><img src="docs/images/pose.png" alt="The pose page"></picture>
+
+**Pose** — move single feet in 3D or set their joints, tilt and shift the body
+over them (inverse kinematics), string the poses into a keyframe sequence, or
+pick one of the robot's gaits, then preview it and run it on the robot.
 
 Everything above is generated from the running app by
 [`tools/make_screenshots.py`](./tools/make_screenshots.py), which captures every
@@ -213,24 +208,31 @@ $ python tools/fake_robot.py nougat
   edited to try another body. Foot moves are from standby, so they keep their
   meaning on the resized body, and what is streamed is solved on it too.
 
-  Under the view is the keyframe timeline. **+ Add** records the pose as a
-  keyframe with the time it takes to get there from the one before; click a
-  keyframe to load it back. **Play** previews the sequence in the browser,
-  and **RUN ON ROBOT** streams it to the hardware in real time, smoothed to
-  the robot's own frame rate (optionally looping, with gentle starts and
-  stops). Between keyframes each layer moves on its own, so a body tilting
+  Under the view, beside the joint angles, the dock plays a sequence: the
+  **Keyframes** collected here, or a **Gait**. **Play** previews it in the
+  view, **Loop** repeats it there and on the robot, and **RUN ON ROBOT** runs
+  it on the hardware.
+
+  With **Keyframes**, **+ Add** records the pose as a keyframe with the time it takes to get there from the one before; click a
+  keyframe to load it back. **RUN ON ROBOT** streams the keyframes to the
+  hardware in real time, smoothed to the robot's own frame rate (with gentle
+  starts and stops, unless **Ease** is off). Between keyframes each layer moves on its own, so a body tilting
   from one keyframe to the next tilts over planted feet, while a moved foot
   travels in a straight line: add a keyframe in between to lift a foot over
   rather than dragging it along the floor. Sequences save to and load from
-  JSON files, which only load on the robot they were made for. The old
-  Kinematics, Inverse Kinematics, Leg Patterns and Pose Editor addresses open
-  this page (Kinematics on the Feet tool, Leg Patterns on the Body tool).
-- **Motion page** — the **RUN ON ROBOT** section plays the motion selected for
-  preview on the hardware: either trigger the robot's own built-in gait
-  (recommended; the ESP32 plays it from flash so smoothness does not depend on
-  WiFi), or stream the simulator's frames for paths the firmware does not have.
-  **Gait speed** (20-100 % of the robot's tuned rate) applies to both, and is
-  sent to the robot as soon as it changes.
+  JSON files, which only load on the robot they were made for.
+
+  With **Gait**, pick one of the gaits the path tool generates; it is shown
+  played at the robot's own timing. **RUN ON ROBOT** either triggers the
+  robot's own built-in gait (recommended; the ESP32 plays it from flash so
+  smoothness does not depend on WiFi), or streams the simulator's frames for
+  paths the firmware does not have. **Speed** (20-100 % of the robot's tuned
+  rate) applies to both and to the preview, and is sent to the robot as soon
+  as it changes.
+
+  The old Kinematics, Inverse Kinematics, Leg Patterns, Pose Editor and Motion
+  addresses open this page (Kinematics on the Feet tool, Leg Patterns on the
+  Body tool, Motion on the gaits).
 - **Calibration page** — trims each servo's offset through the robot's own
   calibration routes: **Enter calibration** puts the robot in its calibration
   posture, **Apply** moves the servos to the edited offsets, **Save to robot**
