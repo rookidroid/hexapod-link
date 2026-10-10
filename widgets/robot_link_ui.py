@@ -2,7 +2,8 @@
 #
 # Split by where they sit in the workspace (pages/workspace.py):
 #
-# * TOPBAR_CONNECTION is the address and the connect button, in the top bar.
+# * TOPBAR_CONNECTION is the address and the connect button, in the top bar,
+#   and STATUS_PILL beside it the link's readout.
 # * STREAM_OVERLAY switches streaming on and limits its speed, over the view.
 # * DRIVE_HUD is the controller over the view: hold a pad and the robot plays
 #   that one of its own gaits.
@@ -16,7 +17,7 @@ from dash import dcc, html
 
 from settings import ROBOT_DEFAULT_IP, ROBOT_DEFAULT_MAX_STEP
 from hexapod.robot_link import ROBOT_LINK
-from widgets.section_maker import field_label
+from widgets.components import field_label
 
 # --- Element IDs ---
 ROBOT_INFO_ID = "robot-info"
@@ -81,6 +82,24 @@ TOPBAR_CONNECTION = html.Div(
     className="topbar-connection",
 )
 
+# The status pill is the app's link readout: whether the robot is reachable,
+# which one it is, and whether it is being streamed to. The state modifier
+# colours its LED (STATUS PILL in industrial.css); its tooltip has the detail.
+STATUS_PILL_ID = "status-pill"
+
+
+def status_pill_class(state):
+    return f"status-pill {state}"
+
+
+STATUS_PILL = html.Div(
+    "Offline",
+    id=STATUS_PILL_ID,
+    className=status_pill_class("is-offline"),
+    title="Disconnected",
+    role="status",
+)
+
 
 # ................................
 # OVER THE 3D VIEW
@@ -95,7 +114,7 @@ STREAM_HUD_ID = "robot-stream-hud"
 STREAM_OVERLAY = html.Div(
     html.Div(
         # Everything starts disabled because the app starts with no session;
-        # the sync callback in pages/shared.py opens it up once one is
+        # the sync callback in pages/robot.py opens it up once one is
         # connected.
         [
             dbc.Switch(
@@ -204,9 +223,9 @@ DRIVE_LABELS = {
 
 DRIVE_LAYOUT = {"move": DRIVE_MOVE_PAD, "body": DRIVE_BODY_PAD, "labels": DRIVE_LABELS}
 
-# Gait speed, as a percent of the robot's tuned frame rate. The same speed as
-# the dock's gait speed: both are the link's, and kept in step by
-# set_gait_speed and sync_robot_controls in pages/page_pose.py.
+# Gait speed, as a percent of the robot's tuned frame rate: the link's, set by
+# set_drive_speed and kept on the link by sync_robot_controls in
+# pages/pose.py.
 _speed = ROBOT_LINK.robot_config["speed"]
 
 # A native <details>, so it folds away without a callback.
@@ -250,7 +269,7 @@ DRIVE_HUD = html.Details(
             ],
             id=DRIVE_CONTROLS_ID,
             # Dimmed and inert until a robot is connected (sync_robot_controls
-            # in pages/page_pose.py).
+            # in pages/pose.py).
             className=f"{DRIVE_BODY_CLASS} {SECTION_CONTROLS_OFFLINE_CLASS}",
             **{"data-layout": json.dumps(DRIVE_LAYOUT)},
         ),

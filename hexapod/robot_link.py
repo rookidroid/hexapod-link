@@ -86,31 +86,6 @@ _FMT_SESSION = "<BBI"
 _FMT_VERSION_REQUEST = "<BI"
 _FMT_VERSION_REPLY = "<BIBBBB"
 
-# Motion command ids of the current firmware, mirrors the RobotCommand enum. The
-# link resolves ids from the connected robot's own command list instead (see
-# robot_config.command_id); this is the reference the tests hold that list to.
-MOTION_COMMANDS = {
-    "standby": 0,
-    "walk_0": 1,
-    "walk_180": 2,
-    "walk_r45": 3,
-    "walk_r90": 4,
-    "walk_r135": 5,
-    "walk_l45": 6,
-    "walk_l90": 7,
-    "walk_l135": 8,
-    "fast_forward": 9,
-    "fast_backward": 10,
-    "turn_left": 11,
-    "turn_right": 12,
-    "climb_forward": 13,
-    "climb_backward": 14,
-    "rotate_x": 15,
-    "rotate_y": 16,
-    "rotate_z": 17,
-    "twist": 18,
-}
-
 
 def parse_version_reply(data, seq):
     """Decode the robot's answer to version query `seq`.
@@ -235,7 +210,6 @@ class RobotLink:
         self._seq = 0
         self._packets_sent = 0
         self._last_error = None
-        self._last_sent_time = 0.0
 
         # Gait sequence playback, driven by the stream thread
         self._sequence = None
@@ -421,15 +395,6 @@ class RobotLink:
                 self._socket.close()
                 self._socket = None
 
-    def relax(self):
-        """Cut PWM drive so the servos go limp. Also stops streaming, and lets
-        go of any gait the controller held, whose standby would wake them."""
-        self._send_session(RT_RELAX)
-        with self._lock:
-            self._streaming = False
-            self._drive_motion = None
-            self._drive_deadline = None
-
     def set_max_step(self, max_step):
         with self._lock:
             self._max_step = max(1, int(max_step))
@@ -478,9 +443,6 @@ class RobotLink:
             self._drive_deadline = None
         if self.streaming:
             self._send_pose_packet(snap=snap)
-
-    def has_motion_command(self, motion_name):
-        return command_id(self.robot_config, motion_name) is not None
 
     def send_motion_command(self, motion_name):
         """Ask the robot to run one of its own built-in gait LUTs.
@@ -655,7 +617,6 @@ class RobotLink:
 
         with self._lock:
             self._packets_sent += 1
-            self._last_sent_time = time.time()
             self._last_error = None
         return True
 

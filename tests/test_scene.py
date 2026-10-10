@@ -1,26 +1,30 @@
-"""The scene every page hands the 3D view (hexapod/scene.py).
+"""The scene handed to the 3D view (hexapod/scene.py).
 
 The view only draws what it is given, so what is checked here is that the scene
 is the hexapod: each leg's points are the linkage's own, the support polygon is
-the feet it stands on, and the whole thing survives the trip to the browser.
+drawn through the feet given, in order, and the whole thing survives the trip
+to the browser.
 """
 
 import json
 from math import atan2
 
+import numpy as np
 import pytest
 
-from hexapod.const import BASE_DIMENSIONS, BASE_SCENE, HEXAPOD
+from hexapod.keyframes import pose_to_scene
 from hexapod.models import VirtualHexapod
 from hexapod.path_generator import generate_poses
 from hexapod.robot_config import get_simulator_dimensions
-from hexapod.scene import VIEWER_COLORS, hexapod_to_scene, raise_scene
+from hexapod.scene import VIEWER_COLORS, hexapod_to_scene, transform_scene
 from tests.robots import ROBOT_CONFIGS
 
 
-def settled(robot_config, motion="walk_0", frame=3):
+def posed(robot_config, motion="walk_0", frame=3):
+    """The simulator's model with its legs set to one frame of a gait."""
     hexapod = VirtualHexapod(get_simulator_dimensions(robot_config))
-    hexapod.update(generate_poses(motion, robot_config)[frame])
+    for leg_id, joints in generate_poses(motion, robot_config)[frame].items():
+        hexapod.legs[leg_id].change_pose(joints["coxia"], joints["femur"], joints["tibia"])
     return hexapod
 
 
@@ -41,8 +45,8 @@ def assert_same_point(scene_point, point):
 
 @pytest.mark.parametrize("name", list(ROBOT_CONFIGS))
 def test_legs_are_the_linkage_points(name):
-    hexapod = settled(ROBOT_CONFIGS[name])
-    scene = hexapod_to_scene(hexapod)
+    hexapod = posed(ROBOT_CONFIGS[name])
+    scene = hexapod_to_scene(hexapod, -100.0, [])
 
     assert len(scene["legs"]) == 6
     for leg, points in zip(hexapod.legs, scene["legs"]):
@@ -52,16 +56,16 @@ def test_legs_are_the_linkage_points(name):
     for scene_point, vertex in zip(scene["body"], hexapod.body.vertices):
         assert_same_point(scene_point, vertex)
     assert scene["feet"] == [points[3] for points in scene["legs"]]
+    assert scene["colors"] == VIEWER_COLORS
 
 
-@pytest.mark.parametrize("name", list(ROBOT_CONFIGS))
-def test_support_polygon_is_the_ground_contacts_in_order(name):
-    hexapod = settled(ROBOT_CONFIGS[name])
-    scene = hexapod_to_scene(hexapod)
+def test_support_polygon_is_drawn_flat_and_in_order():
+    hexapod = posed(ROBOT_CONFIGS["nougat"])
+    feet = [[100.0, 0.0, -90.0], [-50.0, -87.0, -91.0], [-50.0, 87.0, -89.0], [0.0, 120.0, -90.0]]
+    scene = hexapod_to_scene(hexapod, -90.0, feet)
 
-    contacts = sorted((round(p.x, 3), round(p.y, 3)) for p in hexapod.ground_contacts)
-    assert sorted((p[0], p[1]) for p in scene["support"]) == pytest.approx(contacts, abs=1e-3)
-    assert all(p[2] == 0.0 for p in scene["support"])
+    assert sorted((p[0], p[1]) for p in scene["support"]) == sorted((p[0], p[1]) for p in feet)
+    assert all(p[2] == -90.0 for p in scene["support"])
 
     # Ordered around the centre, so the polygon is drawn without crossing.
     cx = sum(p[0] for p in scene["support"]) / len(scene["support"])
@@ -70,51 +74,41 @@ def test_support_polygon_is_the_ground_contacts_in_order(name):
     assert angles == sorted(angles)
 
 
-def test_axes_start_at_the_cog_and_the_origin():
-    hexapod = settled(ROBOT_CONFIGS["nougat"], motion="rotate_x", frame=5)
-    scene = hexapod_to_scene(hexapod)
+def test_axes_are_the_bodys_own_from_the_cog():
+    hexapod = posed(ROBOT_CONFIGS["nougat"])
+    scene = hexapod_to_scene(hexapod, 0.0, [])
 
-    body_axes = [a for a in scene["axes"] if not a["world"]]
-    world_axes = [a for a in scene["axes"] if a["world"]]
-    assert [a["axis"] for a in body_axes] == ["x", "y", "z"]
-    assert all(a["from"] == scene["cog"] for a in body_axes)
-    assert all(a["from"] == [0.0, 0.0, 0.0] for a in world_axes)
-
+    assert [a["axis"] for a in scene["axes"]] == ["x", "y", "z"]
+    assert all(a["from"] == scene["cog"] for a in scene["axes"])
     scale = hexapod.front / 2
-    tip = body_axes[2]["to"]
-    up = hexapod.z_axis
-    expected = [c + scale * u for c, u in zip(scene["cog"], (up.x, up.y, up.z))]
-    assert tip == pytest.approx(expected, abs=1e-3)
-
-    no_world = hexapod_to_scene(hexapod, world_axes=False)
-    assert all(not a["world"] for a in no_world["axes"])
-
-
-def test_base_scene_is_the_neutral_hexapod():
-    assert BASE_SCENE == hexapod_to_scene(HEXAPOD)
-    assert BASE_SCENE["size"] == pytest.approx(sum(BASE_DIMENSIONS.values()))
-    assert len(BASE_SCENE["support"]) == 6
-    assert BASE_SCENE["colors"] == VIEWER_COLORS
+    for i, axis in enumerate(scene["axes"]):
+        expected = list(scene["cog"])
+        expected[i] += scale
+        assert axis["to"] == pytest.approx(expected, abs=1e-3)
 
 
 @pytest.mark.parametrize("name", list(ROBOT_CONFIGS))
 def test_scene_survives_json_without_negative_zero(name):
-    scene = hexapod_to_scene(settled(ROBOT_CONFIGS[name], motion="turn_left", frame=7))
+    robot = ROBOT_CONFIGS[name]
+    scene = pose_to_scene(generate_poses("turn_left", robot)[7], robot)
     assert json.loads(json.dumps(scene)) == scene
     assert not any(str(n) == "-0.0" for n in all_numbers(scene))
 
 
-def test_raised_scene_moves_every_point_up_and_nothing_else():
-    scene = hexapod_to_scene(settled(ROBOT_CONFIGS["nougat"]))
-    raised = raise_scene(scene, 50.0)
+def test_a_transformed_scene_moves_every_point_rigidly():
+    robot = ROBOT_CONFIGS["nougat"]
+    scene = pose_to_scene(generate_poses("walk_0", robot)[3], robot)
+    turn = np.radians(30)
+    rotation = [[np.cos(turn), -np.sin(turn), 0], [np.sin(turn), np.cos(turn), 0], [0, 0, 1]]
+    shift = [10.0, -20.0, 50.0]
+    moved = transform_scene(scene, rotation, shift)
 
     def points(s):
         return [s["head"], s["cog"], *s["body"], *s["feet"], *s["support"]] + [
             p for leg in s["legs"] for p in leg
         ] + [p for axis in s["axes"] for p in (axis["from"], axis["to"])]
 
-    for before, after in zip(points(scene), points(raised)):
-        assert after[:2] == before[:2]
-        assert after[2] == pytest.approx(before[2] + 50.0)
-    assert raised["ground"] == pytest.approx(scene["ground"] + 50.0)
-    assert raised["size"] == scene["size"] and raised["labels"] == scene["labels"]
+    for before, after in zip(points(scene), points(moved), strict=True):
+        assert after == pytest.approx(np.asarray(rotation) @ before + shift, abs=1e-3)
+    assert moved["ground"] == pytest.approx(scene["ground"] + 50.0)
+    assert moved["size"] == scene["size"] and moved["labels"] == scene["labels"]

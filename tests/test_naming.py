@@ -11,13 +11,11 @@ name the same servo differently.
 import pytest
 
 from hexapod.naming import (
-    JOINT_ANGLE_NAMES,
     JOINT_NAMES,
     LEG_LABELS,
     LEG_NAMES,
     joint_label,
     joint_number,
-    joint_short_label,
     leg_index,
     leg_label,
 )
@@ -34,8 +32,8 @@ def test_right_legs_come_first():
     """Ids 0-2 are the right legs and 3-5 the left, front to back on each side.
 
     This is the firmware's `right_legs` / `left_legs` order from config.h. The
-    ground contact solver and the servo tick layout both index by it, so the
-    tables and the firmware have to agree on which half is which.
+    path generator and the servo tick layout both index by it, so the tables
+    and the firmware have to agree on which half is which.
     """
     for leg_id in range(3):
         assert LEG_NAMES[leg_id].startswith("right-")
@@ -60,30 +58,19 @@ def test_leg_index_rejects_an_unknown_name():
 
 
 def test_joints_are_numbered_outward_from_the_body():
-    """coxia/femur/tibia are joints 1/2/3, and alpha/beta/gamma are the same three.
+    """coxia/femur/tibia are joints 1/2/3.
 
-    The kinematics talk in angles and the widgets talk in anatomy; both have to
-    land on the firmware's joint number or a calibration value gets written to
-    the wrong servo.
+    The widgets name joints by anatomy; that has to land on the firmware's
+    joint number or a calibration value gets read off the wrong servo.
     """
     assert JOINT_NAMES == ("coxia", "femur", "tibia")
-    assert JOINT_ANGLE_NAMES == ("alpha", "beta", "gamma")
-
-    for i, (anatomical, angle) in enumerate(zip(JOINT_NAMES, JOINT_ANGLE_NAMES)):
-        assert joint_number(anatomical) == i + 1
-        assert joint_number(angle) == i + 1
+    for i, name in enumerate(JOINT_NAMES):
+        assert joint_number(name) == i + 1
 
 
-def test_joint_labels_keep_the_vocabulary_they_were_asked_about():
-    """The number is added, the caller's own word is not translated away.
-
-    A page that talks in alpha must not suddenly say coxia, which is why
-    joint_label interpolates the name it was given.
-    """
+def test_joint_labels_carry_the_number_and_the_name():
     assert joint_label("coxia") == "Joint 1 (coxia)"
-    assert joint_label("alpha") == "Joint 1 (alpha)"
     assert joint_label("tibia") == "Joint 3 (tibia)"
-    assert joint_short_label("beta") == "J2 beta"
 
 
 def test_joint_number_rejects_an_unknown_joint():

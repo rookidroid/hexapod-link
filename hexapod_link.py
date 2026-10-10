@@ -21,7 +21,7 @@ from dash import Dash, html
 from hexapod.preferences import load_layout, load_theme
 from hexapod.robot_link import ROBOT_LINK
 from pages.drive import register_drive_route
-from pages.shared import make_topbar
+from pages.shell import make_topbar
 from pages.workspace import WORKSPACE
 from style_settings import EXTERNAL_STYLESHEETS
 from texts import APP_TITLE
@@ -67,7 +67,7 @@ class HexapodDash(Dash):
     them from a callback would only happen after the first paint, so a dark
     start would flash light and a resized dock would jump. Putting them into
     the index page itself avoids that. See the theme and workspace sections of
-    pages/shared.py.
+    pages/shell.py.
     """
 
     def interpolate_index(self, **kwargs):

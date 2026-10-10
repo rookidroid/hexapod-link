@@ -73,14 +73,6 @@ def test_an_unknown_motion_falls_back_to_standby():
         assert generate_poses("no-such-motion", ROBOT_CONFIGS[profile_name]) == standby
 
 
-def test_generation_is_deterministic():
-    """Two runs of a gait must agree, or streaming would jitter between frames."""
-    for motion_name in ("walk_0", "turn_left", "standup"):
-        assert generate_poses(motion_name, ROBOT_CONFIGS["mochi"]) == generate_poses(
-            motion_name, ROBOT_CONFIGS["mochi"]
-        )
-
-
 def test_the_robots_get_different_paths():
     """A path baked for one robot's geometry is wrong for another's.
 

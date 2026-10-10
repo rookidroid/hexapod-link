@@ -84,8 +84,8 @@ def _radial_mount_angles(xs, ys):
 
 
 def _generic_geometry():
-    # The simulator's neutral 100-unit body (hexapod/const.py BASE_DIMENSIONS),
-    # with the same leg mirroring as the robots.
+    # A neutral body and legs 100 mm each way, with the same leg mirroring as
+    # the robots.
     front = mid = side = 100.0
     mount_x = [front, mid, front, -front, -mid, -front]
     mount_y = [side, 0.0, -side, side, 0.0, -side]
@@ -353,12 +353,13 @@ def get_simulator_dimensions(robot_config, mount_angles=True):
 def with_dimensions(robot_config, dimensions):
     """The robot's config with its body and legs measured as `dimensions`.
 
-    `dimensions` is in get_simulator_dimensions()'s terms, as the Robot panel
-    edits them. The mounts move with front, side and middle, each leg keeping
-    its own side and mirroring; the legs take the new lengths. A real robot's
-    legs keep the angles they are mounted at, whatever the body measures; the
-    generic model has no robot behind it, so its legs keep pointing straight
-    out from the cog. Joint limits, gait and the rest are the robot's own.
+    `dimensions` is in get_simulator_dimensions()'s terms, as the Dimensions
+    panel edits them. The mounts move with front, side and middle, each leg
+    keeping its own side and mirroring; the legs take the new lengths. A real
+    robot's legs keep the angles they are mounted at, whatever the body
+    measures; the generic model has no robot behind it, so its legs keep
+    pointing straight out from the cog. Joint limits, gait and the rest are the
+    robot's own.
 
     A measurement that is missing or not positive keeps the robot's.
     """

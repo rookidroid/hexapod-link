@@ -3,8 +3,8 @@
     python tools/fake_robot.py                 # a Nougat on 127.0.0.1:8080
     python tools/fake_robot.py mochi --port 8081
 
-Serves the firmware's HTTP routes -- /robot_config, the speed routes and the
-calibration routes -- with the same replies and refusals as the ESP32, answers
+Serves the firmware's HTTP routes the app uses -- /robot_config and the speed
+routes -- with the same replies and refusals as the ESP32, answers
 firmware version queries on UDP port 1234, and prints every other UDP packet
 sent there. In the app, connect to 127.0.0.1:8080: the port goes to HTTP, UDP
 always goes to 1234.
@@ -26,7 +26,6 @@ from urllib.parse import parse_qs, urlparse
 FIXTURES = Path(__file__).resolve().parent.parent / "tests" / "fixtures" / "robot_config"
 
 UDP_PORT = 1234
-MAX_OFFSET = 100
 
 MAGIC_VERSION = 0xA8
 
@@ -58,9 +57,6 @@ class FakeRobot:
                  on_packet=None, answer_version=True):
         self.payload = payload
         self.speed = payload.get("speed", {}).get("current", 60)
-        self.calibrating = False
-        self.offsets = {"left": [[0] * 3 for _ in range(3)], "right": [[0] * 3 for _ in range(3)]}
-        self.saved_offsets = None
         self.requests = []
         self.packets = []
         self.on_packet = on_packet
@@ -156,14 +152,6 @@ class FakeRobot:
                     self._json(payload)
                 elif url.path == "/get_speed":
                     self._json({"speed": robot.speed})
-                elif url.path == "/enter_calibration":
-                    robot.calibrating = True
-                    self._json(robot.offsets)
-                elif url.path == "/exit_calibration":
-                    robot.calibrating = False
-                    self._reply(200, "Exited calibration mode")
-                elif url.path == "/get_offsets":
-                    self._json(robot.offsets)
                 else:
                     self._reply(404, "Not found")
 
@@ -178,29 +166,6 @@ class FakeRobot:
                         return
                     robot.speed = max(20, min(100, int(pct[0])))
                     self._json({"speed": robot.speed})
-                elif url.path == "/set_offsets":
-                    if not robot.calibrating:
-                        self._reply(409, "Enter calibration mode first")
-                        return
-                    if not body:
-                        self._reply(400, "No data received")
-                        return
-                    try:
-                        data = json.loads(body)
-                        robot.offsets = {
-                            side: [
-                                [max(-MAX_OFFSET, min(MAX_OFFSET, int(v))) for v in leg]
-                                for leg in data[side]
-                            ]
-                            for side in ("left", "right")
-                        }
-                    except (ValueError, KeyError, TypeError):
-                        self._reply(400, "Malformed offsets")
-                        return
-                    self._reply(200, "Offsets applied!")
-                elif url.path == "/save_offsets":
-                    robot.saved_offsets = json.loads(json.dumps(robot.offsets))
-                    self._reply(200, "Offsets saved to flash!")
                 else:
                     self._reply(404, "Not found")
 

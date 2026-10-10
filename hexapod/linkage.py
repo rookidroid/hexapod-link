@@ -57,8 +57,9 @@
 #               |      *----------------
 #
 from copy import deepcopy
+
 import numpy as np
-from hexapod.naming import JOINT_NAMES
+
 from hexapod.points import (
     Vector,
     frame_yrotate_xtranslate,
@@ -67,10 +68,6 @@ from hexapod.points import (
 
 
 class Linkage:
-    # Ordered body-outward, so index i is the firmware's Joint i+1;
-    # see hexapod/naming.py
-    POINT_NAMES = list(JOINT_NAMES)
-
     __slots__ = (
         "a",
         "b",
@@ -83,7 +80,6 @@ class Linkage:
         "name",
         "id",
         "all_points",
-        "ground_contact_point",
     )
 
     def __init__(
@@ -108,20 +104,8 @@ class Linkage:
         self.name = name
         self.change_pose(alpha, beta, gamma)
 
-    def body_contact(self):
-        return self.all_points[0]
-
-    def coxia_point(self):
-        return self.all_points[1]
-
     def foot_tip(self):
         return self.all_points[3]
-
-    def ground_contact(self):
-        return self.ground_contact_point
-
-    def get_point(self, i):
-        return self.all_points[i]
 
     def change_pose(self, alpha, beta, gamma):
         self.alpha = alpha
@@ -153,72 +137,3 @@ class Linkage:
         p3 = p3.get_point_wrt(new_frame, name=self.name + "-tibia")
 
         self.all_points = [p0, p1, p2, p3]
-        self.ground_contact_point = self.compute_ground_contact()
-
-    def update_leg_wrt(self, frame, height):
-        for point in self.all_points:
-            point.update_point_wrt(frame, height)
-
-    def compute_ground_contact(self):
-        # ❗IMPORTANT: Verify if this assumption is correct
-        # ❗VERIFIED: This assumption is indeed wrong
-        ground_contact = self.all_points[3]
-        for point in reversed(self.all_points):
-            if point.z < ground_contact.z:
-                ground_contact = point
-
-        return ground_contact
-
-    def __str__(self):
-        leg_string = f"{self!r}\n"
-        leg_string += f"Vectors of {self.name} leg:\n"
-
-        for point in self.all_points:
-            leg_string += f"  {point}\n"
-
-        leg_string += f"  ground contact: {self.ground_contact()}\n"
-        return leg_string
-
-    def __repr__(self):
-        return f"""Linkage(
-  a={self.a},
-  b={self.b},
-  c={self.c},
-  alpha={self.alpha},
-  beta={self.beta},
-  gamma={self.gamma},
-  coxia_axis={self.coxia_axis},
-  id_number={self.id},
-  name='{self.name}',
-  new_origin={self.new_origin},
-)"""
-
-
-#
-#          /*
-#         //\\
-#        //  \\
-#       //    \\
-#      //      \\
-# *===* ---->   \\ ---------
-#                \\       |
-#                 \\   tip height (positive)
-#                  \\     |
-#                   \\ -----
-#
-#
-# *===*=======*
-#           | \\
-#           |  \\
-# (positive)|   \\
-#    tip height  \\
-#           |     \\
-#         ------    *----
-#
-#                *=========* -----
-#               //             |
-#              // (negative) tip height
-#             //               |
-# *===*=======*  -------------------
-# Negative only if body contact point
-# is touching the ground

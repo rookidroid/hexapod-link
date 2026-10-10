@@ -1,10 +1,10 @@
 # What the 3D view draws, as plain data.
 #
-# Every page draws the hexapod with the same three.js view
-# (assets/hexapod_view.js). This module turns a posed VirtualHexapod into the
-# lists that view takes: the body outline, each leg's four points, the support
-# polygon, and the body's own axes. It goes to the browser as JSON through a
-# dcc.Store, so everything here is plain floats.
+# The hexapod is drawn by a three.js view (assets/hexapod_view.js). This module
+# turns a posed VirtualHexapod into the lists that view takes: the body
+# outline, each leg's four points, the support polygon, and the body's own
+# axes. It goes to the browser as JSON through a dcc.Store, so everything here
+# is plain floats.
 #
 #   body      6 vertices, leg order (hexapod/naming.py)
 #   head      the point marking the front
@@ -12,7 +12,7 @@
 #   legs      per leg: body contact, coxia, femur and foot tip points
 #   feet      the six foot tips
 #   support   the feet standing on the ground, in order around the polygon
-#   axes      [{"from", "to", "axis": "x"|"y"|"z", "world": bool}]
+#   axes      the body's own axes: [{"from", "to", "axis": "x"|"y"|"z"}]
 #   ground    height of the floor
 #   size      the robot's overall measure, which the camera is framed by
 #   labels    each leg's name as the firmware gives it, shown on hover
@@ -82,34 +82,23 @@ def order_around_centre(points):
     return sorted(points, key=lambda p: atan2(p[1] - cy, p[0] - cx))
 
 
-def hexapod_to_scene(hexapod, ground=0.0, support=None, world_axes=True):
-    """The scene for a posed hexapod, in whatever frame it was left in.
+def hexapod_to_scene(hexapod, ground, support):
+    """The scene for a posed hexapod, in its body frame.
 
     `support` is the list of [x, y, z] points the support polygon is drawn
-    through; by default the hexapod's own ground contacts, which is what a
-    hexapod settled by VirtualHexapod.update() stands on. The polygon is drawn
-    flat at `ground`.
+    through, flat at `ground`.
     """
     legs = [[xyz(point) for point in leg.all_points] for leg in hexapod.legs]
     cog = xyz(hexapod.body.cog)
-
-    if support is None:
-        support = [xyz(point) for point in hexapod.ground_contacts]
     support = [[p[0], p[1], ground + 0.0] for p in order_around_centre(support)]
 
-    # The body's own axes from its centre, and the world's at the origin, both
-    # half the body's front length long.
-    scale = hexapod.front / 2
+    # The body's own axes from its centre, half the body's front length long.
+    scale = float(hexapod.front / 2)
     axes = []
-    for name, axis in (("x", hexapod.x_axis), ("y", hexapod.y_axis), ("z", hexapod.z_axis)):
-        tip = [cog[0] + scale * axis.x, cog[1] + scale * axis.y, cog[2] + scale * axis.z]
-        tip = [round(c, 3) + 0.0 for c in tip]
-        axes.append({"from": cog, "to": tip, "axis": name, "world": False})
-    if world_axes:
-        for i, name in enumerate("xyz"):
-            tip = [0.0, 0.0, 0.0]
-            tip[i] = float(scale)
-            axes.append({"from": [0.0, 0.0, 0.0], "to": tip, "axis": name, "world": True})
+    for i, name in enumerate("xyz"):
+        tip = list(cog)
+        tip[i] = round(tip[i] + scale, 3) + 0.0
+        axes.append({"from": cog, "to": tip, "axis": name})
 
     return {
         "body": [xyz(vertex) for vertex in hexapod.body.vertices],
@@ -129,9 +118,9 @@ def hexapod_to_scene(hexapod, ground=0.0, support=None, world_axes=True):
 def transform_scene(scene, rotation, shift):
     """The same scene moved rigidly: every point p goes to rotation @ p + shift.
 
-    How the pose page draws the body-frame scene of a pose where the body is
-    in the world (hexapod/pose_layers.py). The floor height is only moved,
-    not tilted, so set it afterwards when the rotation is not upright.
+    How the body-frame scene of a pose is drawn with the body placed in the
+    world (hexapod/pose_layers.py). The floor height is only moved, not
+    tilted, so set it afterwards when the rotation is not upright.
     """
     rotation = np.asarray(rotation, dtype=float)
     shift = np.asarray(shift, dtype=float)
@@ -154,9 +143,3 @@ def transform_scene(scene, rotation, shift):
         ],
         "ground": round(scene["ground"] + float(shift[2]), 3) + 0.0,
     }
-
-
-def raise_scene(scene, dz):
-    """The same scene moved `dz` up, so a body-frame scene can share the floor
-    (z = 0) of the scenes drawn in the world."""
-    return transform_scene(scene, np.eye(3), [0.0, 0.0, dz])

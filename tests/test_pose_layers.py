@@ -1,4 +1,4 @@
-"""The pose page's pose in layers (hexapod/pose_layers.py).
+"""The pose in layers (hexapod/pose_layers.py).
 
 What matters is that the layers add up instead of undoing each other: the
 body moves over feet that stay planted, and a moved foot stays where it was
@@ -293,7 +293,7 @@ def test_unchanged_dimensions_leave_the_robot_as_it_is(robot):
     dimensions = get_simulator_dimensions(robot, mount_angles=False)
     assert with_dimensions(robot, dimensions) is robot
     assert with_dimensions(robot, None) is robot
-    # Nothing usable in the Robot panel: the robot keeps its own measurements.
+    # Nothing usable in the Dimensions panel: the robot keeps its own measurements.
     assert with_dimensions(robot, {name: 0 for name in dimensions}) is robot
 
 
@@ -310,7 +310,7 @@ def test_a_resized_robot_is_measured_as_asked_and_still_poses(robot):
     if robot["source"] != "generic":
         assert resized["config"]["legMountAngle"] == robot["config"]["legMountAngle"]
 
-    # The pose page works on it as on the robot itself.
+    # The workspace works on it as on the robot itself.
     state = tilted()
     _, _, bad = pl.solve(state, resized)
     assert bad == []
