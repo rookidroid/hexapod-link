@@ -22,10 +22,9 @@
 import numpy as np
 
 from hexapod import keyframes as kf
-from hexapod.models import VirtualHexapod
 from hexapod.points import frame_rotxyz
 from hexapod.robot_config import get_simulator_dimensions
-from hexapod.scene import hexapod_to_scene, order_around_centre, transform_scene
+from hexapod.scene import order_around_centre, transform_scene
 
 BODY_KEYS = ("percent_x", "percent_y", "percent_z", "rot_x", "rot_y", "rot_z")
 
@@ -142,26 +141,6 @@ def scene(state, pose, robot_config):
     return drawn
 
 
-def settled_scene(pose, robot_config):
-    """A pose drawn standing on the floor: the body tilted and lifted onto the
-    feet that touch the ground, as VirtualHexapod.update() settles it.
-
-    For the gaits. Several of them -- Rotate X/Y/Z, Twist, Climb -- tilt or
-    raise the body over planted feet, which in the body frame shows up as the
-    feet swinging; drawn with the body held level, as scene() draws an edited
-    pose, those feet go through the floor. A frame the model cannot stand on
-    (no three feet around the centre of gravity) is drawn that way instead.
-    """
-    hexapod = VirtualHexapod(get_simulator_dimensions(robot_config))
-    try:
-        # Not assuming which point of each leg is on the ground: a gait can
-        # bend a leg so that its knee is lower than its foot.
-        hexapod.update(pose, assume_ground_targets=False)
-    except Exception:  # update() raises a bare Exception when it cannot settle
-        return scene(from_feet(kf.pose_to_feet(pose, robot_config), robot_config), pose, robot_config)
-    return hexapod_to_scene(hexapod, world_axes=False)
-
-
 def _as_vector(state):
     return np.concatenate(
         [
@@ -177,8 +156,9 @@ def _from_vector(vector):
     return make_state(body, offsets)
 
 
-def sequence(keyframes, robot_config, fps, loop=False, ease=True):
-    """The frames of a sequence: (feet, states, poses, bad_frames).
+def sequence(keyframes, robot_config, fps, loop=False, ease=True, speed=1.0):
+    """The frames of a sequence, played at `speed`: (feet, states, poses,
+    bad_frames).
 
     When every keyframe kept its layers, the layers are what is interpolated,
     so a body tilting between two keyframes tilts over planted feet. Otherwise
@@ -189,12 +169,12 @@ def sequence(keyframes, robot_config, fps, loop=False, ease=True):
         vectors = [_as_vector(frame["state"]) for frame in keyframes]
         states = [
             _from_vector(vector)
-            for vector in kf.interpolate_arrays(vectors, keyframes, fps, loop, ease)
+            for vector in kf.interpolate_arrays(vectors, keyframes, fps, loop, ease, speed)
         ]
         feet = [body_feet(state, robot_config) for state in states]
     else:
         states = None
-        feet = kf.interpolate_feet(keyframes, fps, loop, ease)
+        feet = kf.interpolate_feet(keyframes, fps, loop, ease, speed)
 
     poses, bad_frames = [], []
     for index, frame_feet in enumerate(feet):

@@ -78,15 +78,16 @@ EMPTY_FRAME_RETRIES = 4
 def posed_pose_stores():
     """Starting data for the pose stores, so the shot shows a sequence.
 
-    The pose is POSED_LAYERS, and it is the second of three keyframes --
-    standby, that pose, standby -- with the editor loaded from it. Built for
-    whichever robot the app is modelling, since foot positions only fit the
-    robot they were placed on.
+    The pose is POSED_LAYERS, and it is the second keyframe -- after
+    standby, and before a cycle of the Twist gait, retimed to ease into -- with
+    the editor loaded from it. Built for whichever robot the app is
+    modelling, since foot positions only fit the robot they were placed on.
     """
     import numpy as np
 
     from hexapod import keyframes as kf
     from hexapod import pose_layers as pl
+    from hexapod.gait_keyframes import gait_keyframes
     from hexapod.robot_link import ROBOT_LINK
 
     robot_config = ROBOT_LINK.robot_config
@@ -99,7 +100,10 @@ def posed_pose_stores():
     def keyframe(state, duration_ms=kf.DEFAULT_DURATION_MS):
         return kf.make_keyframe(pl.body_feet(state, robot_config), duration_ms, state)
 
-    frames = [keyframe(standby), keyframe(posed, 600), keyframe(standby, 600)]
+    twist = gait_keyframes("twist", robot_config)
+    first = twist[0]
+    twist[0] = kf.make_keyframe(first["feet"], 600, first["state"])
+    frames = [keyframe(standby), keyframe(posed, 600), *twist]
     return {
         "pose-state": {
             "robot": robot_config["name"],
@@ -323,7 +327,7 @@ def main():
         POSE_RESET_VIEW_BTN_ID,
     )
     from widgets.dimensions_ui import DIMENSIONS_HUD_ID
-    from widgets.robot_link_ui import STREAM_HUD_ID
+    from widgets.robot_link_ui import DRIVE_HUD_ID, STREAM_HUD_ID
 
     seen = set()
     stores = posed_pose_stores()
@@ -376,6 +380,7 @@ def main():
                     POSE_RESET_VIEW_BTN_ID: hidden,
                     STREAM_HUD_ID: hidden,
                     DIMENSIONS_HUD_ID: hidden,
+                    DRIVE_HUD_ID: hidden,
                 },
                 set(),
                 prop="style",

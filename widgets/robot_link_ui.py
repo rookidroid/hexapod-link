@@ -5,9 +5,13 @@
 # * TOPBAR_CONNECTION is the address and the connect button, in the top bar,
 #   so the link can be brought up from whatever tool is showing.
 # * STREAM_OVERLAY switches streaming on and limits its speed, over the view.
+# * DRIVE_HUD is the controller over the view: hold a pad and the robot plays
+#   that one of its own gaits.
 #
 # Which robot is modelled is named in the dimensions panel (ROBOT_INFO_ID,
 # widgets/dimensions_ui.py), whose measurements follow it.
+import json
+
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
@@ -131,4 +135,129 @@ STREAM_OVERLAY = html.Div(
         "hexapod on a stand first: a pose that stands up here will not "
         "necessarily stand up on the floor."
     ),
+)
+
+
+# ................................
+# CONTROLLER
+#
+# Over the view's bottom-right corner, the controls of the Android app's
+# control screen: hold a pad and the robot plays that one of its own gaits
+# from flash, let go and it stands. The pads are drawn, and held, by
+# assets/drive_pads.js, from the layout below; it talks to the robot through
+# the route in pages/drive.py.
+# ................................
+
+DRIVE_HUD_ID = "drive-hud"
+DRIVE_CONTROLS_ID = "drive-controls"
+DRIVE_SPEED_ID = "drive-speed"
+# Read by assets/drive_pads.js; keep the two in step.
+DRIVE_READOUT_ID = "drive-readout"
+DRIVE_BODY_CLASS = "drive-body"
+
+# The move pad: standby in the middle, around it a ring of eight walks
+# (clockwise from forward), and outside that fast forward, the turns and fast
+# backward.
+DRIVE_MOVE_PAD = {
+    "centre": "standby",
+    "walk": [
+        "walk_0",
+        "walk_r45",
+        "walk_r90",
+        "walk_r135",
+        "walk_180",
+        "walk_l135",
+        "walk_l90",
+        "walk_l45",
+    ],
+    "outer": ["fast_forward", "turn_right", "fast_backward", "turn_left"],
+}
+
+# The body pad: moves on the spot, in rows of two as on the Android app, each
+# with the short name it is labelled with.
+DRIVE_BODY_PAD = [
+    [["rotate_y", "Roll"], ["climb_forward", "Climb"]],
+    [["rotate_x", "Pitch"], ["twist", "Twist"]],
+    [["rotate_z", "Wobble"], ["climb_backward", "Climb"]],
+]
+
+# What each one is called in its tooltip, and in the readout while it is held.
+DRIVE_LABELS = {
+    "standby": "Standby",
+    "walk_0": "Walk forward",
+    "walk_180": "Walk backward",
+    "walk_r45": "Walk right 45°",
+    "walk_r90": "Walk right 90°",
+    "walk_r135": "Walk right 135°",
+    "walk_l45": "Walk left 45°",
+    "walk_l90": "Walk left 90°",
+    "walk_l135": "Walk left 135°",
+    "fast_forward": "Fast forward",
+    "fast_backward": "Fast backward",
+    "turn_left": "Turn left",
+    "turn_right": "Turn right",
+    "climb_forward": "Climb forward",
+    "climb_backward": "Climb backward",
+    "rotate_x": "Rotate X (pitch)",
+    "rotate_y": "Rotate Y (roll)",
+    "rotate_z": "Rotate Z (wobble)",
+    "twist": "Twist (figure-8)",
+}
+
+DRIVE_LAYOUT = {"move": DRIVE_MOVE_PAD, "body": DRIVE_BODY_PAD, "labels": DRIVE_LABELS}
+
+# Gait speed, as a percent of the robot's tuned frame rate. The same speed as
+# the dock's gait speed: both are the link's, and kept in step by
+# set_gait_speed and sync_robot_controls in pages/page_pose.py.
+_speed = ROBOT_LINK.robot_config["speed"]
+
+# A native <details>, so it folds away without a callback.
+DRIVE_HUD = html.Details(
+    [
+        html.Summary(
+            "Controller",
+            title=(
+                "Runs the robot's own gaits, played from its flash, for as "
+                "long as a pad is held."
+            ),
+        ),
+        html.Div(
+            [
+                html.Div(className="drive-pad drive-pad-body", **{"data-pad": "body"}),
+                html.Div(className="drive-pad drive-pad-move", **{"data-pad": "move"}),
+                html.Div(
+                    [
+                        html.Div(
+                            "Hold a pad to move", id=DRIVE_READOUT_ID, className="drive-readout"
+                        ),
+                        html.Div(
+                            [
+                                field_label("Speed (%)"),
+                                dcc.Slider(
+                                    id=DRIVE_SPEED_ID,
+                                    min=_speed["min"],
+                                    max=_speed["max"],
+                                    step=5,
+                                    value=ROBOT_LINK.speed_pct,
+                                    marks=None,
+                                    allow_direct_input=True,
+                                ),
+                            ],
+                            className="ind-inline-slider drive-speed",
+                            title="How fast the robot plays its gaits, of its tuned rate",
+                        ),
+                    ],
+                    className="drive-footer",
+                ),
+            ],
+            id=DRIVE_CONTROLS_ID,
+            # Dimmed and inert until a robot is connected (sync_robot_controls
+            # in pages/page_pose.py).
+            className=f"{DRIVE_BODY_CLASS} {SECTION_CONTROLS_OFFLINE_CLASS}",
+            **{"data-layout": json.dumps(DRIVE_LAYOUT)},
+        ),
+    ],
+    id=DRIVE_HUD_ID,
+    open=True,
+    className="hud-panel drive-hud",
 )

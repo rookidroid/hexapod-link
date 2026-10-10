@@ -69,6 +69,13 @@ ROBOT_STREAM_HZ = 100
 # but far below the streaming rate, since holding a pose needs no bandwidth.
 ROBOT_PING_HZ = 10
 
+# How long a gait run from the controller over the view lasts past the last
+# word from the page. While a pad is held the page repeats it several times a
+# second (assets/drive_pads.js); if that stops -- the page closed, the network
+# dropped -- the robot is sent to standby this long after. The idle pings
+# above keep the robot's own failsafe fed, so without this it would walk on.
+ROBOT_DRIVE_HOLD_S = 0.6
+
 # Per-joint slew limit in servo ticks per firmware control cycle (20 ms).
 # 1 tick is about 0.44 degrees, so 8 ticks/cycle is roughly 175 deg/s.
 # Lower this to make the robot follow the simulator more gently.
@@ -89,3 +96,9 @@ ROBOT_SEQUENCE_MAX_STEP = 40
 # survive a restart. The environment variable overrides it (the tests use this).
 PREFERENCES_ENV = "HEXAPOD_LINK_PREFERENCES"
 PREFERENCES_PATH = Path.home() / ".hexapod-link" / "preferences.json"
+
+# Gaits of one's own: sequences saved by name from the dock's Gaits library
+# (hexapod/gait_library.py), one keyframe file each. On disk for the same
+# reason as the preferences; the environment variable overrides it.
+GAITS_ENV = "HEXAPOD_LINK_GAITS"
+GAITS_DIR = Path.home() / ".hexapod-link" / "gaits"

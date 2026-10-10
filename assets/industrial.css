@@ -5,9 +5,12 @@
    the tool picked on it, the view, and a dock along the bottom
    (pages/shared.py make_workspace, pages/workspace.py).
 
-   The colours are the RX-78-2 tricolour the app has always worn -- Federation
-   blue as the accent, yellow and red kept for state -- on quiet surfaces, so
-   the view is what draws the eye. Light is white armour, dark is the cockpit.
+   Styled after the RX-78-2 Gundam: white armour plates framed in navy,
+   Federation blue as the accent, red and V-fin yellow as trim. Light is the
+   armour, dark is the cockpit, with a cyan HUD glow on focus. The markings are
+   kept to a few -- the chest trim under the top bar, chamfered corners on the
+   controls and the HUD cards, and the display face on headings -- so the view
+   is still what draws the eye.
 
    Every colour that differs between the themes is a token on :root. The dark
    values override them when <html> carries data-theme="dark"; the attribute is
@@ -99,35 +102,53 @@
    =========================================== */
 
 :root {
-    --ind-bg: #e6ebf2;             /* Behind the panels */
-    --ind-surface: #f6f8fb;        /* Panels, top bar, dock */
-    --ind-surface-alt: #ffffff;    /* Inputs, buttons, chips */
-    --ind-border: #d3dbe7;         /* Hairlines between areas */
-    --ind-border-strong: #a9b6cc;  /* Control outlines */
+    --ind-bg: #dde3ec;             /* Panel-line grey */
+    --ind-surface: #f3f5f9;        /* White armour: panels, top bar, dock */
+    --ind-surface-alt: #ffffff;    /* Buttons, chips */
+    --ind-border: #c9d2e0;         /* Hairlines inside a panel */
+    --ind-border-strong: #a9b6cc;  /* Input outlines */
+    --ind-frame: #1b2a4a;          /* Navy frame between areas and on buttons */
     --ind-accent: #1d4fa3;         /* Federation blue */
     --ind-accent-hover: #163f84;
     --ind-accent-active: #10306a;
     --ind-accent-rgb: 29, 79, 163;
-    --ind-accent-alt: #e0a800;     /* V-fin yellow: streaming */
-    --ind-red: #d62828;            /* Faults and destructive actions */
+    --ind-accent-alt: #f2b705;     /* V-fin yellow: trim, streaming */
+    --ind-red: #d62828;            /* Chest red: trim, faults */
     --ind-ok: #16a34a;             /* Online */
-    --ind-text: #0f1a30;
-    --ind-text-muted: #56637d;
-    --ind-hover: #e9eef7;
-    --ind-input-bg: #ffffff;
+    --ind-outline: #0f1a30;        /* Outline on the solid buttons */
+    --ind-text: #0f1a30;           /* Navy black */
+    --ind-text-muted: #4a5875;
+    --ind-hover: #e8eef8;
+    --ind-input-bg: #eef2f8;
     --ind-alert-text: #9b1c1c;
     --ind-alert-bg: #fdecec;
-    --ind-track: #d3dbe7;          /* Slider tracks */
+    --ind-track: #c9d2e0;          /* Slider tracks */
 
-    --ind-glow: 0 0 0 3px rgba(29, 79, 163, 0.22);
-    --shadow-soft: 0 1px 2px rgba(15, 26, 48, 0.06), 0 2px 8px rgba(15, 26, 48, 0.06);
-    --radius: 6px;
+    /* Focus ring: a plain blue halo on the armour, a HUD glow in the cockpit.
+       The inset one is for the chamfered controls, whose clip-path would cut
+       off anything drawn outside them. */
+    --ind-glow: 0 0 0 2px rgba(29, 79, 163, 0.28);
+    --ind-glow-inset: inset 0 0 0 2px rgba(29, 79, 163, 0.55);
+    --shadow-soft: 0 2px 10px rgba(15, 26, 48, 0.12);
+    --radius: 0;
 
-    /* The 3D view is the same dark monitor in both themes, and so is what is
-       laid over it. */
+    /* Mecha corners: the top-right and bottom-left cut off at 45 degrees. */
+    --chamfer: 7px;
+    --chamfer-clip: polygon(
+        0 0,
+        calc(100% - var(--chamfer)) 0,
+        100% var(--chamfer),
+        100% 100%,
+        var(--chamfer) 100%,
+        0 calc(100% - var(--chamfer))
+    );
+
+    /* The 3D view is the cockpit's panoramic monitor in both themes, and so
+       is what is laid over it: navy plates edged in HUD cyan. */
     --view-bg: #0a1428;
-    --hud-bg: rgba(8, 16, 34, 0.82);
-    --hud-border: rgba(160, 190, 240, 0.18);
+    --hud-cyan-rgb: 76, 201, 240;
+    --hud-bg: rgba(8, 16, 34, 0.84);
+    --hud-border: rgba(var(--hud-cyan-rgb), 0.28);
     --hud-text: #e4eeff;
     --hud-muted: #8aa2c8;
 
@@ -137,34 +158,48 @@
 
     --topbar-h: 52px;
     --rail-w: 68px;
+    /* The tool panel's width, the dock's height and the widths of the dock's
+       side columns (a percentage there is of the dock); dragging the
+       workspace's splitters sets them on <html> instead
+       (assets/workspace_resize.js). */
     --panel-w: clamp(300px, 24vw, 380px);
+    --dock-h: 15rem;
+    --lib-w: clamp(14rem, 18%, 18rem);
+    --run-w: clamp(22rem, 28%, 28rem);
+    /* How much of the workspace the view always keeps, whatever they are set
+       to: a window made smaller narrows them, and they come back with it. */
+    --view-min-w: 360px;
+    --view-min-h: 180px;
 }
 
 :root[data-theme="dark"] {
     color-scheme: dark;
 
     --ind-bg: #060c18;
-    --ind-surface: #0b1529;
-    --ind-surface-alt: #0f1d38;
+    --ind-surface: #0c1730;
+    --ind-surface-alt: #11203f;
     --ind-border: #1a2b4d;
     --ind-border-strong: #2c4475;
+    --ind-frame: #2f5fb3;
     --ind-accent: #3d7cf0;
     --ind-accent-hover: #2f68d6;
     --ind-accent-active: #2455b4;
     --ind-accent-rgb: 61, 124, 240;
     --ind-accent-alt: #ffd23f;
-    --ind-red: #ff5c5c;
+    --ind-red: #ff4d4d;
     --ind-ok: #22c55e;
+    --ind-outline: #02060f;
     --ind-text: #e4eeff;
     --ind-text-muted: #8aa2c8;
-    --ind-hover: #15274a;
-    --ind-input-bg: #081227;
+    --ind-hover: #18294d;
+    --ind-input-bg: #08122a;
     --ind-alert-text: #ffb4b4;
-    --ind-alert-bg: rgba(255, 92, 92, 0.12);
+    --ind-alert-bg: rgba(255, 77, 77, 0.12);
     --ind-track: #24396a;
 
-    --ind-glow: 0 0 0 3px rgba(76, 201, 240, 0.3);
-    --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 10px rgba(0, 0, 0, 0.35);
+    --ind-glow: 0 0 0 1px rgba(76, 201, 240, 0.45), 0 0 14px rgba(76, 201, 240, 0.25);
+    --ind-glow-inset: inset 0 0 0 2px rgba(76, 201, 240, 0.7);
+    --shadow-soft: 0 2px 10px rgba(0, 0, 0, 0.55);
 }
 
 /* ===========================================
@@ -214,11 +249,28 @@ body {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0 0.75rem 0 1rem;
+    padding: 0 0.75rem 4px 1rem;
     background: var(--ind-surface);
-    border-bottom: 1px solid var(--ind-border);
+    box-shadow: var(--shadow-soft);
     position: relative;
     z-index: 5;
+}
+
+/* Chest trim along the bottom edge: a red block, a few yellow vent slats,
+   then Federation blue, the way the colours sit on the RX-78's torso. */
+.topbar::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 4px;
+    pointer-events: none;
+    background:
+        linear-gradient(90deg, var(--ind-red) 0 var(--rail-w), transparent var(--rail-w)),
+        repeating-linear-gradient(90deg, var(--ind-accent-alt) 0 10px, transparent 10px 16px)
+            calc(var(--rail-w) + 6px) 0 / 76px 100% no-repeat,
+        var(--ind-accent);
 }
 
 .topbar-brand {
@@ -231,28 +283,20 @@ body {
 
 .topbar-title {
     font-family: var(--font-display);
-    font-size: 1rem;
+    font-size: 1.05rem;
+    font-synthesis: none;
     letter-spacing: 2px;
     text-transform: uppercase;
 }
 
-/* One small accent mark in front of the brand: all that is left of the
-   armour's tricolour trim. */
-.topbar-title::before {
-    content: '';
-    display: inline-block;
-    width: 4px;
-    height: 0.95em;
-    margin-right: 0.6rem;
-    vertical-align: -0.1em;
-    background: linear-gradient(var(--ind-red) 0 33%, var(--ind-accent-alt) 33% 66%, var(--ind-accent) 66%);
-    border-radius: 1px;
-}
-
+/* Release stamp beside the brand: a small stencilled plate. */
 .topbar-version {
+    padding: 0.05rem 0.35rem;
     font-family: var(--font-mono);
-    font-size: 0.7rem;
+    font-size: 0.68rem;
+    font-weight: 600;
     color: var(--ind-text-muted);
+    border: 1px solid var(--ind-border-strong);
 }
 
 .topbar-connection {
@@ -289,8 +333,8 @@ body {
     text-overflow: ellipsis;
     color: var(--ind-text);
     background: var(--ind-surface-alt);
-    border: 1px solid var(--ind-border-strong);
-    border-radius: 999px;
+    border: 2px solid var(--ind-frame);
+    clip-path: var(--chamfer-clip);
     cursor: default;
     transition: border-color 0.15s ease;
 }
@@ -340,16 +384,21 @@ body {
 /* ===========================================
    WORKSPACE
    The rail runs the full height down the left; the dock spans everything
-   else along the bottom. Above `lg` it is one screenful: only the tool panel
-   and the dock scroll, and the view takes the height that is left.
+   else along the bottom. Above `lg` it is one screenful: the tool panel is
+   --panel-w wide and the dock --dock-h tall, each scrolling what does not fit,
+   and the view takes the room that is left. Splitters on their edges resize
+   them.
    =========================================== */
 
 .workspace {
     flex: 1 1 auto;
     min-height: 0;
     display: grid;
-    grid-template-columns: var(--rail-w) var(--panel-w) minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-columns:
+        var(--rail-w)
+        min(var(--panel-w), calc(100% - var(--rail-w) - var(--view-min-w)))
+        minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) min(var(--dock-h), calc(100% - var(--view-min-h)));
     grid-template-areas:
         "rail panel view"
         "rail dock  dock";
@@ -362,12 +411,14 @@ body {
     padding: 0.5rem 0.4rem;
 }
 
+/* The navy frame runs round the view: down the panel's edge and along the
+   dock's top. */
 .ws-panel {
     grid-area: panel;
     min-height: 0;
     overflow-y: auto;
     background: var(--ind-surface);
-    border-right: 1px solid var(--ind-border);
+    border-right: 2px solid var(--ind-frame);
 }
 
 .ws-view {
@@ -378,12 +429,99 @@ body {
     background: var(--view-bg);
 }
 
+/* As tall as --dock-h, scrolling what does not fit; its columns fill it, and
+   the Gaits library scrolls within its own. */
 .ws-dock {
     grid-area: dock;
-    max-height: 40vh;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
     overflow-y: auto;
     background: var(--ind-surface);
-    border-top: 1px solid var(--ind-border);
+    border-top: 2px solid var(--ind-frame);
+}
+
+/* ---- Splitters ----
+   A strip over the panel's right edge and one over the dock's top edge,
+   showing the accent while hovered, focused or dragged. They overlap the
+   areas they resize, so take no room. */
+
+.ws-splitter {
+    position: relative;
+    z-index: 6;
+    touch-action: none;
+    outline: none;
+}
+
+.ws-splitter::after {
+    content: '';
+    position: absolute;
+    background: var(--ind-accent);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.ws-splitter:hover::after,
+.ws-splitter:focus-visible::after,
+.is-resizing .ws-splitter::after {
+    opacity: 1;
+}
+
+.ws-splitter[aria-orientation="vertical"] {
+    width: 8px;
+    cursor: col-resize;
+}
+
+.ws-splitter[aria-orientation="vertical"]::after {
+    top: 0;
+    bottom: 0;
+    left: 2px;
+    width: 3px;
+}
+
+.ws-splitter-panel {
+    grid-area: panel;
+    justify-self: end;
+    margin-right: -5px;
+}
+
+/* The dock's: on the line after the Gaits library, and on the line before
+   Playback and Robot. */
+.ws-splitter-lib {
+    grid-row: 1;
+    grid-column: 1;
+    justify-self: end;
+    margin-right: -4px;
+}
+
+.ws-splitter-run {
+    grid-row: 1;
+    grid-column: 3;
+    justify-self: start;
+    margin-left: -4px;
+}
+
+.ws-splitter-dock {
+    grid-area: dock;
+    align-self: start;
+    height: 8px;
+    margin-top: -5px;
+    cursor: row-resize;
+}
+
+.ws-splitter-dock::after {
+    left: 0;
+    right: 0;
+    top: 2px;
+    height: 3px;
+}
+
+/* While dragging: the splitter's cursor everywhere, and no text selected on
+   the way. */
+.is-resizing,
+.is-resizing * {
+    cursor: var(--resize-cursor) !important;
+    user-select: none !important;
 }
 
 /* Below `lg` there is no height to share: the rail turns into a row of tabs
@@ -419,6 +557,7 @@ body {
     .ws-panel {
         overflow: visible;
         border-right: none;
+        border-bottom: 2px solid var(--ind-frame);
     }
 
     .ws-view {
@@ -426,7 +565,11 @@ body {
     }
 
     .ws-dock {
-        max-height: none;
+        overflow: visible;
+    }
+
+    .ws-splitter {
+        display: none;
     }
 }
 
@@ -586,13 +729,19 @@ body {
     border-bottom: 1px solid var(--ind-border);
 }
 
+/* Section titles in the display face, underlined in V-fin yellow. Michroma
+   has one weight, so it stays at 400 rather than be faux-bolded. */
 .ind-section > h6 {
-    font-family: var(--font-ui);
-    font-size: 0.78rem;
-    font-weight: 700;
+    display: inline-block;
+    padding-bottom: 0.25rem;
+    font-family: var(--font-display);
+    font-size: 0.74rem;
+    font-weight: 400;
+    font-synthesis: none;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--ind-text);
+    border-bottom: 2px solid var(--ind-accent-alt);
 }
 
 .ind-section > p {
@@ -612,19 +761,30 @@ body {
    CONTROLS
    =========================================== */
 
+/* Buttons are armour plates: a heavy navy border and chamfered corners. The
+   clip cuts off anything drawn outside the button, so the focus ring is
+   drawn inside it. */
 .btn {
     --bs-btn-font-family: var(--font-ui);
-    --bs-btn-font-weight: 600;
-    --bs-btn-border-radius: var(--radius);
+    --bs-btn-font-weight: 700;
+    --bs-btn-border-width: 2px;
+    --bs-btn-border-radius: 0;
     --bs-btn-padding-x: 0.75rem;
     --bs-btn-padding-y: 0.3rem;
-    --bs-btn-focus-box-shadow: var(--ind-glow);
-    letter-spacing: 0.2px;
+    --bs-btn-focus-box-shadow: var(--ind-glow-inset);
+    letter-spacing: 0.4px;
     white-space: nowrap;
+    clip-path: var(--chamfer-clip);
+    transition: filter 0.1s ease, background-color 0.1s ease, border-color 0.1s ease;
+}
+
+.btn:not(:disabled):not(.disabled):hover {
+    filter: brightness(1.06);
 }
 
 .btn-sm {
-    --bs-btn-border-radius: var(--radius);
+    --chamfer: 6px;
+    --bs-btn-border-radius: 0;
     --bs-btn-padding-x: 0.65rem;
     --bs-btn-padding-y: 0.25rem;
     --bs-btn-font-size: 0.82rem;
@@ -633,47 +793,47 @@ body {
 .btn-primary {
     --bs-btn-color: #fff;
     --bs-btn-bg: var(--ind-accent);
-    --bs-btn-border-color: var(--ind-accent);
+    --bs-btn-border-color: var(--ind-outline);
     --bs-btn-hover-color: #fff;
     --bs-btn-hover-bg: var(--ind-accent-hover);
-    --bs-btn-hover-border-color: var(--ind-accent-hover);
+    --bs-btn-hover-border-color: var(--ind-outline);
     --bs-btn-active-color: #fff;
     --bs-btn-active-bg: var(--ind-accent-active);
-    --bs-btn-active-border-color: var(--ind-accent-active);
+    --bs-btn-active-border-color: var(--ind-outline);
     --bs-btn-disabled-color: #fff;
     --bs-btn-disabled-bg: var(--ind-accent);
-    --bs-btn-disabled-border-color: var(--ind-accent);
+    --bs-btn-disabled-border-color: var(--ind-outline);
 }
 
 .btn-secondary,
 .btn-outline-secondary {
     --bs-btn-color: var(--ind-text);
     --bs-btn-bg: var(--ind-surface-alt);
-    --bs-btn-border-color: var(--ind-border-strong);
+    --bs-btn-border-color: var(--ind-frame);
     --bs-btn-hover-color: var(--ind-text);
     --bs-btn-hover-bg: var(--ind-hover);
-    --bs-btn-hover-border-color: var(--ind-border-strong);
+    --bs-btn-hover-border-color: var(--ind-frame);
     --bs-btn-active-color: var(--ind-text);
     --bs-btn-active-bg: var(--ind-hover);
-    --bs-btn-active-border-color: var(--ind-text-muted);
+    --bs-btn-active-border-color: var(--ind-frame);
     --bs-btn-disabled-color: var(--ind-text-muted);
     --bs-btn-disabled-bg: var(--ind-surface-alt);
-    --bs-btn-disabled-border-color: var(--ind-border);
+    --bs-btn-disabled-border-color: var(--ind-border-strong);
 }
 
 .btn-success {
     --bs-btn-color: #fff;
     --bs-btn-bg: #16a34a;
-    --bs-btn-border-color: #16a34a;
+    --bs-btn-border-color: var(--ind-outline);
     --bs-btn-hover-color: #fff;
     --bs-btn-hover-bg: #15803d;
-    --bs-btn-hover-border-color: #15803d;
+    --bs-btn-hover-border-color: var(--ind-outline);
     --bs-btn-active-color: #fff;
     --bs-btn-active-bg: #166534;
-    --bs-btn-active-border-color: #166534;
+    --bs-btn-active-border-color: var(--ind-outline);
     --bs-btn-disabled-color: #fff;
     --bs-btn-disabled-bg: #16a34a;
-    --bs-btn-disabled-border-color: #16a34a;
+    --bs-btn-disabled-border-color: var(--ind-outline);
 }
 
 .btn-danger,
@@ -930,7 +1090,6 @@ body {
     font-variant-numeric: tabular-nums;
     text-align: right;
     padding: 0.1rem 0.3rem;
-    border-radius: 3px;
     white-space: nowrap;
 }
 
@@ -953,48 +1112,7 @@ body {
     white-space: pre-line;
 }
 
-/* ---- Segmented switch ----
-   dbc.RadioItems drawn as joined buttons, the picked one filled. */
-
-.ind-segmented {
-    display: inline-flex;
-    flex-wrap: nowrap;
-}
-
-.ind-segmented .form-check {
-    padding: 0;
-    margin: 0;
-    min-height: 0;
-}
-
-.ind-segmented label.btn {
-    display: block;
-    margin: 0;
-    border-radius: 0;
-    font-size: 0.8rem;
-}
-
-.ind-segmented .form-check + .form-check label.btn {
-    margin-left: -1px;
-}
-
-.ind-segmented .form-check:first-child label.btn {
-    border-radius: var(--radius) 0 0 var(--radius);
-}
-
-.ind-segmented .form-check:last-child label.btn {
-    border-radius: 0 var(--radius) var(--radius) 0;
-}
-
-.ind-segmented label.btn.active {
-    position: relative;
-    z-index: 1;
-    color: #fff;
-    background: var(--ind-accent);
-    border-color: var(--ind-accent);
-}
-
-/* Checklists (Loop, Ease) as a checkbox and its word. */
+/* Checklists (Loop, Ease in) as a checkbox and its word. */
 .dock-check label.dash-options-list-option {
     display: inline-flex;
     align-items: center;
@@ -1053,16 +1171,17 @@ body {
    are redrawn for it. */
 .hud-panel,
 .angles-hud {
-    --Dash-Fill-Disabled: rgba(160, 190, 240, 0.22);
+    --Dash-Fill-Disabled: rgba(var(--hud-cyan-rgb), 0.2);
     --Dash-Fill-Inverse-Strong: var(--view-bg);
     --Dash-Text-Primary: var(--hud-text);
     --Dash-Text-Strong: var(--hud-text);
     --Dash-Stroke-Strong: var(--hud-border);
     --Dash-Stroke-Weak: var(--hud-border);
+    --chamfer: 9px;
     color: var(--hud-text);
     background: var(--hud-bg);
     border: 1px solid var(--hud-border);
-    border-radius: 8px;
+    clip-path: var(--chamfer-clip);
     backdrop-filter: blur(6px);
 }
 
@@ -1078,13 +1197,13 @@ body {
 .hud-panel .form-control,
 .hud-panel .dash-range-slider-input {
     color: var(--hud-text) !important;
-    background: rgba(160, 190, 240, 0.08) !important;
+    background: rgba(var(--hud-cyan-rgb), 0.06) !important;
     border: 1px solid var(--hud-border) !important;
 }
 
 .hud-panel .form-control:focus {
-    border-color: rgba(160, 190, 240, 0.6) !important;
-    box-shadow: var(--ind-glow);
+    border-color: rgba(var(--hud-cyan-rgb), 0.75) !important;
+    box-shadow: 0 0 10px rgba(var(--hud-cyan-rgb), 0.3);
 }
 
 .stream-hud > div {
@@ -1101,7 +1220,7 @@ body {
 }
 
 .stream-hud .form-check-input:not(:checked) {
-    background-color: rgba(160, 190, 240, 0.12);
+    background-color: rgba(var(--hud-cyan-rgb), 0.1);
     border-color: var(--hud-border);
 }
 
@@ -1147,11 +1266,12 @@ body {
     --bs-btn-bg: var(--hud-bg);
     --bs-btn-border-color: var(--hud-border);
     --bs-btn-hover-color: #fff;
-    --bs-btn-hover-bg: rgba(40, 70, 130, 0.9);
-    --bs-btn-hover-border-color: rgba(160, 190, 240, 0.4);
+    --bs-btn-hover-bg: rgba(29, 79, 163, 0.9);
+    --bs-btn-hover-border-color: rgba(var(--hud-cyan-rgb), 0.6);
     --bs-btn-active-color: #fff;
-    --bs-btn-active-bg: rgba(40, 70, 130, 0.9);
-    --bs-btn-active-border-color: rgba(160, 190, 240, 0.4);
+    --bs-btn-active-bg: rgba(29, 79, 163, 0.9);
+    --bs-btn-active-border-color: rgba(var(--hud-cyan-rgb), 0.6);
+    --bs-btn-border-width: 1px;
     backdrop-filter: blur(6px);
 }
 
@@ -1173,7 +1293,8 @@ body {
 }
 
 .angles-hud > summary,
-.dims-hud > summary {
+.dims-hud > summary,
+.drive-hud > summary {
     font-size: 0.75rem;
     font-weight: 700;
     letter-spacing: 0.06em;
@@ -1199,7 +1320,8 @@ body {
 }
 
 .angles-hud[open] > summary,
-.dims-hud[open] > summary {
+.dims-hud[open] > summary,
+.drive-hud[open] > summary {
     margin-bottom: 0.3rem;
 }
 
@@ -1214,7 +1336,7 @@ body {
 
 .angles-hud .ind-readout {
     min-width: 3.6rem;
-    background: rgba(160, 190, 240, 0.08);
+    background: rgba(var(--hud-cyan-rgb), 0.06);
 }
 
 .angles-hud .ind-readout.is-bad {
@@ -1226,6 +1348,161 @@ body {
     color: #ffb4b4;
     background: rgba(255, 92, 92, 0.12);
     margin-top: 0.4rem;
+}
+
+/* ---- Controller ----
+   On the view's bottom-right corner: the body pad and the move pad, drawn by
+   assets/drive_pads.js, over the readout and the speed. A held zone lights
+   in the accent, as a pressed button does. */
+
+.hexapod-view-drive {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    z-index: 3;
+    max-width: calc(100% - 24px);
+}
+
+.drive-hud {
+    padding: 0.35rem 0.6rem;
+}
+
+.drive-hud[open] {
+    padding-bottom: 0.55rem;
+}
+
+.drive-body {
+    display: grid;
+    grid-template-columns: auto auto;
+    align-items: center;
+    gap: 0.55rem 0.9rem;
+}
+
+.drive-pad {
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.drive-svg {
+    display: block;
+    overflow: visible;
+}
+
+.drive-pad-body .drive-svg {
+    width: 6.4rem;
+    height: 9.6rem;
+}
+
+.drive-pad-move .drive-svg {
+    width: 9.6rem;
+    height: 9.6rem;
+}
+
+.drive-zone {
+    cursor: pointer;
+}
+
+.drive-face {
+    fill: rgba(var(--hud-cyan-rgb), 0.08);
+    stroke: var(--view-bg);
+    stroke-width: 1.5;
+    transition: fill 0.12s ease;
+}
+
+.drive-face-outer {
+    fill: rgba(var(--hud-cyan-rgb), 0.05);
+}
+
+.drive-face-walk {
+    fill: rgba(var(--hud-cyan-rgb), 0.12);
+}
+
+/* Standby, in the middle: lit, as the Android app's button is. */
+.drive-face-centre {
+    fill: rgba(var(--ind-accent-rgb), 0.85);
+    stroke: rgba(var(--hud-cyan-rgb), 0.4);
+}
+
+.drive-zone:hover .drive-face {
+    fill: rgba(var(--hud-cyan-rgb), 0.2);
+}
+
+.drive-zone.is-active .drive-face {
+    fill: rgba(var(--ind-accent-rgb), 0.95);
+    stroke: rgba(var(--hud-cyan-rgb), 0.7);
+}
+
+.drive-icon,
+.drive-icon path {
+    fill: var(--hud-text);
+}
+
+.drive-icon .drive-stroke {
+    fill: none;
+    stroke: var(--hud-text);
+    stroke-width: 3;
+    stroke-linecap: round;
+}
+
+.drive-glyph {
+    fill: var(--hud-text);
+    font-family: var(--font-ui);
+    font-weight: 600;
+    pointer-events: none;
+}
+
+.drive-name {
+    fill: var(--hud-muted);
+    font-family: var(--font-mono);
+    letter-spacing: 0.06em;
+}
+
+.drive-zone.is-active .drive-name {
+    fill: #fff;
+}
+
+/* Under the pads, and only as wide as they are: zero width of its own, so
+   the readout changing as pads are pressed never resizes the panel. */
+.drive-footer {
+    grid-column: 1 / -1;
+    width: 0;
+    min-width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.75rem;
+}
+
+/* One line, cut short if it is too long, so its height stays put too. */
+.drive-readout {
+    flex: 1 1 100%;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    line-height: 1.1rem;
+    color: var(--hud-text);
+}
+
+.drive-speed.ind-inline-slider {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+/* Short windows: smaller pads, so they leave the robot in sight. */
+@media (max-height: 820px) {
+    .drive-pad-body .drive-svg {
+        width: 5.2rem;
+        height: 7.8rem;
+    }
+
+    .drive-pad-move .drive-svg {
+        width: 7.8rem;
+        height: 7.8rem;
+    }
 }
 
 /* The angle table: only as wide as its values. */
@@ -1251,39 +1528,103 @@ body {
     color: var(--hud-text);
     background: var(--hud-bg);
     border: 1px solid var(--hud-border);
-    border-radius: 4px;
     white-space: nowrap;
 }
 
 /* ===========================================
    DOCK
-   Two rows: what is played (the keyframes or a gait), then playing it, in
-   the view and on the robot. Each row wraps when the window is narrow.
+   Three columns: on the left the Gaits library, the robot's and one's own;
+   in the middle the sequence -- keyframes of poses and gaits -- and on the
+   right playing it, in the view and then on the robot. Each block is titled
+   like a panel section, with what belongs to it on the same line. The columns
+   stack below `lg`, with the rest of the workspace.
    =========================================== */
 
 .dock {
-    display: flex;
-    flex-direction: column;
-    gap: 0.55rem;
-    padding: 0.6rem 0.9rem 0.7rem;
+    display: grid;
+    flex: 1 0 auto;
+    /* The side columns as set, but never so wide the sequence is squeezed
+       out: each keeps to its share of the dock. */
+    grid-template-columns: min(var(--lib-w), 35%) minmax(0, 1fr) min(var(--run-w), 40%);
 }
 
-.dock-row,
+.dock-col {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.dock-col-run {
+    border-left: 1px solid var(--ind-border);
+}
+
+.dock-col-library {
+    border-right: 1px solid var(--ind-border);
+}
+
+/* Each in its own column, placed rather than flowed: the splitters between
+   them are placed on those columns too, and would push them along. */
+.dock-col-library {
+    grid-area: 1 / 1;
+}
+
+.dock-col-sequence {
+    grid-area: 1 / 2;
+}
+
+.dock-col-run {
+    grid-area: 1 / 3;
+}
+
+.dock-section + .dock-section {
+    border-top: 1px solid var(--ind-border);
+}
+
+.dock-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.5rem 0.9rem 0.6rem;
+}
+
+.dock-section-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.6rem;
+    min-height: 2rem;
+}
+
+/* As the tool panel's section titles, a size down. */
+.dock-section-title {
+    flex: 0 0 auto;
+    margin: 0;
+    padding-bottom: 0.15rem;
+    font-family: var(--font-display);
+    font-size: 0.66rem;
+    font-weight: 400;
+    font-synthesis: none;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ind-text);
+    border-bottom: 2px solid var(--ind-accent-alt);
+}
+
 .dock-part {
+    flex: 1 1 auto;
+    min-width: 0;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 0.5rem 0.9rem;
 }
 
-.dock-row + .dock-row {
-    padding-top: 0.55rem;
-    border-top: 1px solid var(--ind-border);
-}
-
-.dock-part {
-    flex: 1 1 auto;
-    min-width: 0;
+/* The keyframes part: the track, then the editor under it. */
+.dock-part-stack {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 0.5rem;
 }
 
 .dock-group {
@@ -1292,13 +1633,17 @@ body {
     gap: 0.4rem;
 }
 
-.dock-grow {
-    flex: 1 1 18rem;
-    min-width: 0;
+.dock-group-wide {
+    gap: 0.4rem 1.2rem;
 }
 
-.dock-source {
-    flex: 0 0 auto;
+.dock-push {
+    margin-left: auto;
+}
+
+.dock-grow {
+    flex: 1 1 14rem;
+    min-width: 0;
 }
 
 .dock-note {
@@ -1313,27 +1658,12 @@ body {
     display: none;
 }
 
-.dock-divider {
-    align-self: stretch;
-    width: 1px;
-    background: var(--ind-border);
-}
-
 .dock-robot-message {
-    flex: 1 1 12rem;
     white-space: normal;
 }
 
-.dock-gait-select {
-    flex: 0 1 15rem;
-}
-
-.dock-gait-select select {
-    width: 100%;
-}
-
 .ind-duration-input {
-    width: 7rem;
+    width: 6.5rem;
     flex-wrap: nowrap;
 }
 
@@ -1346,12 +1676,12 @@ body {
 }
 
 .ind-play-btn {
-    min-width: 6rem;
+    min-width: 5.5rem;
 }
 
 .ind-dock-scrubber {
-    flex: 1 1 8rem;
-    min-width: 6rem;
+    flex: 1 1 3rem;
+    min-width: 3rem;
 }
 
 .ind-dock-scrubber .dash-slider-container {
@@ -1382,49 +1712,333 @@ body {
     gap: 0.5rem;
 }
 
-/* The keyframes, in order, as a row of chips that scrolls sideways. */
-.ind-kf-strip {
-    flex: 0 1 auto;
+/* ---- Keyframe track ----
+   The keyframes in order as cards, joined by arrows that carry the time each
+   move takes, in an outlined lane; it scrolls sideways when they do not fit. */
+
+.dock-track {
     display: flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: 0.75rem;
+}
+
+.ind-kf-strip {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
     min-width: 0;
+    min-height: 3.3rem;
     overflow-x: auto;
-    padding: 2px 0;
+    padding: 0.45rem 0.6rem;
+    border: 1px solid var(--ind-border-strong);
 }
 
-.ind-kf-strip > .small {
-    white-space: nowrap;
+/* Inside the lane, which is outlined already. */
+.ind-kf-strip .dock-empty {
+    padding: 0;
+    border: none;
 }
 
-.ind-kf-chip {
+.dock-add-btn {
+    flex: 0 0 auto;
+}
+
+.dock-empty {
+    flex: 1 1 auto;
+    padding: 0.45rem 0.7rem;
+    font-size: 0.82rem;
+    color: var(--ind-text-muted);
+    border: 1px dashed var(--ind-border-strong);
+}
+
+.ind-kf-card {
     flex: 0 0 auto;
     display: inline-flex;
-    gap: 0.4rem;
-    padding: 0.18rem 0.6rem;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 4rem;
+    padding: 0.22rem 0.65rem 0.28rem;
     font-family: var(--font-mono);
-    font-size: 0.74rem;
-    font-weight: 500;
-    white-space: nowrap;
+    line-height: 1.2;
+    text-align: left;
     color: var(--ind-text);
     background: var(--ind-surface-alt);
-    border: 1px solid var(--ind-border-strong);
-    border-radius: 999px;
+    border: 1px solid var(--ind-frame);
+    --chamfer: 6px;
+    clip-path: var(--chamfer-clip);
     transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
-.ind-kf-chip:hover {
+.ind-kf-card:hover {
     border-color: var(--ind-accent);
+    background: var(--ind-hover);
 }
 
-.ind-kf-chip.active {
+.ind-kf-card.active {
     color: #fff;
     background: var(--ind-accent);
     border-color: var(--ind-accent);
 }
 
 .ind-kf-index {
+    font-size: 0.8rem;
     font-weight: 700;
+}
+
+.ind-kf-time {
+    font-size: 0.66rem;
+    color: var(--ind-text-muted);
+}
+
+.ind-kf-card.active .ind-kf-time {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* The time over a line that ends in an arrowhead (or, looping, in ↺). */
+.ind-kf-link {
+    flex: 0 0 auto;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: stretch;
+    min-width: 3.8rem;
+    padding: 0 0.15rem;
+    font-family: var(--font-mono);
+    text-align: center;
+    white-space: nowrap;
+    cursor: default;
+}
+
+.ind-kf-link-label {
+    font-size: 0.66rem;
+    color: var(--ind-text-muted);
+}
+
+.ind-kf-arrow {
+    display: flex;
+    align-items: center;
+    font-size: 0.8rem;
+    line-height: 0.8;
+    color: var(--ind-border-strong);
+}
+
+.ind-kf-arrow::before {
+    content: '';
+    flex: 1 1 auto;
+    height: 1px;
+    background: currentColor;
+}
+
+/* ---- Gaits library ----
+   A list of gaits, each with + to put it into the sequence, in groups for
+   the robot's; for one's own, a row to save the sequence as one over it. The
+   list scrolls inside the dock rather than making the dock taller: it takes
+   no height of its own (contain: size), only what the other columns leave. */
+
+.dock-library {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.dock-gait-list,
+.dock-gait-mine {
+    flex: 1 1 0;
+    min-height: 7rem;
+    contain: size;
+    overflow-y: auto;
+}
+
+.dock-gait-mine {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.dock-gait-mine .dock-gait-list {
+    contain: none;
+    min-height: 0;
+}
+
+.dock-gait-group {
+    padding: 0.35rem 0 0.15rem;
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ind-text-muted);
+}
+
+.dock-gait-group:first-child {
+    padding-top: 0;
+}
+
+.dock-gait-row {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.12rem 0.1rem 0.12rem 0.4rem;
+    border-radius: var(--radius);
+}
+
+.dock-gait-row:hover {
+    background: var(--ind-hover);
+}
+
+.dock-gait-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+
+.dock-gait-name {
+    font-size: 0.82rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dock-gait-note {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    color: var(--ind-text-muted);
+}
+
+.btn.dock-gait-btn {
+    flex: 0 0 auto;
+    width: 1.7rem;
+    padding: 0.05rem 0;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.dock-gait-save {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.dock-gait-save .form-control {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.dock-gait-save .btn {
+    flex: 0 0 auto;
+}
+
+/* Built-in | Mine: two segments, the one picked filled in the accent. */
+.dock-seg {
+    display: flex;
+}
+
+.dock-seg .form-check {
+    padding: 0;
+    margin: 0;
+    min-height: 0;
+}
+
+.dock-seg-item {
+    display: block;
+    padding: 0.12rem 0.6rem;
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--ind-text-muted);
+    border: 1px solid var(--ind-border-strong);
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.dock-seg .form-check + .form-check .dock-seg-item {
+    border-left: none;
+}
+
+.dock-seg-item:hover {
+    color: var(--ind-text);
+    background: var(--ind-hover);
+}
+
+.dock-seg-item.active {
+    color: #fff;
+    background: var(--ind-accent);
+    border-color: var(--ind-accent);
+}
+
+.btn-check:focus-visible + .dock-seg-item {
+    box-shadow: var(--ind-glow);
+}
+
+/* ---- Keyframe editor ----
+   Under the track, about the card selected: tinted and edged in the accent
+   so it reads as belonging to it. */
+
+.dock-kf-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 0.4rem 0.6rem;
+    background: var(--ind-input-bg);
+    border-left: 3px solid var(--ind-accent);
+}
+
+.dock-kf-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.6rem;
+}
+
+.dock-kf-label {
+    min-width: 7.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.dock-inline-field {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.dock-inline-field .ind-field-label {
+    margin: 0;
+    overflow: visible;
+}
+
+@media (max-width: 991.98px) {
+    .dock {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .dock-col-library,
+    .dock-col-sequence,
+    .dock-col-run {
+        grid-area: auto;
+    }
+
+    .dock-col-run {
+        border-left: none;
+        border-top: 1px solid var(--ind-border);
+    }
+
+    .dock-col-library {
+        border-right: none;
+        border-bottom: 1px solid var(--ind-border);
+    }
+
+    /* Stacked, the dock sets no height to fit into: the lists get their own. */
+    .dock-gait-list,
+    .dock-gait-mine {
+        flex: 0 0 auto;
+        height: 13rem;
+    }
+
+    .dock-gait-mine .dock-gait-list {
+        flex: 1 1 0;
+        height: auto;
+    }
 }
 
 /* ===========================================

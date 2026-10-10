@@ -13,6 +13,11 @@
 # also keeps the layers the pose was built from, as "state"
 # (hexapod/pose_layers.py); this module carries it along without looking in it.
 #
+# A keyframe also says whether the move into it starts and stops gently, as
+# "ease" (left out when it does, the default). A gait's keyframes
+# (hexapod/gait_keyframes.py) do not: each is one point on a path the feet
+# keep moving along, and easing into it would stop them there.
+#
 # Nothing here settles the body onto the ground: the body is held still and the
 # feet move around it. That is how the robot sees it too -- it has no idea where
 # the floor is, it only places its feet -- and in the editor it keeps a dragged
@@ -40,7 +45,8 @@ FILE_FORMAT = "hexapod-link-keyframes"
 FILE_VERSION = 1
 
 DEFAULT_DURATION_MS = 500
-MIN_DURATION_MS = 20
+# Down to a single frame of the fastest robot's gaits (12 ms).
+MIN_DURATION_MS = 10
 MAX_DURATION_MS = 60000
 
 # A foot this close to the ground plane (mm) counts as standing on it.
@@ -159,14 +165,26 @@ def clamp_duration(duration_ms):
     return min(max(duration, MIN_DURATION_MS), MAX_DURATION_MS)
 
 
-def make_keyframe(feet, duration_ms=DEFAULT_DURATION_MS, state=None):
+def make_keyframe(feet, duration_ms=DEFAULT_DURATION_MS, state=None, ease=True):
     keyframe = {
         "feet": clean_feet(feet),
         "duration_ms": clamp_duration(duration_ms),
     }
     if isinstance(state, dict):
         keyframe["state"] = state
+    if ease is False:
+        keyframe["ease"] = False
     return keyframe
+
+
+def eases(keyframe):
+    """Whether the move into `keyframe` starts and stops gently."""
+    return keyframe.get("ease", True) is not False
+
+
+def remade(keyframe, feet, state):
+    """`keyframe` with a new pose, keeping its time and easing."""
+    return make_keyframe(feet, keyframe["duration_ms"], state, ease=eases(keyframe))
 
 
 def _ease(t):
@@ -174,45 +192,94 @@ def _ease(t):
     return t * t * (3.0 - 2.0 * t)
 
 
-def interpolate_feet(keyframes, fps, loop=False, ease=True):
+def interpolate_feet(keyframes, fps, loop=False, ease=True, speed=1.0):
     """Foot positions frame by frame, at `fps`, through the keyframes.
 
     Each foot moves in a straight line from one keyframe to the next. The first
     frame is the first keyframe. When looping, the move from the last keyframe
     back to the first is included, without repeating the first keyframe at the
     end, so playing the frames round and round has no hitch at the seam.
+
+    Each move starts and stops gently into a keyframe that eases (eases());
+    `ease` False makes every move steady. `speed` scales every duration: 2
+    plays the sequence twice as fast.
     """
     points = [np.asarray(kf["feet"], dtype=float).reshape(6, 3) for kf in keyframes]
-    return [frame.tolist() for frame in interpolate_arrays(points, keyframes, fps, loop, ease)]
+    frames = interpolate_arrays(points, keyframes, fps, loop, ease, speed)
+    return [frame.tolist() for frame in frames]
 
 
-def interpolate_arrays(points, keyframes, fps, loop=False, ease=True):
+def _samples(keyframes, fps, loop, speed):
+    """Where each frame of a sequence falls, as (start, end, t): on the move
+    from keyframe `start` to keyframe `end`, a fraction `t` of the way.
+
+    Frames are spread evenly in time, at about `fps`, over the moves' total
+    time, so a sequence keeps its timing whatever the frame rate -- frames
+    fall between keyframes, and a move shorter than a frame (a gait's, in the
+    preview) may get none. Without looping the last frame is the last
+    keyframe; looping, the move back to the first keyframe is included but
+    not the first keyframe again, so the frames play round without a seam.
+    """
+    count = len(keyframes)
+    pairs = [(i - 1, i) for i in range(1, count)]
+    if loop and count > 1:
+        pairs.append((count - 1, 0))
+    seconds = [clamp_duration(keyframes[end]["duration_ms"]) / 1000.0 / speed for _, end in pairs]
+    total = sum(seconds)
+
+    samples = [(0, 0, 0.0)]
+    if not pairs:
+        return samples
+    frames = max(1, round(total * fps))
+    move, move_start = 0, 0.0
+    for frame in range(1, frames if loop else frames + 1):
+        time = frame * total / frames
+        while move < len(pairs) - 1 and time > move_start + seconds[move] + 1e-12:
+            move_start += seconds[move]
+            move += 1
+        start, end = pairs[move]
+        samples.append((start, end, min(1.0, (time - move_start) / seconds[move])))
+    return samples
+
+
+def interpolate_arrays(points, keyframes, fps, loop=False, ease=True, speed=1.0):
     """interpolate_feet() for any values: one array per keyframe, timed by
     the keyframes' durations. Returns the arrays, one per frame."""
     if not keyframes:
         return []
 
     points = [np.asarray(point, dtype=float) for point in points]
-    frames = [points[0]]
-
-    segments = [(i - 1, i) for i in range(1, len(points))]
-    if loop and len(points) > 1:
-        segments.append((len(points) - 1, 0))
-
-    for start, end in segments:
-        duration = clamp_duration(keyframes[end]["duration_ms"]) / 1000.0
-        steps = max(1, round(duration * fps))
-        closing = loop and end == 0
-        for step in range(1, steps if closing else steps + 1):
-            t = step / steps
-            if ease:
-                t = _ease(t)
-            frames.append(points[start] + (points[end] - points[start]) * t)
-
+    frames = []
+    for start, end, t in _samples(keyframes, fps, loop, speed):
+        if ease and eases(keyframes[end]):
+            t = _ease(t)
+        frames.append(points[start] + (points[end] - points[start]) * t)
     return frames
 
 
-def interpolate(keyframes, robot_config, fps, loop=False, ease=True):
+def frame_times(keyframes, fps, loop=False, speed=1.0):
+    """For each frame interpolate_arrays() gives, where it falls in the
+    keyframes' own time, whatever the speed: (start, end, ms), `ms` into the
+    move from keyframe `start` to keyframe `end`. The first frame is (0, 0, 0)."""
+    if not keyframes:
+        return []
+    return [
+        (start, end, t * clamp_duration(keyframes[end]["duration_ms"]) if t else 0.0)
+        for start, end, t in _samples(keyframes, fps, loop, speed)
+    ]
+
+
+def keyframe_times_ms(keyframes):
+    """When each keyframe is reached, from the first, in ms."""
+    times, total = [], 0
+    for index, frame in enumerate(keyframes):
+        if index:
+            total += clamp_duration(frame["duration_ms"])
+        times.append(total)
+    return times
+
+
+def interpolate(keyframes, robot_config, fps, loop=False, ease=True, speed=1.0):
     """Simulator poses frame by frame through the keyframes.
 
     Returns (poses, bad_frames): the poses, ready for RobotLink.play_sequence(),
@@ -221,7 +288,7 @@ def interpolate(keyframes, robot_config, fps, loop=False, ease=True):
     checked here rather than assumed from the keyframes being valid.
     """
     poses, bad_frames = [], []
-    for index, feet in enumerate(interpolate_feet(keyframes, fps, loop, ease)):
+    for index, feet in enumerate(interpolate_feet(keyframes, fps, loop, ease, speed)):
         pose, bad_legs = feet_to_pose(feet, robot_config)
         poses.append(pose)
         if bad_legs:
@@ -229,12 +296,13 @@ def interpolate(keyframes, robot_config, fps, loop=False, ease=True):
     return poses, bad_frames
 
 
-def sequence_duration_ms(keyframes, loop=False):
-    """How long one pass through the keyframes takes."""
+def sequence_duration_ms(keyframes, loop=False, speed=1.0):
+    """How long one pass through the keyframes takes, at `speed`."""
     if not keyframes:
         return 0
     durations = [clamp_duration(kf["duration_ms"]) for kf in keyframes]
-    return sum(durations) if loop and len(keyframes) > 1 else sum(durations[1:])
+    total = sum(durations) if loop and len(keyframes) > 1 else sum(durations[1:])
+    return total / speed
 
 
 def dump(keyframes, robot_config):
@@ -244,10 +312,7 @@ def dump(keyframes, robot_config):
             "format": FILE_FORMAT,
             "version": FILE_VERSION,
             "robot": robot_config["name"],
-            "keyframes": [
-                make_keyframe(kf["feet"], kf["duration_ms"], kf.get("state"))
-                for kf in keyframes
-            ],
+            "keyframes": [remade(kf, kf["feet"], kf.get("state")) for kf in keyframes],
         },
         indent=2,
     )
@@ -289,8 +354,11 @@ def load(text, robot_config):
             feet = np.asarray(entry["feet"], dtype=float)
             if feet.shape != (6, 3) or not np.isfinite(feet).all():
                 raise ValueError("feet must be six [x, y, z] positions")
+            ease = entry.get("ease", True)
+            if not isinstance(ease, bool):
+                raise ValueError("ease must be true or false")
             keyframes.append(
-                make_keyframe(feet.tolist(), entry["duration_ms"], entry.get("state"))
+                make_keyframe(feet.tolist(), entry["duration_ms"], entry.get("state"), ease)
             )
         except (KeyError, TypeError, ValueError) as error:
             raise KeyframeFileError(f"Keyframe {index + 1} is malformed: {error}") from error

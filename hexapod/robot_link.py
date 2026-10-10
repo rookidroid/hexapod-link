@@ -40,6 +40,7 @@ from settings import (
     ROBOT_UDP_PORT,
     ROBOT_STREAM_HZ,
     ROBOT_PING_HZ,
+    ROBOT_DRIVE_HOLD_S,
     ROBOT_DEFAULT_MAX_STEP,
     ROBOT_SEQUENCE_MAX_STEP,
     ROBOT_VERSION_TIMEOUT_S,
@@ -244,6 +245,11 @@ class RobotLink:
         self._sequence_fps_override = None
         self._sequence_fps = get_sequence_fps(robot_config, self._speed_pct)
 
+        # The gait the controller is holding the robot in, and when the hold
+        # runs out unless it is renewed (see drive()).
+        self._drive_motion = None
+        self._drive_deadline = None
+
     # ---------------------------------------------------------------- status
 
     @property
@@ -409,15 +415,20 @@ class RobotLink:
             self._streaming = False
             self._sequence = None
             self._sequence_index = 0
+            self._drive_motion = None
+            self._drive_deadline = None
             if self._socket is not None:
                 self._socket.close()
                 self._socket = None
 
     def relax(self):
-        """Cut PWM drive so the servos go limp. Also stops streaming."""
+        """Cut PWM drive so the servos go limp. Also stops streaming, and lets
+        go of any gait the controller held, whose standby would wake them."""
         self._send_session(RT_RELAX)
         with self._lock:
             self._streaming = False
+            self._drive_motion = None
+            self._drive_deadline = None
 
     def set_max_step(self, max_step):
         with self._lock:
@@ -463,6 +474,8 @@ class RobotLink:
             self._ticks = ticks
             self._sequence = None
             self._sequence_index = 0
+            self._drive_motion = None
+            self._drive_deadline = None
         if self.streaming:
             self._send_pose_packet(snap=snap)
 
@@ -485,10 +498,43 @@ class RobotLink:
             self._streaming = False
             self._sequence = None
             self._sequence_index = 0
+            self._drive_motion = None
+            self._drive_deadline = None
             self._seq += 1
             seq = self._seq
             speed = self._speed_pct
         return self._send(struct.pack(_FMT_MOTION, MAGIC_MOTION, motion_id, seq, speed))
+
+    def drive(self, motion_name):
+        """Run one of the robot's own gaits for as long as it is held.
+
+        The controller over the view calls this again and again while a pad is
+        held, and with "standby" when it is let go. Only a change of gait is
+        sent to the robot; a repeat just renews the hold. If the calls stop
+        without a standby, the stream thread sends one ROBOT_DRIVE_HOLD_S after
+        the last (_expire_drive). Returns False for a motion the robot does
+        not have, or when it could not be sent.
+        """
+        deadline = time.monotonic() + ROBOT_DRIVE_HOLD_S
+        with self._lock:
+            if motion_name == self._drive_motion:
+                self._drive_deadline = deadline
+                return True
+
+        if not self.send_motion_command(motion_name):
+            return False
+        if motion_name != "standby":
+            with self._lock:
+                self._drive_motion = motion_name
+                self._drive_deadline = deadline
+        return True
+
+    def _expire_drive(self):
+        """Send the robot to standby if the controller's hold has run out."""
+        with self._lock:
+            expired = self._drive_deadline is not None and time.monotonic() > self._drive_deadline
+        if expired:
+            self.send_motion_command("standby")
 
     def play_sequence(self, pose_frames, loop=True, fps=None):
         """Stream a list of poses as a gait, timed by the stream thread.
@@ -507,6 +553,8 @@ class RobotLink:
             return False
 
         with self._lock:
+            self._drive_motion = None
+            self._drive_deadline = None
             self._sequence = frames
             self._sequence_index = 0
             self._sequence_loop = loop
@@ -637,6 +685,8 @@ class RobotLink:
         while not self._stop_event.wait(period):
             if not self.connected:
                 continue
+
+            self._expire_drive()
 
             if not self.streaming:
                 # Keeps the firmware's real-time session from timing out while

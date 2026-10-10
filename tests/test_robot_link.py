@@ -44,6 +44,7 @@ from hexapod.robot_link import (
     pose_to_ticks,
     servo_angle_to_ticks,
 )
+from settings import ROBOT_DRIVE_HOLD_S
 from tests.robots import ROBOT_CONFIGS, load_firmware_luts
 from widgets.pose_ui import MOTION_TYPES
 
@@ -378,10 +379,91 @@ def test_every_robot_command_is_a_motion_the_ui_offers():
 
     'standup' is the exception in the other direction: it is the firmware's boot
     sequence rather than a LUT it can be commanded into, so the UI offers it for
-    streaming only. pages/page_pose.py depends on exactly that asymmetry.
+    streaming only, and the controller (below) not at all.
     """
     ui_motions = {option["value"] for option in MOTION_TYPES}
     assert set(MOTION_COMMANDS) <= ui_motions, (
         f"robot commands the UI cannot reach: {set(MOTION_COMMANDS) - ui_motions}"
     )
     assert ui_motions - set(MOTION_COMMANDS) == {"standup"}
+
+
+def _sent_motions(link):
+    names = {command: name for name, command in MOTION_COMMANDS.items()}
+    return [
+        names[struct.unpack(_FMT_MOTION, packet)[1]]
+        for packet in link.sent
+        if packet[0] == MAGIC_MOTION
+    ]
+
+
+def test_driving_sends_a_gait_once_however_often_it_is_held():
+    """The controller repeats the held pad several times a second; the robot
+    only needs telling when the gait changes."""
+    link = _CapturingLink(ROBOT_CONFIGS["nougat"])
+    for _ in range(5):
+        assert link.drive("walk_0")
+    assert link.drive("turn_left")
+    assert link.drive("standby")
+    assert _sent_motions(link) == ["walk_0", "turn_left", "standby"]
+
+
+def test_a_drive_that_is_not_renewed_ends_in_standby(monkeypatch):
+    """If the page stops holding the pad -- closed, or the network gone -- the
+    robot is stopped rather than left walking on the link's pings."""
+    clock = {"now": 100.0}
+    monkeypatch.setattr("hexapod.robot_link.time.monotonic", lambda: clock["now"])
+    link = _CapturingLink(ROBOT_CONFIGS["nougat"])
+    link.drive("walk_0")
+
+    clock["now"] += ROBOT_DRIVE_HOLD_S / 2
+    link.drive("walk_0")
+    clock["now"] += ROBOT_DRIVE_HOLD_S * 0.9
+    link._expire_drive()
+    assert _sent_motions(link) == ["walk_0"]
+
+    clock["now"] += ROBOT_DRIVE_HOLD_S
+    link._expire_drive()
+    link._expire_drive()
+    assert _sent_motions(link) == ["walk_0", "standby"]
+
+
+@pytest.mark.parametrize(
+    "takeover",
+    [
+        lambda link: link.relax(),
+        lambda link: link.send_pose(STANDBY_POSE),
+        lambda link: link.play_sequence([STANDBY_POSE]),
+    ],
+    ids=["relax", "pose", "sequence"],
+)
+def test_other_control_lets_go_of_a_drive(monkeypatch, takeover):
+    """Whatever takes over the robot ends the hold, so its expiry cannot send
+    a standby over a streamed pose, a sequence, or servos left limp."""
+    clock = {"now": 100.0}
+    monkeypatch.setattr("hexapod.robot_link.time.monotonic", lambda: clock["now"])
+    link = _CapturingLink(ROBOT_CONFIGS["nougat"])
+    link.drive("walk_0")
+    takeover(link)
+
+    clock["now"] += ROBOT_DRIVE_HOLD_S * 2
+    link._expire_drive()
+    assert _sent_motions(link) == ["walk_0"]
+
+
+def test_driving_a_motion_the_robot_lacks_is_refused():
+    link = _CapturingLink(ROBOT_CONFIGS["nougat"])
+    assert not link.drive("standup")
+    assert link.sent == []
+
+
+def test_the_controller_reaches_every_robot_command_once():
+    """Each of the robot's own gaits has a place on the controller's pads (and
+    a name for its tooltip), and none has two."""
+    from widgets.robot_link_ui import DRIVE_BODY_PAD, DRIVE_LABELS, DRIVE_MOVE_PAD
+
+    pads = [DRIVE_MOVE_PAD["centre"], *DRIVE_MOVE_PAD["walk"], *DRIVE_MOVE_PAD["outer"]]
+    pads += [motion for row in DRIVE_BODY_PAD for motion, _name in row]
+    assert len(pads) == len(set(pads))
+    assert set(pads) == set(MOTION_COMMANDS)
+    assert set(DRIVE_LABELS) == set(MOTION_COMMANDS)

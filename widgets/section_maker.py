@@ -156,3 +156,21 @@ def make_leg_sides(make_cell):
         for side, legs in LEG_SIDES
     ]
     return html.Div(blocks, className="ind-joint-sides")
+
+
+# The splitters that resize the workspace's parts -- the tool panel, the dock,
+# the dock's columns -- by dragging or with the arrow keys, done in the page by
+# assets/workspace_resize.js, which knows each by its kind (a class).
+SPLITTER_CLASS = "ws-splitter"
+
+
+def make_splitter(kind, orientation, label):
+    """A splitter of `kind` ("panel", "dock", "lib", "run"), "vertical" for one
+    dragged sideways; `label` says what it does, as "resize the dock"."""
+    return html.Div(
+        className=f"{SPLITTER_CLASS} {SPLITTER_CLASS}-{kind}",
+        role="separator",
+        tabIndex="0",
+        title=f"Drag to {label}; double-click to reset",
+        **{"aria-orientation": orientation, "aria-label": label.capitalize()},
+    )

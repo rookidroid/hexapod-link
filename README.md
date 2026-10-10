@@ -24,7 +24,8 @@ streaming control, and a rebuilt CI/test suite.
 |---|-----------|--------------|
 | 🎉 | Forward Kinematics | Given the angles of each joint, what does the robot look like? |
 | 🎉 | Inverse Kinematics | What are the angles of each joint to make the robot look the way I want? Is it even possible? Why or why not? |
-| 🎉 | Gaits | Preview the robot's gaits frame by frame, and run them on it. |
+| 🎉 | Gaits | Put the robot's gaits into a sequence as keyframes, retime and edit them, and stream them to it. |
+| 🎉 | Controller | Drive the robot with its own built-in gaits from a controller over the 3D view, laid out like the Android app's: hold a pad to walk, turn or move the body, let go to stop. |
 | 🎉 | Pose Editor | Set a pose by moving the body and placing the feet in 3D, string the poses into a timed keyframe sequence, preview it and run it on the robot. |
 | 🎉 | Customizability | Set the dimensions of the robot's body and legs, and pose that body. |
 | 🎉 | Real-time Robot Control | Drive a physical ESP32 hexapod over WiFi, from single joints to whole-body gaits. Works with any robot in the family (Nougat, Mochi, Macaroon, ...): each one serves its own config. |
@@ -41,8 +42,9 @@ theme, dark shows the dark one.
 
 The whole app is one screen: pick a tool on the rail down the left — **Body**
 or **Feet** — and use it on the 3D view, with the joint angles, streaming to
-the robot and the robot's dimensions over the view. Along the bottom, string poses into a keyframe sequence or
-pick one of the robot's gaits, preview it and run it on the robot.
+the robot, the robot's dimensions and a controller to drive it over the view.
+Along the bottom, string poses, the robot's gaits and gaits of your own into a
+keyframe sequence, preview it and run it on the robot.
 
 Everything above is generated from the running app by
 [`tools/make_screenshots.py`](./tools/make_screenshots.py), which captures it
@@ -212,34 +214,88 @@ and the Body sliders always show the pose as it is. **Reset pose**, over the
 view, clears both; **Reset view** frames the robot again. The joint angles
 are read out in the corner of the view (click the heading to fold them away),
 and with **Stream to robot** on, in the view's top-left corner, every
-reachable pose is sent to the servos as it changes. The tool and what the dock plays are remembered across
-a reload.
+reachable pose is sent to the servos as it changes. The tool, the pose and the
+sequence are remembered across a reload. Drag the right edge of the tool panel
+to make it wider or narrower, the top edge of the dock to make it taller or
+shorter, and the lines between the dock's columns to share its width between
+them (or focus an edge and use the arrow keys); double-click an edge to put
+it back. The sizes are kept from one launch to the next.
 
-The dock plays a sequence: the **Keyframes** collected here, or a **Gait**.
-**Play** previews it in the view (**Pose** / **Sequence** switch the view
-between the pose being edited and the preview), **Loop** repeats it there and
-on the robot, and **Run on robot** runs it on the hardware.
+The dock has three columns. On the left, **Gaits** is the library of gaits to
+put into the sequence: **Built-in**, the robot's own, and **Mine**, sequences
+you have saved as gaits. In the middle, **Sequence** is what is played: a
+track of keyframes, made of poses of your own and of gaits. On the right,
+**Playback** previews it in the view and **Robot** runs it on the
+hardware. **Play**, or dragging the frame slider beside it, plays the
+sequence in the view. Wherever it comes to rest -- paused, run to the end, or
+the slider let go -- that frame becomes the pose, ready to edit: on a
+keyframe, that keyframe is selected; between two, the bar reads **New keyframe
+at** that time, and **+ Add pose at** puts the pose in there, splitting the
+move it was on so that everything after it is still reached when it was.
+**Speed** plays the whole sequence faster or slower (25-200 %), in the view
+and on the robot, and **Loop** repeats it.
 
-With **Keyframes**, **+ Add** records the pose as a keyframe with the time it
-takes to get there from the one before; click a keyframe to load it back.
-**Run on robot** streams the keyframes to the hardware in real time, smoothed
-to the robot's own frame rate (with gentle starts and stops, unless **Ease**
-is off). Between keyframes each layer moves on its own, so a body tilting
+**+ Add pose** records the pose as a keyframe. The
+keyframes run along a track, each with the time it is reached; the arrow into
+each one shows how long the move there takes, and with **Loop** on a last
+arrow shows the move back to the start. Click a keyframe to load it back into
+the pose and select it. The bar under the track edits the selected keyframe:
+its **Transition** time is changed as soon as it is typed, **Ease in** makes
+the move into it start and stop gently (off, it runs at a steady speed),
+**Save pose to #n** overwrites it with the pose, **◀** / **▶** move it, and
+**Delete** removes it. With a keyframe selected, **+ Insert after #n** puts
+the next one straight after it; with none, the time and easing in the bar are
+the next one's. **Run on robot** streams the keyframes to the hardware in
+real time, smoothed to the robot's own frame rate. Between keyframes each layer moves on its own, so a body tilting
 from one keyframe to the next tilts over planted feet, while a moved foot
 travels in a straight line: add a keyframe in between to lift a foot over
 rather than dragging it along the floor. Sequences save to and load from
 JSON files, which only load on the robot they were made for.
 
-With **Gait**, pick one of the gaits the path tool generates; it is shown
-played at the robot's own timing. **Run on robot** either triggers the
-robot's own built-in gait (**Robot's own**, recommended; the ESP32 plays it
-from flash so smoothness does not depend on WiFi), or streams the simulator's
-frames for paths the firmware does not have (**Stream frames**). **Speed**
-(20-100 % of the robot's tuned rate) applies to both and to the preview, and
-is sent to the robot as soon as it changes.
+A gait is worked out into keyframes. In **Gaits**, **Built-in**, **+** puts
+one cycle of any of the gaits the path tool generates into the track, where a
+pose would go, as
+the few keyframes that trace its path to within a millimetre (15 to 24 for a
+walk, depending on the robot) at the robot's own timing. From then on they
+are keyframes like any other, with nothing to mark where they came from:
+retime them, overwrite one with a pose of your own, delete some, or put the
+gait in again for another cycle, which follows on without a seam, as does a
+gait looped on its own. Its **⇄** instead replaces the whole sequence with
+the gait, selecting its last keyframe so that the next gait added follows on
+after it. They come with **Ease in** off, so the robot walks
+through them rather than stopping at each, and the swaying gaits (Rotate,
+Twist) are written as the body tilting over planted feet. The first
+keyframe's time is the gait's own move into it from the end of its cycle;
+after a pose of your own, give it longer to ease the feet in. Some robots'
+own gaits ask a joint for a little more than its limit (Mochi's walk does);
+worked out as keyframes they are held just inside it, as the robot holds them
+when it plays the gait itself, all the way between keyframes too.
 
-Until a robot is connected the stream and run controls are greyed out, since
-neither has anything to act on. Once connected, the controls in the view's
+To make a gait of your own, build a sequence, then under **Gaits**, **Mine**,
+give it a name and **Save sequence**. It is listed there from then on, with
+its keyframes and length; like a built-in gait, its **+** adds the whole of it
+to the sequence and its **⇄** replaces the sequence with it. Saving under a name already there
+replaces that gait, and **×** deletes one. Your gaits are kept, one keyframe
+file each, in `~/.hexapod-link/gaits` (so a file saved with **Save…** can be
+dropped in there too), and like a sequence, each belongs to the robot it was
+made on: only that robot's are listed.
+
+To drive the robot with its own built-in gaits, which the ESP32 plays from
+flash so their smoothness does not depend on WiFi, use the **Controller** in
+the view's bottom-right corner. It is laid out like the control screen of the
+[Android app](https://play.google.com/store/apps/details?id=com.rookiedev.hexapod): on the left, a
+pad of moves on the spot (roll, pitch, wobble, twist, and climbing forward and
+back); on the right, a circle with standby in the middle, a ring of eight
+walking directions round it, and fast forward, fast backward and the two
+turns round that. Hold a pad and the robot plays that gait; slide onto
+another to change it; let go and it stands. While a pad is held the page
+renews it several times a second, and if that stops -- the window closed, the
+connection lost -- the robot stands on its own within a second. The
+controller's **Speed** (20-100 % of the robot's tuned rate) is sent to the
+robot as soon as it changes.
+
+Until a robot is connected the stream, run and controller controls are greyed
+out, since none has anything to act on. Once connected, the controls in the view's
 top-left corner start the sending: turn on **Stream to robot**, and **Max
 speed** limits how fast any servo may slew (in servo ticks per cycle). The
 switch follows the robot's actual state, so it is right after a reload.

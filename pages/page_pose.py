@@ -1,6 +1,6 @@
 # What the workspace does (its layout is pages/workspace.py): set a pose,
-# collect poses as keyframes, preview the sequence and run it on the robot --
-# or preview one of the robot's gaits and run that.
+# collect poses as keyframes -- and the robot's gaits, as theirs
+# (hexapod/gait_keyframes.py) -- preview the sequence and run it on the robot.
 #
 # There is one pose: the robot's standby posture with two layers on top
 # (hexapod/pose_layers.py), and a tool on the rail for each:
@@ -23,7 +23,9 @@
 # What is being edited lives in session stores, so it survives a reload:
 #
 #   pose       {"robot", "state": the layers, "feet": 6x3 in the body frame,
-#               "seq"}
+#               "seq", "at"}; "at" says, for a pose taken from where playback
+#               came to rest between two keyframes, where that is:
+#               {"after": keyframe index, "ms": into the move from it}
 #   keyframes  {"robot", "keyframes": [...]}   see hexapod/keyframes.py
 #   selected   index of the keyframe the pose was loaded from, or None
 #
@@ -39,18 +41,17 @@
 
 import base64
 import json
-from math import ceil
-
 import numpy as np
 from dash import ALL, callback, clientside_callback, ctx, html, no_update
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
+from hexapod import gait_library
 from hexapod import keyframes as kf
+from hexapod.gait_keyframes import gait_keyframes
 from hexapod import pose_layers as pl
 from hexapod.const import NAMES_LEG
 from hexapod.naming import leg_index, leg_label
-from hexapod.path_generator import generate_poses
 from hexapod.robot_config import get_sequence_fps, with_dimensions
 from hexapod.robot_link import ROBOT_LINK
 from pages import helpers, shared
@@ -60,6 +61,7 @@ from widgets.pose_ui import (
     MODE_PREVIEW,
     ANGLES_HUD_CLASS,
     ANGLES_HUD_ID,
+    GAIT_SOURCES,
     POSE_ADD_BTN_ID,
     POSE_ANGLES_ID,
     POSE_CLEAR_FEET_BTN_ID,
@@ -67,7 +69,6 @@ from widgets.pose_ui import (
     POSE_DOWNLOAD_ID,
     POSE_DURATION_ID,
     POSE_EARLIER_BTN_ID,
-    POSE_EASE_ID,
     POSE_FOOT_FIELD_IDS,
     POSE_JOINT_FIELDS,
     POSE_JOINT_FIELD_IDS,
@@ -75,11 +76,14 @@ from widgets.pose_ui import (
     POSE_FOOT_TARGET_ID,
     POSE_FRAME_DISPLAY_ID,
     POSE_FRAME_SLIDER_ID,
-    POSE_GAIT_ID,
-    POSE_GAIT_MODE_ID,
-    POSE_GAIT_SPEED_ID,
+    POSE_GAIT_ITEM_TYPE,
+    POSE_GAIT_LIST_IDS,
+    POSE_GAIT_REPLACE_TYPE,
+    POSE_GAIT_SOURCE_ID,
     POSE_INTERVAL_ID,
     POSE_KEYFRAMES_STORE_ID,
+    POSE_KF_EASE_ID,
+    POSE_KF_EDITOR_LABEL_ID,
     POSE_KF_ITEM_TYPE,
     POSE_KF_LIST_ID,
     POSE_KF_SUMMARY_ID,
@@ -88,6 +92,7 @@ from widgets.pose_ui import (
     POSE_MESSAGE_ID,
     POSE_PLAY_BTN_ID,
     POSE_PLAY_STATE_STORE_ID,
+    POSE_PLAYHEAD_ID,
     POSE_PREVIEW_MESSAGE_ID,
     POSE_PREVIEW_STORE_ID,
     POSE_RESET_BTN_ID,
@@ -99,23 +104,34 @@ from widgets.pose_ui import (
     POSE_SELECTED_KF_STORE_ID,
     POSE_SELECTED_LEG_ID,
     POSE_STATE_STORE_ID,
-    POSE_SOURCE_ID,
-    POSE_SOURCE_PART_IDS,
+    POSE_SPEED_ID,
     POSE_STOP_BTN_ID,
     POSE_TOOL_ID,
     POSE_TOOL_PANEL_IDS,
     POSE_UPDATE_BTN_ID,
     POSE_UPLOAD_ID,
+    POSE_USER_GAIT_DELETE_TYPE,
+    POSE_USER_GAIT_ITEM_TYPE,
+    POSE_USER_GAIT_LIST_ID,
+    POSE_USER_GAIT_MESSAGE_ID,
+    POSE_USER_GAIT_NAME_ID,
+    POSE_USER_GAIT_REPLACE_TYPE,
+    POSE_USER_GAIT_SAVE_BTN_ID,
+    POSE_USER_GAITS_VERSION_ID,
     POSE_VIEW_ID,
     POSE_VIEW_MODE_ID,
     PREVIEW_FPS,
-    GAIT_NATIVE,
-    SOURCE_GAIT,
-    SOURCES,
+    SPEED_MAX_PCT,
+    SPEED_MIN_PCT,
     TOOL_FEET,
     TOOLS,
+    USER_GAITS_EMPTY,
+    user_gait_row,
 )
 from widgets.robot_link_ui import (
+    DRIVE_BODY_CLASS,
+    DRIVE_CONTROLS_ID,
+    DRIVE_SPEED_ID,
     ROBOT_CONFIG_STORE_ID,
     ROBOT_POLL_INTERVAL_ID,
     SECTION_CONTROLS_CLASS,
@@ -128,20 +144,6 @@ from widgets.robot_link_ui import (
 
 POSE_SCENE_STORE_ID = shared.view_store_id(POSE_VIEW_ID)
 POSE_RENDER_ACK_ID = f"{POSE_VIEW_ID}-ack"
-
-
-# Show the parts of the dock that belong to the source being played.
-clientside_callback(
-    """
-    function(source) {
-        var show = {}, hide = {display: "none"};
-        return [%s];
-    }
-    """
-    % ", ".join(f'source === "{source}" ? show : hide' for source in SOURCES),
-    *[Output(POSE_SOURCE_PART_IDS[source], "style") for source in SOURCES],
-    Input(POSE_SOURCE_ID, "value"),
-)
 
 
 # Show the tool's panel. The others are only hidden, so their sliders keep
@@ -184,13 +186,22 @@ def _robot(dimensions_json=None):
     return with_dimensions(ROBOT_LINK.robot_config, dimensions)
 
 
-def _pose_store(robot_config, state, seq=0):
-    return {
+def _pose_store(robot_config, state, seq=0, at=None):
+    store = {
         "robot": robot_config["name"],
         "state": state,
         "feet": pl.body_feet(state, robot_config),
         "seq": seq,
     }
+    if at is not None:
+        store["at"] = at
+    return store
+
+
+def _at_ms(frames, at):
+    """When a pose "at" a point of the sequence (see the stores above) is,
+    from the first keyframe, in ms."""
+    return kf.keyframe_times_ms(frames)[at["after"]] + at["ms"]
 
 
 def _fresh_keyframes(robot_config):
@@ -231,7 +242,8 @@ def _keyframe_state(keyframe, robot_config):
         selected=Output(POSE_SELECTED_KF_STORE_ID, "data"),
         message=Output(POSE_MESSAGE_ID, "children"),
         duration=Output(POSE_DURATION_ID, "value"),
-        mode=Output(POSE_VIEW_MODE_ID, "value", allow_duplicate=True),
+        ease=Output(POSE_KF_EASE_ID, "value"),
+        mode=Output(POSE_VIEW_MODE_ID, "data", allow_duplicate=True),
         body_sliders=[Output(widget_id, "value") for widget_id in IK_WIDGETS_IDS],
         foot_fields=[Output(field_id, "value") for field_id in POSE_FOOT_FIELD_IDS],
         foot_fields_off=[Output(field_id, "disabled") for field_id in POSE_FOOT_FIELD_IDS],
@@ -247,12 +259,21 @@ def _keyframe_state(keyframe, robot_config):
         _earlier=Input(POSE_EARLIER_BTN_ID, "n_clicks"),
         _later=Input(POSE_LATER_BTN_ID, "n_clicks"),
         _item_clicks=Input({"type": POSE_KF_ITEM_TYPE, "index": ALL}, "n_clicks"),
+        _gait_clicks=Input({"type": POSE_GAIT_ITEM_TYPE, "index": ALL}, "n_clicks"),
+        _user_gait_clicks=Input({"type": POSE_USER_GAIT_ITEM_TYPE, "index": ALL}, "n_clicks"),
+        _gait_replaces=Input({"type": POSE_GAIT_REPLACE_TYPE, "index": ALL}, "n_clicks"),
+        _user_gait_replaces=Input(
+            {"type": POSE_USER_GAIT_REPLACE_TYPE, "index": ALL}, "n_clicks"
+        ),
         upload=Input(POSE_UPLOAD_ID, "contents"),
         _config_store=Input(ROBOT_CONFIG_STORE_ID, "data"),
         body_values=[Input(widget_id, "value") for widget_id in IK_WIDGETS_IDS],
         foot_leg=Input(POSE_FOOT_LEG_ID, "value"),
         foot_values=[Input(field_id, "value") for field_id in POSE_FOOT_FIELD_IDS],
         joint_values=[Input(field_id, "value") for field_id in POSE_JOINT_FIELD_IDS],
+        duration=Input(POSE_DURATION_ID, "value"),
+        ease_values=Input(POSE_KF_EASE_ID, "value"),
+        playhead=Input(POSE_PLAYHEAD_ID, "data"),
         # Resizing the robot moves every foot field and joint.
         dimensions_json=DIMENSIONS_INPUT,
     ),
@@ -260,7 +281,7 @@ def _keyframe_state(keyframe, robot_config):
         pose_store=State(POSE_STATE_STORE_ID, "data"),
         keyframes_store=State(POSE_KEYFRAMES_STORE_ID, "data"),
         selected=State(POSE_SELECTED_KF_STORE_ID, "data"),
-        duration=State(POSE_DURATION_ID, "value"),
+        preview=State(POSE_PREVIEW_STORE_ID, "data"),
     ),
     prevent_initial_call="initial_duplicate",
 )
@@ -274,17 +295,24 @@ def edit(
     _earlier,
     _later,
     _item_clicks,
+    _gait_clicks,
+    _user_gait_clicks,
+    _gait_replaces,
+    _user_gait_replaces,
     upload,
     _config_store,
     body_values,
     foot_leg,
     foot_values,
     joint_values,
+    duration,
+    ease_values,
+    playhead,
     dimensions_json,
     pose_store,
     keyframes_store,
     selected,
-    duration,
+    preview,
 ):
     """Every change to the pose, the keyframes or which keyframe is selected.
 
@@ -332,11 +360,12 @@ def edit(
 
     state = pose_store["state"]
 
-    def bump(new_state):
+    def bump(new_state, at=pose_store.get("at")):
         # The sequence number makes the pose differ from the one before even
         # when the feet do not, so a refused drag is still redrawn and the
-        # foot springs back to where it was.
-        return _pose_store(robot_config, new_state, pose_store.get("seq", 0) + 1)
+        # foot springs back to where it was. A pose edited stays where in the
+        # sequence it was taken from.
+        return _pose_store(robot_config, new_state, pose_store.get("seq", 0) + 1, at)
 
     def set_frames(new_frames):
         return {"robot": robot_config["name"], "keyframes": new_frames}
@@ -417,22 +446,104 @@ def edit(
         message = ""
 
     elif trigger == POSE_ADD_BTN_ID:
-        index = len(frames) if selected is None else selected + 1
         feet = pl.body_feet(state, robot_config)
-        frames.insert(index, kf.make_keyframe(feet, duration, state))
+        eased = bool(ease_values) and "ease" in ease_values
+        at = pose_store.get("at")
+        if selected is None and at and 0 <= at["after"] < len(frames):
+            # Taken from where playback came to rest: it goes in there,
+            # splitting the move it was on. The time field is its share of the
+            # move, as far in as it was; the keyframe after it keeps the rest,
+            # so everything after is reached when it was. It eases as that
+            # move did.
+            index = at["after"] + 1
+            following = frames[index % len(frames)]
+            share = kf.clamp_duration(duration)
+            rest = kf.clamp_duration(following["duration_ms"] - share)
+            frames[index % len(frames)] = {**following, "duration_ms": rest}
+            frames.insert(index, kf.make_keyframe(feet, share, state, ease=kf.eases(following)))
+        else:
+            index = len(frames) if selected is None else selected + 1
+            frames.insert(index, kf.make_keyframe(feet, duration, state, ease=eased))
         out_keyframes = set_frames(frames)
         out_selected = index
         out_duration = frames[index]["duration_ms"]
         message = ""
 
+    elif trigger == POSE_PLAYHEAD_ID and playhead:
+        # Playback came to rest: the frame it stopped on becomes the pose. On
+        # a keyframe, that keyframe is selected, as if clicked; between two,
+        # nothing is, and the pose remembers where it is in the sequence, for
+        # + Add pose to put it there.
+        frame = playhead.get("frame")
+        if (
+            not isinstance(preview, dict)
+            or preview.get("count") != len(frames)
+            or not isinstance(frame, int)
+            or not 0 <= frame < len(preview.get("states", []))
+        ):
+            raise PreventUpdate
+        start, end, ms = preview["times"][frame]
+        move_ms = kf.clamp_duration(frames[end]["duration_ms"])
+        on_keyframe = start if ms < 0.5 else end if move_ms - ms < 0.5 else None
+        if on_keyframe is not None:
+            out_selected = on_keyframe
+            out_pose = bump(_keyframe_state(frames[on_keyframe], robot_config), at=None)
+        else:
+            raw = preview["states"][frame]
+            out_selected = None
+            out_pose = bump(
+                pl.make_state(raw["body"], raw["offsets"]),
+                at={"after": start, "ms": round(ms, 1)},
+            )
+        out_mode = MODE_EDIT
+        message = ""
+
+    elif isinstance(trigger, dict) and trigger.get("type") in (
+        POSE_GAIT_ITEM_TYPE,
+        POSE_USER_GAIT_ITEM_TYPE,
+        POSE_GAIT_REPLACE_TYPE,
+        POSE_USER_GAIT_REPLACE_TYPE,
+    ):
+        # A gait from the library, the robot's or one's own, as its
+        # keyframes. Its + puts them in where a pose would go, after the one
+        # selected, selecting the last so another follows on. Its ⇄ makes
+        # them the whole sequence, selecting the last too, which becomes the
+        # pose, so a gait added next goes on after it. The lists' buttons are
+        # there with no clicks when they are drawn; only a real click counts.
+        if not ctx.triggered or not ctx.triggered[0]["value"]:
+            raise PreventUpdate
+        try:
+            if trigger["type"] in (POSE_GAIT_ITEM_TYPE, POSE_GAIT_REPLACE_TYPE):
+                inserted = gait_keyframes(trigger["index"], robot_config)
+            else:
+                inserted = gait_library.load_gait(trigger["index"], robot_config)
+        except kf.KeyframeFileError as error:
+            inserted = []
+            message = helpers.make_alert_message(error)
+        if inserted and trigger["type"] in (POSE_GAIT_REPLACE_TYPE, POSE_USER_GAIT_REPLACE_TYPE):
+            frames = list(inserted)
+            out_keyframes = set_frames(frames)
+            out_selected = len(frames) - 1
+            out_pose = bump(_keyframe_state(frames[-1], robot_config))
+            out_duration = frames[-1]["duration_ms"]
+            out_mode = MODE_EDIT
+            message = ""
+        elif inserted:
+            index = len(frames) if selected is None else selected + 1
+            frames[index:index] = inserted
+            out_keyframes = set_frames(frames)
+            out_selected = index + len(inserted) - 1
+            out_duration = frames[out_selected]["duration_ms"]
+            message = ""
+
     elif trigger == POSE_UPDATE_BTN_ID:
         if selected is None:
             message = helpers.make_alert_message("Pick a keyframe to update.")
         else:
+            # It keeps its time and easing.
             feet = pl.body_feet(state, robot_config)
-            frames[selected] = kf.make_keyframe(feet, duration, state)
+            frames[selected] = kf.remade(frames[selected], feet, state)
             out_keyframes = set_frames(frames)
-            out_duration = frames[selected]["duration_ms"]
             message = ""
 
     elif trigger == POSE_DELETE_BTN_ID:
@@ -443,6 +554,36 @@ def edit(
             out_keyframes = set_frames(frames)
             out_selected = min(selected, len(frames) - 1) if frames else None
             message = ""
+
+    elif trigger == POSE_DURATION_ID:
+        # Retimes the selected keyframe, and nothing else about it. With none
+        # selected, the time waits for the next + Add. The field shows the
+        # time as it is kept: in range, and a field left empty goes back to
+        # what it was.
+        if duration is None:
+            out_duration = (
+                kf.DEFAULT_DURATION_MS if selected is None else frames[selected]["duration_ms"]
+            )
+        else:
+            duration_ms = kf.clamp_duration(duration)
+            if duration_ms != duration:
+                out_duration = duration_ms
+            if selected is not None and frames[selected]["duration_ms"] != duration_ms:
+                frames[selected] = {**frames[selected], "duration_ms": duration_ms}
+                out_keyframes = set_frames(frames)
+
+    elif trigger == POSE_KF_EASE_ID:
+        # Whether the move into the selected keyframe eases. With none
+        # selected, it waits for the next + Add.
+        if selected is None:
+            raise PreventUpdate
+        eased = bool(ease_values) and "ease" in ease_values
+        if kf.eases(frames[selected]) != eased:
+            frame = frames[selected]
+            frames[selected] = kf.make_keyframe(
+                frame["feet"], frame["duration_ms"], frame.get("state"), ease=eased
+            )
+            out_keyframes = set_frames(frames)
 
     elif trigger in (POSE_EARLIER_BTN_ID, POSE_LATER_BTN_ID):
         step = -1 if trigger == POSE_EARLIER_BTN_ID else 1
@@ -504,12 +645,39 @@ def edit(
         for leg, joint, _ in POSE_JOINT_FIELDS
     ]
 
+    # The easing box shows the selected keyframe's, as the time field shows
+    # its time -- except while it is being clicked.
+    shown_frames = frames if out_keyframes is no_update else out_keyframes["keyframes"]
+    shown_selected = selected if out_selected is no_update else out_selected
+    out_ease = no_update
+    if trigger != POSE_KF_EASE_ID and shown_selected is not None:
+        if 0 <= shown_selected < len(shown_frames):
+            out_ease = ["ease"] if kf.eases(shown_frames[shown_selected]) else []
+    if out_selected is None:
+        # Nothing selected any more: the bar is the next keyframe's again,
+        # starting from the usual time and easing rather than the last
+        # keyframe's.
+        out_duration = kf.DEFAULT_DURATION_MS
+        out_ease = ["ease"]
+
+    # A pose stays "at" its point of the sequence only while the keyframes
+    # are as they were and none is selected; then the bar is the keyframe it
+    # would become: as far into its move as it is, easing as the move does.
+    at = (pose_store if out_pose is no_update else out_pose).get("at")
+    if at and (out_keyframes is not no_update or shown_selected is not None):
+        out_pose = {key: value for key, value in shown_pose.items() if key != "at"}
+    elif at and trigger == POSE_PLAYHEAD_ID:
+        out_duration = max(kf.MIN_DURATION_MS, round(at["ms"]))
+        following = frames[(at["after"] + 1) % len(frames)]
+        out_ease = ["ease"] if kf.eases(following) else []
+
     return dict(
         pose=out_pose,
         keyframes=out_keyframes,
         selected=out_selected,
         message=message,
         duration=out_duration,
+        ease=out_ease,
         mode=out_mode,
         body_sliders=body_sliders,
         foot_fields=foot_fields,
@@ -611,7 +779,7 @@ clientside_callback(
     Output(POSE_RENDER_ACK_ID, "data"),
     Input(POSE_SCENE_STORE_ID, "data"),
     Input(POSE_FRAME_SLIDER_ID, "value"),
-    Input(POSE_VIEW_MODE_ID, "value"),
+    Input(POSE_VIEW_MODE_ID, "data"),
     Input(POSE_PREVIEW_STORE_ID, "data"),
     Input(POSE_TOOL_ID, "value"),
 )
@@ -637,43 +805,109 @@ clientside_callback(
 # ......................
 
 
+def _kf_link(label, arrow, title):
+    """The arrow from one keyframe to the next, with how long the move takes."""
+    return html.Span(
+        [
+            html.Span(label, className="ind-kf-link-label"),
+            html.Span(arrow, className="ind-kf-arrow"),
+        ],
+        className="ind-kf-link",
+        title=title,
+    )
+
+
 @callback(
     Output(POSE_KF_LIST_ID, "children"),
     Output(POSE_KF_SUMMARY_ID, "children"),
+    Output(POSE_UPDATE_BTN_ID, "children"),
+    Output(POSE_UPDATE_BTN_ID, "disabled"),
+    Output(POSE_DELETE_BTN_ID, "disabled"),
+    Output(POSE_EARLIER_BTN_ID, "disabled"),
+    Output(POSE_LATER_BTN_ID, "disabled"),
     Input(POSE_KEYFRAMES_STORE_ID, "data"),
     Input(POSE_SELECTED_KF_STORE_ID, "data"),
     Input(POSE_LOOP_ID, "value"),
 )
 def list_keyframes(keyframes_store, selected, loop_values):
+    """The keyframe track, and the editor's buttons for the keyframe selected:
+    each one is only enabled when there is something for it to do."""
     frames = keyframes_store["keyframes"] if isinstance(keyframes_store, dict) else []
-    if not frames:
-        return (
-            html.Div(
-                "No keyframes yet: set a pose and press + Add.",
-                className="small text-muted",
-            ),
-            "",
-        )
-
+    if selected is not None and not 0 <= selected < len(frames):
+        selected = None
     loop = bool(loop_values) and "loop" in loop_values
-    items = []
-    for index, frame in enumerate(frames):
-        if index == 0:
-            timing = f"{frame['duration_ms']} ms ↺" if loop else "start"
-        else:
-            timing = f"{frame['duration_ms']} ms"
-        items.append(
-            html.Button(
-                [html.Span(f"#{index + 1}", className="ind-kf-index"), timing],
-                id={"type": POSE_KF_ITEM_TYPE, "index": index},
-                className="ind-kf-chip active" if index == selected else "ind-kf-chip",
-                title="Load this keyframe into the pose",
-            )
-        )
 
-    total = kf.sequence_duration_ms(frames, loop) / 1000.0
-    summary = f"{len(frames)} keyframe{'s' if len(frames) != 1 else ''} · {total:.2f} s"
-    return items, summary
+    if frames:
+        # Each keyframe with when it is reached; on the arrow into it, how
+        # long it takes to get there from the one before.
+        items = []
+        at_ms = 0
+        for index, frame in enumerate(frames):
+            if index:
+                at_ms += frame["duration_ms"]
+                items.append(
+                    _kf_link(
+                        f"{frame['duration_ms']} ms",
+                        "▸",
+                        f"#{index} to #{index + 1} in {frame['duration_ms']} ms",
+                    )
+                )
+            items.append(
+                html.Button(
+                    [
+                        html.Span(f"#{index + 1}", className="ind-kf-index"),
+                        html.Span(f"{at_ms / 1000:.2f} s", className="ind-kf-time"),
+                    ],
+                    id={"type": POSE_KF_ITEM_TYPE, "index": index},
+                    className="ind-kf-card active" if index == selected else "ind-kf-card",
+                    title="Load this keyframe into the pose",
+                )
+            )
+        if loop and len(frames) > 1:
+            # Looping, the move back to the start takes the first keyframe's
+            # time (hexapod/keyframes.py).
+            first_ms = frames[0]["duration_ms"]
+            items.append(
+                _kf_link(f"{first_ms} ms", "↺", f"Back to #1 in {first_ms} ms, then again")
+            )
+        total = kf.sequence_duration_ms(frames, loop) / 1000.0
+        summary = f"{len(frames)} keyframe{'s' if len(frames) != 1 else ''} · {total:.2f} s"
+    else:
+        items = html.Div(
+            "No keyframes yet: pose the robot with Body or Feet, then + Add pose.",
+            className="dock-empty",
+        )
+        summary = ""
+
+    if selected is None:
+        return items, summary, "Save pose", True, True, True, True
+
+    number = selected + 1
+    last = selected == len(frames) - 1
+    return items, summary, f"Save pose to #{number}", False, False, selected == 0, last
+
+
+@callback(
+    Output(POSE_KF_EDITOR_LABEL_ID, "children"),
+    Output(POSE_ADD_BTN_ID, "children"),
+    Input(POSE_KEYFRAMES_STORE_ID, "data"),
+    Input(POSE_SELECTED_KF_STORE_ID, "data"),
+    Input(POSE_STATE_STORE_ID, "data"),
+)
+def label_editor(keyframes_store, selected, pose_store):
+    """What the bar is about, and where + Add pose puts the pose: after the
+    keyframe selected, at the point of the sequence the pose was taken from,
+    or at the end."""
+    frames = keyframes_store["keyframes"] if isinstance(keyframes_store, dict) else []
+    at = pose_store.get("at") if isinstance(pose_store, dict) else None
+    if selected is not None and 0 <= selected < len(frames):
+        number = selected + 1
+        last = selected == len(frames) - 1
+        return f"Keyframe #{number}", "+ Add pose" if last else f"+ Insert after #{number}"
+    if at and 0 <= at["after"] < len(frames):
+        seconds = _at_ms(frames, at) / 1000.0
+        return f"New keyframe at {seconds:.2f} s", f"+ Add pose at {seconds:.2f} s"
+    return "New keyframe", "+ Add pose"
 
 
 @callback(
@@ -694,14 +928,110 @@ def save_keyframes(_n_clicks, keyframes_store):
 
 
 # ......................
+# The Gaits library
+# ......................
+
+# Show the list picked, the robot's gaits or one's own. The other is only
+# hidden, so its buttons stay put.
+clientside_callback(
+    """
+    function(source) {
+        var show = {}, hide = {display: "none"};
+        return [%s];
+    }
+    """
+    % ", ".join(f'source === "{source}" ? show : hide' for source in GAIT_SOURCES),
+    *[Output(POSE_GAIT_LIST_IDS[source], "style") for source in GAIT_SOURCES],
+    Input(POSE_GAIT_SOURCE_ID, "value"),
+)
+
+
+@callback(
+    Output(POSE_USER_GAIT_LIST_ID, "children"),
+    Input(POSE_USER_GAITS_VERSION_ID, "data"),
+    Input(ROBOT_CONFIG_STORE_ID, "data"),
+)
+def list_user_gaits(_version, _config_store):
+    """One's own gaits for the robot modelled; a gait belongs to the robot it
+    was made on."""
+    gaits = gait_library.list_gaits(_robot())
+    return [user_gait_row(gait) for gait in gaits] if gaits else USER_GAITS_EMPTY
+
+
+@callback(
+    Output(POSE_USER_GAITS_VERSION_ID, "data"),
+    Output(POSE_USER_GAIT_NAME_ID, "value"),
+    Output(POSE_USER_GAIT_MESSAGE_ID, "children"),
+    Input(POSE_USER_GAIT_SAVE_BTN_ID, "n_clicks"),
+    Input(POSE_USER_GAIT_NAME_ID, "n_submit"),
+    State(POSE_USER_GAIT_NAME_ID, "value"),
+    State(POSE_KEYFRAMES_STORE_ID, "data"),
+    State(POSE_USER_GAITS_VERSION_ID, "data"),
+    prevent_initial_call=True,
+)
+def save_user_gait(_n_clicks, _n_submit, name, keyframes_store, version):
+    """Keep the whole sequence as a gait of one's own, under the name typed
+    (or Enter pressed in it)."""
+    robot_config = _robot()
+    frames = keyframes_store["keyframes"] if _valid(keyframes_store, robot_config) else []
+    try:
+        gait_library.save_gait(name, frames, robot_config)
+    except ValueError as error:
+        return no_update, no_update, helpers.make_alert_message(error)
+    except OSError as error:
+        return no_update, no_update, helpers.make_alert_message(f"Could not save the gait: {error}")
+    return (version or 0) + 1, "", ""
+
+
+@callback(
+    Output(POSE_USER_GAITS_VERSION_ID, "data", allow_duplicate=True),
+    Output(POSE_USER_GAIT_MESSAGE_ID, "children", allow_duplicate=True),
+    Input({"type": POSE_USER_GAIT_DELETE_TYPE, "index": ALL}, "submit_n_clicks"),
+    State(POSE_USER_GAITS_VERSION_ID, "data"),
+    prevent_initial_call=True,
+)
+def delete_user_gait(_confirmed, version):
+    """Delete a gait of one's own, once its dialog is confirmed. The list is
+    drawn afresh with nothing confirmed; only a real confirmation counts."""
+    if not ctx.triggered or not ctx.triggered[0]["value"]:
+        raise PreventUpdate
+    try:
+        gait_library.delete_gait(ctx.triggered_id["index"])
+    except OSError as error:
+        return no_update, helpers.make_alert_message(f"Could not delete the gait: {error}")
+    return (version or 0) + 1, ""
+
+
+# ......................
 # Preview
 # ......................
 
 
-def _options(loop_values, ease_values):
+def _speed_pct(value):
+    """The playback speed a typed value stands for: a whole percent, within
+    range; 100 for one that is not a number."""
+    try:
+        return int(min(max(round(float(value)), SPEED_MIN_PCT), SPEED_MAX_PCT))
+    except (TypeError, ValueError):
+        return 100
+
+
+def _options(loop_values, speed_pct):
+    """(loop, speed) from the dock's controls; speed as a factor."""
     loop = bool(loop_values) and "loop" in loop_values
-    ease = bool(ease_values) and "ease" in ease_values
-    return loop, ease
+    return loop, _speed_pct(speed_pct) / 100.0
+
+
+@callback(
+    Output(POSE_SPEED_ID, "value"),
+    Input(POSE_SPEED_ID, "value"),
+    prevent_initial_call=True,
+)
+def set_speed(speed_pct):
+    """Show the playback speed as it is played: in range, a whole percent,
+    and 100 for a box left empty."""
+    applied = _speed_pct(speed_pct)
+    return no_update if applied == speed_pct else applied
 
 
 def _bad_frames_message(bad_frames, total):
@@ -711,71 +1041,44 @@ def _bad_frames_message(bad_frames, total):
     )
 
 
-def _gait_frames(gait, robot_config, speed_pct, max_fps):
-    """A gait's poses and the frame rate they play at, at `speed_pct` of the
-    robot's tuned rate: every frame, or every so many if that is faster than
-    `max_fps`, so the timing is the robot's either way."""
-    poses = generate_poses(gait, robot_config)
-    fps = get_sequence_fps(robot_config, speed_pct or 100)
-    step = max(1, ceil(fps / max_fps)) if max_fps else 1
-    return poses[::step], fps / step
-
-
 @callback(
     Output(POSE_PREVIEW_STORE_ID, "data"),
     Output(POSE_FRAME_SLIDER_ID, "max"),
     Output(POSE_FRAME_SLIDER_ID, "value"),
     Output(POSE_PREVIEW_MESSAGE_ID, "children"),
-    Output(POSE_INTERVAL_ID, "interval"),
-    Output(POSE_VIEW_MODE_ID, "value", allow_duplicate=True),
-    Input(POSE_SOURCE_ID, "value"),
     Input(POSE_KEYFRAMES_STORE_ID, "data"),
-    Input(POSE_GAIT_ID, "value"),
-    Input(POSE_GAIT_SPEED_ID, "value"),
     Input(POSE_LOOP_ID, "value"),
-    Input(POSE_EASE_ID, "value"),
+    Input(POSE_SPEED_ID, "value"),
     DIMENSIONS_INPUT,
-    prevent_initial_call="initial_duplicate",
 )
-def build_preview(
-    source, keyframes_store, gait, speed_pct, loop_values, ease_values, dimensions_json
-):
-    """The frames the view plays in Sequence: the keyframes, or a gait."""
+def build_preview(keyframes_store, loop_values, speed_pct, dimensions_json):
+    """The frames the view plays in Sequence."""
     robot_config = _robot(dimensions_json)
-    loop, ease = _options(loop_values, ease_values)
-    mode = no_update
-
-    if source == SOURCE_GAIT:
-        poses, fps = _gait_frames(gait, robot_config, speed_pct, PREVIEW_FPS)
-        # Drawn standing on the floor, so a gait that tilts the body tilts it
-        # rather than swinging the feet through the ground.
-        scenes = [pl.settled_scene(pose, robot_config) for pose in poses]
-        message = ""
-        # Picking a gait is asking to see it.
-        if ctx.triggered_id in (POSE_SOURCE_ID, POSE_GAIT_ID):
-            mode = MODE_PREVIEW
-    else:
-        frames = keyframes_store["keyframes"] if _valid(keyframes_store, robot_config) else []
-        feet, states, poses, bad_frames = pl.sequence(
-            frames, robot_config, PREVIEW_FPS, loop, ease
-        )
-        if states is None:
-            # Keyframes that did not keep their layers: drawn with the body
-            # unmoved.
-            states = [pl.from_feet(frame_feet, robot_config) for frame_feet in feet]
-        scenes = [pl.scene(state, pose, robot_config) for state, pose in zip(states, poses)]
-        fps = PREVIEW_FPS
-        message = _bad_frames_message(bad_frames, len(poses)) if bad_frames else ""
-        # Back from a gait to the pose being edited.
-        if ctx.triggered_id == POSE_SOURCE_ID:
-            mode = MODE_EDIT
-
-    last = max(len(scenes) - 1, 1)
-    preview = {"scenes": scenes, "fps": fps}
-    return preview, last, 0, message, round(1000 / fps), mode
+    loop, speed = _options(loop_values, speed_pct)
+    frames = keyframes_store["keyframes"] if _valid(keyframes_store, robot_config) else []
+    feet, states, poses, bad_frames = pl.sequence(
+        frames, robot_config, PREVIEW_FPS, loop, speed=speed
+    )
+    if states is None:
+        # Keyframes that did not keep their layers: drawn with the body
+        # unmoved.
+        states = [pl.from_feet(frame_feet, robot_config) for frame_feet in feet]
+    scenes = [pl.scene(state, pose, robot_config) for state, pose in zip(states, poses)]
+    message = _bad_frames_message(bad_frames, len(poses)) if bad_frames else ""
+    # With each frame's layers and where it falls among the keyframes, so a
+    # frame playback comes to rest on can become the pose (edit()).
+    preview = {
+        "scenes": scenes,
+        "fps": PREVIEW_FPS,
+        "states": states,
+        "times": kf.frame_times(frames, PREVIEW_FPS, loop, speed),
+        "count": len(frames),
+    }
+    return preview, max(len(scenes) - 1, 1), 0, message
 
 
-# Play/Pause. Playing always shows the sequence, so it switches to it.
+# Play/Pause. Playing always shows the sequence, so it switches to it; pausing
+# makes the frame it stopped on the pose.
 clientside_callback(
     """
     function(n_clicks, is_playing, frame, max_frame) {
@@ -784,13 +1087,16 @@ clientside_callback(
         if (playing && frame >= max_frame) {
             next = 0;
         }
+        var skip = window.dash_clientside.no_update;
         return [
             playing,
             playing ? "⏸ Pause" : "▶ Play",
             playing ? "danger" : "primary",
             !playing,
             next,
-            playing ? "%s" : window.dash_clientside.no_update,
+            playing ? "%s" : skip,
+            // Paused: the frame it stopped on becomes the pose.
+            playing ? skip : {frame: frame, n: Date.now()},
         ];
     }
     """
@@ -800,7 +1106,8 @@ clientside_callback(
     Output(POSE_PLAY_BTN_ID, "color"),
     Output(POSE_INTERVAL_ID, "disabled"),
     Output(POSE_FRAME_SLIDER_ID, "value", allow_duplicate=True),
-    Output(POSE_VIEW_MODE_ID, "value", allow_duplicate=True),
+    Output(POSE_VIEW_MODE_ID, "data", allow_duplicate=True),
+    Output(POSE_PLAYHEAD_ID, "data", allow_duplicate=True),
     Input(POSE_PLAY_BTN_ID, "n_clicks"),
     State(POSE_PLAY_STATE_STORE_ID, "data"),
     State(POSE_FRAME_SLIDER_ID, "value"),
@@ -818,11 +1125,13 @@ clientside_callback(
             if (loop) {
                 next = 0;
             } else {
-                return [max_frame, false, "▶ Play", "primary", true];
+                // Run out: the last frame becomes the pose.
+                var rest = {frame: max_frame, n: Date.now()};
+                return [max_frame, false, "▶ Play", "primary", true, rest];
             }
         }
         var skip = window.dash_clientside.no_update;
-        return [next, skip, skip, skip, skip];
+        return [next, skip, skip, skip, skip, skip];
     }
     """,
     Output(POSE_FRAME_SLIDER_ID, "value", allow_duplicate=True),
@@ -830,6 +1139,7 @@ clientside_callback(
     Output(POSE_PLAY_BTN_ID, "children", allow_duplicate=True),
     Output(POSE_PLAY_BTN_ID, "color", allow_duplicate=True),
     Output(POSE_INTERVAL_ID, "disabled", allow_duplicate=True),
+    Output(POSE_PLAYHEAD_ID, "data", allow_duplicate=True),
     Input(POSE_INTERVAL_ID, "n_intervals"),
     State(POSE_FRAME_SLIDER_ID, "value"),
     State(POSE_FRAME_SLIDER_ID, "max"),
@@ -837,16 +1147,14 @@ clientside_callback(
     prevent_initial_call=True,
 )
 
-# Back to the pose stops playback; the scrubber only means something while
-# the sequence is shown.
+# Back to the pose -- the pose edited, or a keyframe loaded -- stops playback.
 clientside_callback(
     """
     function(mode) {
         if (mode === "%s") {
-            return [false, "▶ Play", "primary", true, true];
+            return [false, "▶ Play", "primary", true];
         }
-        var skip = window.dash_clientside.no_update;
-        return [skip, skip, skip, skip, false];
+        return window.dash_clientside.no_update;
     }
     """
     % MODE_EDIT,
@@ -854,9 +1162,8 @@ clientside_callback(
     Output(POSE_PLAY_BTN_ID, "children", allow_duplicate=True),
     Output(POSE_PLAY_BTN_ID, "color", allow_duplicate=True),
     Output(POSE_INTERVAL_ID, "disabled", allow_duplicate=True),
-    Output(POSE_FRAME_SLIDER_ID, "disabled"),
-    Input(POSE_VIEW_MODE_ID, "value"),
-    prevent_initial_call="initial_duplicate",
+    Input(POSE_VIEW_MODE_ID, "data"),
+    prevent_initial_call=True,
 )
 
 clientside_callback(
@@ -886,85 +1193,47 @@ clientside_callback(
     Input(POSE_RUN_BTN_ID, "n_clicks"),
     State(POSE_KEYFRAMES_STORE_ID, "data"),
     State(POSE_LOOP_ID, "value"),
-    State(POSE_EASE_ID, "value"),
-    State(POSE_SOURCE_ID, "value"),
-    State(POSE_GAIT_ID, "value"),
-    State(POSE_GAIT_MODE_ID, "value"),
+    State(POSE_SPEED_ID, "value"),
     DIMENSIONS_STATE,
     prevent_initial_call=True,
 )
-def run_on_robot(
-    _n_clicks,
-    keyframes_store,
-    loop_values,
-    ease_values,
-    source,
-    gait,
-    gait_mode,
-    dimensions_json,
-):
+def run_on_robot(_n_clicks, keyframes_store, loop_values, speed_pct, dimensions_json):
     if not ROBOT_LINK.connected:
-        return "Not connected — connect in the Robot panel first."
+        return "Not connected — connect to a robot first."
 
     robot_config = _robot(dimensions_json)
-    loop, ease = _options(loop_values, ease_values)
-    if source == SOURCE_GAIT:
-        return _run_gait(gait, gait_mode, loop, robot_config)
-
+    loop, speed = _options(loop_values, speed_pct)
     frames = keyframes_store["keyframes"] if _valid(keyframes_store, robot_config) else []
     if not frames:
-        return "Add a keyframe first."
+        return "Add a pose or a gait first."
 
     # The robot gets frames at the rate it plays its own gaits at full speed,
     # so the sequence is as smooth as they are, and in real time: the durations
-    # are what was asked for, whatever the gait speed is.
+    # are what was asked for, scaled by the playback speed.
     fps = get_sequence_fps(robot_config, 100)
-    _, _, poses, bad_frames = pl.sequence(frames, robot_config, fps, loop, ease)
+    _, _, poses, bad_frames = pl.sequence(frames, robot_config, fps, loop, speed=speed)
     if bad_frames:
         return "Not sent: part of the sequence is out of reach (see the preview)."
 
     if not ROBOT_LINK.play_sequence(poses, loop=loop, fps=fps):
         return "Nothing to send."
-    seconds = kf.sequence_duration_ms(frames, loop) / 1000.0
+    seconds = kf.sequence_duration_ms(frames, loop, speed) / 1000.0
     return (
         f"Streaming {len(frames)} keyframes — {seconds:.2f} s"
+        f"{f' at {round(speed * 100)} %' if speed != 1 else ''}"
         f"{', looping' if loop else ''}."
     )
 
 
-def _run_gait(gait, mode, loop, robot_config):
-    """Run a gait on the robot: its own, played from flash, or the
-    simulator's frames streamed to it, at the gait speed either way."""
-    if mode == GAIT_NATIVE:
-        if not ROBOT_LINK.has_motion_command(gait):
-            # "standup" is the firmware's boot sequence, not a motion LUT it
-            # can be commanded into; the robot's own command list says which
-            # motions it has.
-            return (
-                f"'{gait}' has no built-in equivalent on the robot. "
-                "Use 'Stream frames' instead."
-            )
-        if ROBOT_LINK.send_motion_command(gait):
-            return f"Robot running its own '{gait}' gait at {ROBOT_LINK.speed_pct}%."
-        return "Failed to send the motion command."
-
-    poses = generate_poses(gait, robot_config)
-    if not ROBOT_LINK.play_sequence(poses, loop=loop):
-        return "Nothing to stream for this gait."
-    return (
-        f"Streaming '{gait}' — {len(poses)} frames at "
-        f"{ROBOT_LINK.speed_pct}%{', looping' if loop else ''}."
-    )
-
-
 @callback(
-    Output(POSE_GAIT_SPEED_ID, "value"),
-    Input(POSE_GAIT_SPEED_ID, "value"),
+    Output(DRIVE_SPEED_ID, "value"),
+    Input(DRIVE_SPEED_ID, "value"),
     prevent_initial_call=True,
 )
-def set_gait_speed(speed_pct):
-    """Gait speed: sent to the robot now, and carried by every motion command.
-    Set without a robot too, so the next one connected starts at it."""
+def set_drive_speed(speed_pct):
+    """The controller's speed, how fast the robot plays its own gaits: sent to
+    it now, and carried by every motion command. Set without a robot too, so
+    the next one connected starts at it."""
     if speed_pct is None:
         raise PreventUpdate
     applied = ROBOT_LINK.set_motion_speed(speed_pct)
@@ -987,36 +1256,46 @@ def stop_on_robot(_n_clicks):
 OFFLINE_MESSAGE = "Connect a robot to run this on the hardware."
 
 
+# The speed sliders that are the link's speed: the controller's.
+SPEED_SLIDER_IDS = (DRIVE_SPEED_ID,)
+
+
 @callback(
-    Output(POSE_ROBOT_CONTROLS_ID, "className"),
-    Output(POSE_RUN_BTN_ID, "disabled"),
-    Output(POSE_STOP_BTN_ID, "disabled"),
-    Output(POSE_ROBOT_MESSAGE_ID, "children", allow_duplicate=True),
-    Output(POSE_GAIT_SPEED_ID, "min"),
-    Output(POSE_GAIT_SPEED_ID, "max"),
-    Output(POSE_GAIT_SPEED_ID, "value", allow_duplicate=True),
-    Input(ROBOT_POLL_INTERVAL_ID, "n_intervals"),
-    State(POSE_ROBOT_MESSAGE_ID, "children"),
-    State(POSE_GAIT_SPEED_ID, "value"),
-    State(POSE_GAIT_SPEED_ID, "min"),
-    State(POSE_GAIT_SPEED_ID, "max"),
+    output=dict(
+        controls_class=Output(POSE_ROBOT_CONTROLS_ID, "className"),
+        drive_class=Output(DRIVE_CONTROLS_ID, "className"),
+        run_off=Output(POSE_RUN_BTN_ID, "disabled"),
+        stop_off=Output(POSE_STOP_BTN_ID, "disabled"),
+        message=Output(POSE_ROBOT_MESSAGE_ID, "children", allow_duplicate=True),
+        speed_mins=[Output(slider_id, "min") for slider_id in SPEED_SLIDER_IDS],
+        speed_maxes=[Output(slider_id, "max") for slider_id in SPEED_SLIDER_IDS],
+        speed_values=[
+            Output(slider_id, "value", allow_duplicate=True) for slider_id in SPEED_SLIDER_IDS
+        ],
+    ),
+    inputs=dict(_n_intervals=Input(ROBOT_POLL_INTERVAL_ID, "n_intervals")),
+    state=dict(
+        message=State(POSE_ROBOT_MESSAGE_ID, "children"),
+        speed_values=[State(slider_id, "value") for slider_id in SPEED_SLIDER_IDS],
+        speed_mins=[State(slider_id, "min") for slider_id in SPEED_SLIDER_IDS],
+        speed_maxes=[State(slider_id, "max") for slider_id in SPEED_SLIDER_IDS],
+    ),
     prevent_initial_call="initial_duplicate",
 )
-def sync_robot_controls(_n_intervals, message, speed_value, speed_min, speed_max):
-    """Grey the robot controls out while there is no robot, and keep the gait
-    speed on the link's.
+def sync_robot_controls(_n_intervals, message, speed_values, speed_mins, speed_maxes):
+    """Grey the robot controls -- the dock's and the controller's -- out while
+    there is no robot, and keep the controller's speed on the link's.
 
-    The speed slider's range is the connected robot's, and its value the
-    link's -- the page may have been rendered before either was known. They
-    are only written when they differ, so the speed callback is not
-    retriggered every second.
+    The slider's range is the connected robot's, and its value the link's
+    -- the page may have been rendered before either was known. They are
+    only written when they differ, so the speed callback is not retriggered
+    every second.
     """
     speed = ROBOT_LINK.robot_config["speed"]
-    range_out = [no_update] * 2
-    if (speed_min, speed_max) != (speed["min"], speed["max"]):
-        range_out = [speed["min"], speed["max"]]
     link_speed = ROBOT_LINK.speed_pct
-    speed_out = no_update if speed_value == link_speed else link_speed
+    mins_out = [no_update if value == speed["min"] else speed["min"] for value in speed_mins]
+    maxes_out = [no_update if value == speed["max"] else speed["max"] for value in speed_maxes]
+    values_out = [no_update if value == link_speed else link_speed for value in speed_values]
 
     offline = not ROBOT_LINK.connected
     if offline:
@@ -1024,11 +1303,13 @@ def sync_robot_controls(_n_intervals, message, speed_value, speed_min, speed_max
     else:
         new_message = "" if message == OFFLINE_MESSAGE else no_update
     controls_class = SECTION_CONTROLS_OFFLINE_CLASS if offline else SECTION_CONTROLS_CLASS
-    return (
-        f"d-flex gap-2 {controls_class}",
-        offline,
-        offline,
-        new_message,
-        *range_out,
-        speed_out,
+    return dict(
+        controls_class=f"d-flex gap-2 {controls_class}",
+        drive_class=f"{DRIVE_BODY_CLASS} {controls_class}",
+        run_off=offline,
+        stop_off=offline,
+        message=new_message,
+        speed_mins=mins_out,
+        speed_maxes=maxes_out,
+        speed_values=values_out,
     )
