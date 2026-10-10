@@ -96,3 +96,9 @@ ROBOT_SEQUENCE_MAX_STEP = 40
 # survive a restart. The environment variable overrides it (the tests use this).
 PREFERENCES_ENV = "HEXAPOD_LINK_PREFERENCES"
 PREFERENCES_PATH = Path.home() / ".hexapod-link" / "preferences.json"
+
+# Gaits of one's own: sequences saved by name from the dock's Gaits library
+# (hexapod/gait_library.py), one keyframe file each. On disk for the same
+# reason as the preferences; the environment variable overrides it.
+GAITS_ENV = "HEXAPOD_LINK_GAITS"
+GAITS_DIR = Path.home() / ".hexapod-link" / "gaits"

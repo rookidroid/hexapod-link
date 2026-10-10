@@ -414,9 +414,8 @@ body {
     background: var(--view-bg);
 }
 
-/* Only as tall as what is in it, and not a scrolling box: the + Gait menu
-   opens upwards out of it, over the view, and a scrolling box would cut it
-   off at its top edge. */
+/* Only as tall as what is in it: the sequence and playback columns set its
+   height, and the Gaits library scrolls within it. */
 .ws-dock {
     grid-area: dock;
     background: var(--ind-surface);
@@ -1424,15 +1423,18 @@ body {
 
 /* ===========================================
    DOCK
-   Two columns: on the left the sequence -- keyframes of poses and gaits --
-   and on the right playing it, in the view and then on the robot. Each block is
-   titled like a panel section, with what belongs to it on the same line.
-   The columns stack below `lg`, with the rest of the workspace.
+   Three columns: on the left the Gaits library, the robot's and one's own;
+   in the middle the sequence -- keyframes of poses and gaits -- and on the
+   right playing it, in the view and then on the robot. Each block is titled
+   like a panel section, with what belongs to it on the same line. The columns
+   stack below `lg`, with the rest of the workspace.
    =========================================== */
 
 .dock {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) clamp(22rem, 38%, 34rem);
+    grid-template-columns: clamp(14rem, 18%, 18rem) minmax(0, 1fr) clamp(22rem, 28%, 28rem);
+    /* Room for the library to list a few gaits, and the sequence to breathe. */
+    min-height: 13.5rem;
 }
 
 .dock-col {
@@ -1443,6 +1445,10 @@ body {
 
 .dock-col-run {
     border-left: 1px solid var(--ind-border);
+}
+
+.dock-col-library {
+    border-right: 1px solid var(--ind-border);
 }
 
 .dock-section + .dock-section {
@@ -1531,14 +1537,6 @@ body {
     white-space: normal;
 }
 
-.dock-gait-select {
-    flex: 0 1 15rem;
-}
-
-.dock-gait-select select {
-    width: 100%;
-}
-
 .ind-duration-input {
     width: 6.5rem;
     flex-wrap: nowrap;
@@ -1591,7 +1589,7 @@ body {
 
 /* ---- Keyframe track ----
    The keyframes in order as cards, joined by arrows that carry the time each
-   move takes; it scrolls sideways when they do not fit. */
+   move takes, in an outlined lane; it scrolls sideways when they do not fit. */
 
 .dock-track {
     display: flex;
@@ -1604,54 +1602,20 @@ body {
     display: flex;
     align-items: center;
     min-width: 0;
+    min-height: 3.3rem;
     overflow-x: auto;
-    padding: 3px 0;
+    padding: 0.45rem 0.6rem;
+    border: 1px solid var(--ind-border-strong);
+}
+
+/* Inside the lane, which is outlined already. */
+.ind-kf-strip .dock-empty {
+    padding: 0;
+    border: none;
 }
 
 .dock-add-btn {
     flex: 0 0 auto;
-}
-
-/* + Gait: a menu opening upwards from the dock, in groups, scrolling when the
-   window is short. */
-.dock-gait-menu {
-    flex: 0 0 auto;
-}
-
-.dock-gait-menu .dropdown-menu {
-    max-height: min(26rem, 60vh);
-    overflow-y: auto;
-    padding: 0.3rem 0;
-    font-size: 0.82rem;
-    background: var(--ind-surface-alt);
-    border: 1px solid var(--ind-frame);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-soft);
-}
-
-.dock-gait-menu .dropdown-header {
-    padding: 0.35rem 0.9rem 0.15rem;
-    font-family: var(--font-mono);
-    font-size: 0.68rem;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--ind-text-muted);
-}
-
-.dock-gait-menu .dropdown-item {
-    padding: 0.25rem 0.9rem;
-    color: var(--ind-text);
-}
-
-.dock-gait-menu .dropdown-item:hover,
-.dock-gait-menu .dropdown-item:focus {
-    color: var(--ind-text);
-    background: var(--ind-hover);
-}
-
-.dock-gait-menu .dropdown-divider {
-    margin: 0.3rem 0;
-    border-top-color: var(--ind-border);
 }
 
 .dock-empty {
@@ -1739,18 +1703,164 @@ body {
     background: currentColor;
 }
 
+/* ---- Gaits library ----
+   A list of gaits, each with + to put it into the sequence, in groups for
+   the robot's; for one's own, a row to save the sequence as one over it. The
+   list scrolls inside the dock rather than making the dock taller: it takes
+   no height of its own (contain: size), only what the other columns leave. */
+
+.dock-library {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.dock-gait-list,
+.dock-gait-mine {
+    flex: 1 1 0;
+    min-height: 7rem;
+    contain: size;
+    overflow-y: auto;
+}
+
+.dock-gait-mine {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.dock-gait-mine .dock-gait-list {
+    contain: none;
+    min-height: 0;
+}
+
+.dock-gait-group {
+    padding: 0.35rem 0 0.15rem;
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ind-text-muted);
+}
+
+.dock-gait-group:first-child {
+    padding-top: 0;
+}
+
+.dock-gait-row {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.12rem 0.1rem 0.12rem 0.4rem;
+    border-radius: var(--radius);
+}
+
+.dock-gait-row:hover {
+    background: var(--ind-hover);
+}
+
+.dock-gait-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+
+.dock-gait-name {
+    font-size: 0.82rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dock-gait-note {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    color: var(--ind-text-muted);
+}
+
+.btn.dock-gait-btn {
+    flex: 0 0 auto;
+    width: 1.7rem;
+    padding: 0.05rem 0;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.dock-gait-save {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.dock-gait-save .form-control {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.dock-gait-save .btn {
+    flex: 0 0 auto;
+}
+
+/* Built-in | Mine: two segments, the one picked filled in the accent. */
+.dock-seg {
+    display: flex;
+}
+
+.dock-seg .form-check {
+    padding: 0;
+    margin: 0;
+    min-height: 0;
+}
+
+.dock-seg-item {
+    display: block;
+    padding: 0.12rem 0.6rem;
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--ind-text-muted);
+    border: 1px solid var(--ind-border-strong);
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.dock-seg .form-check + .form-check .dock-seg-item {
+    border-left: none;
+}
+
+.dock-seg-item:hover {
+    color: var(--ind-text);
+    background: var(--ind-hover);
+}
+
+.dock-seg-item.active {
+    color: #fff;
+    background: var(--ind-accent);
+    border-color: var(--ind-accent);
+}
+
+.btn-check:focus-visible + .dock-seg-item {
+    box-shadow: var(--ind-glow);
+}
+
 /* ---- Keyframe editor ----
    Under the track, about the card selected: tinted and edged in the accent
    so it reads as belonging to it. */
 
 .dock-kf-editor {
     display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 0.4rem 0.6rem;
+    background: var(--ind-input-bg);
+    border-left: 3px solid var(--ind-accent);
+}
+
+.dock-kf-row {
+    display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 0.4rem 0.6rem;
-    padding: 0.35rem 0.6rem;
-    background: var(--ind-input-bg);
-    border-left: 3px solid var(--ind-accent);
 }
 
 .dock-kf-label {
@@ -1780,6 +1890,23 @@ body {
     .dock-col-run {
         border-left: none;
         border-top: 1px solid var(--ind-border);
+    }
+
+    .dock-col-library {
+        border-right: none;
+        border-bottom: 1px solid var(--ind-border);
+    }
+
+    /* Stacked, the dock sets no height to fit into: the lists get their own. */
+    .dock-gait-list,
+    .dock-gait-mine {
+        flex: 0 0 auto;
+        height: 13rem;
+    }
+
+    .dock-gait-mine .dock-gait-list {
+        flex: 1 1 0;
+        height: auto;
     }
 }
 

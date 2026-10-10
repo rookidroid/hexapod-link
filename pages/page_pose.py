@@ -46,6 +46,7 @@ from dash import ALL, callback, clientside_callback, ctx, html, no_update
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
+from hexapod import gait_library
 from hexapod import keyframes as kf
 from hexapod.gait_keyframes import gait_keyframes
 from hexapod import pose_layers as pl
@@ -60,6 +61,7 @@ from widgets.pose_ui import (
     MODE_PREVIEW,
     ANGLES_HUD_CLASS,
     ANGLES_HUD_ID,
+    GAIT_SOURCES,
     POSE_ADD_BTN_ID,
     POSE_ANGLES_ID,
     POSE_CLEAR_FEET_BTN_ID,
@@ -75,6 +77,9 @@ from widgets.pose_ui import (
     POSE_FRAME_DISPLAY_ID,
     POSE_FRAME_SLIDER_ID,
     POSE_GAIT_ITEM_TYPE,
+    POSE_GAIT_LIST_IDS,
+    POSE_GAIT_REPLACE_TYPE,
+    POSE_GAIT_SOURCE_ID,
     POSE_INTERVAL_ID,
     POSE_KEYFRAMES_STORE_ID,
     POSE_KF_EASE_ID,
@@ -105,6 +110,14 @@ from widgets.pose_ui import (
     POSE_TOOL_PANEL_IDS,
     POSE_UPDATE_BTN_ID,
     POSE_UPLOAD_ID,
+    POSE_USER_GAIT_DELETE_TYPE,
+    POSE_USER_GAIT_ITEM_TYPE,
+    POSE_USER_GAIT_LIST_ID,
+    POSE_USER_GAIT_MESSAGE_ID,
+    POSE_USER_GAIT_NAME_ID,
+    POSE_USER_GAIT_REPLACE_TYPE,
+    POSE_USER_GAIT_SAVE_BTN_ID,
+    POSE_USER_GAITS_VERSION_ID,
     POSE_VIEW_ID,
     POSE_VIEW_MODE_ID,
     PREVIEW_FPS,
@@ -112,6 +125,8 @@ from widgets.pose_ui import (
     SPEED_MIN_PCT,
     TOOL_FEET,
     TOOLS,
+    USER_GAITS_EMPTY,
+    user_gait_row,
 )
 from widgets.robot_link_ui import (
     DRIVE_BODY_CLASS,
@@ -245,6 +260,11 @@ def _keyframe_state(keyframe, robot_config):
         _later=Input(POSE_LATER_BTN_ID, "n_clicks"),
         _item_clicks=Input({"type": POSE_KF_ITEM_TYPE, "index": ALL}, "n_clicks"),
         _gait_clicks=Input({"type": POSE_GAIT_ITEM_TYPE, "index": ALL}, "n_clicks"),
+        _user_gait_clicks=Input({"type": POSE_USER_GAIT_ITEM_TYPE, "index": ALL}, "n_clicks"),
+        _gait_replaces=Input({"type": POSE_GAIT_REPLACE_TYPE, "index": ALL}, "n_clicks"),
+        _user_gait_replaces=Input(
+            {"type": POSE_USER_GAIT_REPLACE_TYPE, "index": ALL}, "n_clicks"
+        ),
         upload=Input(POSE_UPLOAD_ID, "contents"),
         _config_store=Input(ROBOT_CONFIG_STORE_ID, "data"),
         body_values=[Input(widget_id, "value") for widget_id in IK_WIDGETS_IDS],
@@ -276,6 +296,9 @@ def edit(
     _later,
     _item_clicks,
     _gait_clicks,
+    _user_gait_clicks,
+    _gait_replaces,
+    _user_gait_replaces,
     upload,
     _config_store,
     body_values,
@@ -475,20 +498,43 @@ def edit(
         out_mode = MODE_EDIT
         message = ""
 
-    elif isinstance(trigger, dict) and trigger.get("type") == POSE_GAIT_ITEM_TYPE:
-        # The menu's items are there from the start, with no clicks; only a
-        # real click puts a gait in, as its keyframes -- where a pose would
-        # go, after the one selected, and selecting its last so another
-        # follows on.
+    elif isinstance(trigger, dict) and trigger.get("type") in (
+        POSE_GAIT_ITEM_TYPE,
+        POSE_USER_GAIT_ITEM_TYPE,
+        POSE_GAIT_REPLACE_TYPE,
+        POSE_USER_GAIT_REPLACE_TYPE,
+    ):
+        # A gait from the library, the robot's or one's own, as its
+        # keyframes. Its + puts them in where a pose would go, after the one
+        # selected, selecting the last so another follows on. Its ⇄ makes
+        # them the whole sequence, selecting the last too, which becomes the
+        # pose, so a gait added next goes on after it. The lists' buttons are
+        # there with no clicks when they are drawn; only a real click counts.
         if not ctx.triggered or not ctx.triggered[0]["value"]:
             raise PreventUpdate
-        inserted = gait_keyframes(trigger["index"], robot_config)
-        index = len(frames) if selected is None else selected + 1
-        frames[index:index] = inserted
-        out_keyframes = set_frames(frames)
-        out_selected = index + len(inserted) - 1
-        out_duration = frames[out_selected]["duration_ms"]
-        message = ""
+        try:
+            if trigger["type"] in (POSE_GAIT_ITEM_TYPE, POSE_GAIT_REPLACE_TYPE):
+                inserted = gait_keyframes(trigger["index"], robot_config)
+            else:
+                inserted = gait_library.load_gait(trigger["index"], robot_config)
+        except kf.KeyframeFileError as error:
+            inserted = []
+            message = helpers.make_alert_message(error)
+        if inserted and trigger["type"] in (POSE_GAIT_REPLACE_TYPE, POSE_USER_GAIT_REPLACE_TYPE):
+            frames = list(inserted)
+            out_keyframes = set_frames(frames)
+            out_selected = len(frames) - 1
+            out_pose = bump(_keyframe_state(frames[-1], robot_config))
+            out_duration = frames[-1]["duration_ms"]
+            out_mode = MODE_EDIT
+            message = ""
+        elif inserted:
+            index = len(frames) if selected is None else selected + 1
+            frames[index:index] = inserted
+            out_keyframes = set_frames(frames)
+            out_selected = index + len(inserted) - 1
+            out_duration = frames[out_selected]["duration_ms"]
+            message = ""
 
     elif trigger == POSE_UPDATE_BTN_ID:
         if selected is None:
@@ -879,6 +925,81 @@ def save_keyframes(_n_clicks, keyframes_store):
         "filename": f"{robot_config['name']}-keyframes.json",
         "type": "application/json",
     }
+
+
+# ......................
+# The Gaits library
+# ......................
+
+# Show the list picked, the robot's gaits or one's own. The other is only
+# hidden, so its buttons stay put.
+clientside_callback(
+    """
+    function(source) {
+        var show = {}, hide = {display: "none"};
+        return [%s];
+    }
+    """
+    % ", ".join(f'source === "{source}" ? show : hide' for source in GAIT_SOURCES),
+    *[Output(POSE_GAIT_LIST_IDS[source], "style") for source in GAIT_SOURCES],
+    Input(POSE_GAIT_SOURCE_ID, "value"),
+)
+
+
+@callback(
+    Output(POSE_USER_GAIT_LIST_ID, "children"),
+    Input(POSE_USER_GAITS_VERSION_ID, "data"),
+    Input(ROBOT_CONFIG_STORE_ID, "data"),
+)
+def list_user_gaits(_version, _config_store):
+    """One's own gaits for the robot modelled; a gait belongs to the robot it
+    was made on."""
+    gaits = gait_library.list_gaits(_robot())
+    return [user_gait_row(gait) for gait in gaits] if gaits else USER_GAITS_EMPTY
+
+
+@callback(
+    Output(POSE_USER_GAITS_VERSION_ID, "data"),
+    Output(POSE_USER_GAIT_NAME_ID, "value"),
+    Output(POSE_USER_GAIT_MESSAGE_ID, "children"),
+    Input(POSE_USER_GAIT_SAVE_BTN_ID, "n_clicks"),
+    Input(POSE_USER_GAIT_NAME_ID, "n_submit"),
+    State(POSE_USER_GAIT_NAME_ID, "value"),
+    State(POSE_KEYFRAMES_STORE_ID, "data"),
+    State(POSE_USER_GAITS_VERSION_ID, "data"),
+    prevent_initial_call=True,
+)
+def save_user_gait(_n_clicks, _n_submit, name, keyframes_store, version):
+    """Keep the whole sequence as a gait of one's own, under the name typed
+    (or Enter pressed in it)."""
+    robot_config = _robot()
+    frames = keyframes_store["keyframes"] if _valid(keyframes_store, robot_config) else []
+    try:
+        gait_library.save_gait(name, frames, robot_config)
+    except ValueError as error:
+        return no_update, no_update, helpers.make_alert_message(error)
+    except OSError as error:
+        return no_update, no_update, helpers.make_alert_message(f"Could not save the gait: {error}")
+    return (version or 0) + 1, "", ""
+
+
+@callback(
+    Output(POSE_USER_GAITS_VERSION_ID, "data", allow_duplicate=True),
+    Output(POSE_USER_GAIT_MESSAGE_ID, "children", allow_duplicate=True),
+    Input({"type": POSE_USER_GAIT_DELETE_TYPE, "index": ALL}, "submit_n_clicks"),
+    State(POSE_USER_GAITS_VERSION_ID, "data"),
+    prevent_initial_call=True,
+)
+def delete_user_gait(_confirmed, version):
+    """Delete a gait of one's own, once its dialog is confirmed. The list is
+    drawn afresh with nothing confirmed; only a real confirmation counts."""
+    if not ctx.triggered or not ctx.triggered[0]["value"]:
+        raise PreventUpdate
+    try:
+        gait_library.delete_gait(ctx.triggered_id["index"])
+    except OSError as error:
+        return no_update, helpers.make_alert_message(f"Could not delete the gait: {error}")
+    return (version or 0) + 1, ""
 
 
 # ......................

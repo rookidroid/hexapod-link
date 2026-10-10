@@ -8,8 +8,8 @@
 # Over the view, the joint angles are read out and the pose and the camera
 # can be reset; streaming to the robot and the robot's dimensions are there
 # too (widgets/robot_link_ui.py, widgets/dimensions_ui.py). Along the bottom,
-# the dock builds
-# a sequence of keyframes -- poses collected here, and the robot's gaits --
+# the dock builds a sequence of keyframes -- poses collected here, and gaits
+# from its library: the robot's, and sequences saved as gaits of one's own --
 # and plays it: previewing it in the view, and running it on the robot.
 import dash_bootstrap_components as dbc
 from dash import dcc, html
@@ -112,8 +112,29 @@ POSE_RUN_BTN_ID = "pose-run-btn"
 POSE_STOP_BTN_ID = "pose-stop-btn"
 POSE_ROBOT_MESSAGE_ID = "pose-robot-message"
 
-# Pattern-matching id of one gait in the + Gait menu, by its motion name.
+# The dock's Gaits library: which list it shows, the robot's built-in gaits or
+# one's own.
+POSE_GAIT_SOURCE_ID = "pose-gait-source"
+GAIT_SOURCE_BUILTIN = "builtin"
+GAIT_SOURCE_MINE = "mine"
+GAIT_SOURCES = (GAIT_SOURCE_BUILTIN, GAIT_SOURCE_MINE)
+POSE_GAIT_LIST_IDS = {source: f"pose-gait-list-{source}" for source in GAIT_SOURCES}
+# Pattern-matching ids of a built-in gait's buttons, by its motion name: + puts
+# it into the sequence, ⇄ makes it the whole sequence.
 POSE_GAIT_ITEM_TYPE = "pose-gait-item"
+POSE_GAIT_REPLACE_TYPE = "pose-gait-replace"
+# One's own gaits (hexapod/gait_library.py): the name to save the sequence
+# under, the list, and, by gait id, each one's add, replace and delete
+# buttons. The version store is bumped by a save or a delete, to list them
+# again.
+POSE_USER_GAIT_NAME_ID = "pose-user-gait-name"
+POSE_USER_GAIT_SAVE_BTN_ID = "pose-user-gait-save-btn"
+POSE_USER_GAIT_LIST_ID = "pose-user-gait-list"
+POSE_USER_GAIT_MESSAGE_ID = "pose-user-gait-message"
+POSE_USER_GAIT_ITEM_TYPE = "pose-user-gait-item"
+POSE_USER_GAIT_REPLACE_TYPE = "pose-user-gait-replace"
+POSE_USER_GAIT_DELETE_TYPE = "pose-user-gait-delete"
+POSE_USER_GAITS_VERSION_ID = "pose-user-gaits-version"
 # How fast the sequence plays, in percent: in the preview and on the robot.
 POSE_SPEED_ID = "pose-speed"
 SPEED_MIN_PCT = 25
@@ -128,7 +149,7 @@ POSE_UPLOAD_ID = "pose-upload"
 PREVIEW_FPS = 25
 
 # The gaits the path tool generates (hexapod/path_generator.py), by the
-# simulator's name for each. Put into the sequence from the + Gait menu, a gait
+# simulator's name for each. Put into the sequence from the Gaits library, a gait
 # becomes keyframes (hexapod/gait_keyframes.py) and is streamed to the robot
 # with the rest; the robot's own, played from its flash, are driven from the
 # controller over the view (DRIVE_HUD in widgets/robot_link_ui.py).
@@ -156,7 +177,7 @@ MOTION_TYPES = [
 ]
 GAIT_LABELS = {option["value"]: option["label"] for option in MOTION_TYPES}
 
-# The + Gait menu, in groups.
+# The library's built-in gaits, in groups.
 GAIT_MENU = [
     (
         "Walk",
@@ -339,10 +360,11 @@ ANGLES_HUD = html.Details(
 # ................................
 # DOCK
 #
-# Two columns across the bottom of the window. On the left, the sequence:
-# the track of keyframes -- poses, and gaits put in as theirs -- and an editor
-# for the one selected. On the right, playing it: in the view, then on the
-# robot.
+# Three columns across the bottom of the window. On the left, the library of
+# gaits to put into the sequence: the robot's, and one's own. In the middle,
+# the sequence: the track of keyframes -- poses, and gaits put in as theirs --
+# and an editor for the one selected. On the right, playing it: in the view,
+# then on the robot.
 # ................................
 
 
@@ -379,20 +401,141 @@ sequence_tools = [
 ]
 
 
-def _gait_menu_items():
+# ---- The Gaits library ----
+
+INSERT_TITLE = "Add it to the sequence, after the keyframe selected or at the end"
+REPLACE_TITLE = "Replace the whole sequence with it"
+
+
+def _gait_row(label, insert_id, replace_id, note=None, extra=None):
+    """A gait in the library: its name, a note under it, and the buttons that
+    add it to the sequence or make it the sequence (and any others, after
+    them)."""
+    return html.Div(
+        [
+            html.Div(
+                [
+                    html.Span(label, className="dock-gait-name"),
+                    *([html.Span(note, className="dock-gait-note")] if note else []),
+                ],
+                className="dock-gait-text",
+            ),
+            _button(
+                "+", outline=True, class_name="dock-gait-btn", id=insert_id, title=INSERT_TITLE
+            ),
+            _button(
+                "⇄", outline=True, class_name="dock-gait-btn", id=replace_id, title=REPLACE_TITLE
+            ),
+            *(extra or []),
+        ],
+        className="dock-gait-row",
+    )
+
+
+def _builtin_gait_list():
     items = []
     for group, motions in GAIT_MENU:
-        if items:
-            items.append(dbc.DropdownMenuItem(divider=True))
-        items.append(dbc.DropdownMenuItem(group, header=True))
+        items.append(html.Div(group, className="dock-gait-group"))
         items.extend(
-            dbc.DropdownMenuItem(
-                GAIT_LABELS[motion], id={"type": POSE_GAIT_ITEM_TYPE, "index": motion}
+            _gait_row(
+                GAIT_LABELS[motion],
+                {"type": POSE_GAIT_ITEM_TYPE, "index": motion},
+                {"type": POSE_GAIT_REPLACE_TYPE, "index": motion},
             )
             for motion in motions
         )
     return items
 
+
+def user_gait_row(gait):
+    """One of one's own gaits, as listed by hexapod/gait_library.py. Its delete
+    button asks first: the file is gone for good."""
+    count = gait["count"]
+    note = f"{count} keyframe{'s' if count != 1 else ''} · {gait['duration_ms'] / 1000:.2f} s"
+    delete = dcc.ConfirmDialogProvider(
+        _button(
+            "×",
+            outline=True,
+            class_name="dock-gait-btn dock-gait-delete",
+            title="Delete this gait",
+        ),
+        id={"type": POSE_USER_GAIT_DELETE_TYPE, "index": gait["id"]},
+        message=f"Delete the gait '{gait['name']}'? This cannot be undone.",
+    )
+    return _gait_row(
+        gait["name"],
+        {"type": POSE_USER_GAIT_ITEM_TYPE, "index": gait["id"]},
+        {"type": POSE_USER_GAIT_REPLACE_TYPE, "index": gait["id"]},
+        note=note,
+        extra=[delete],
+    )
+
+
+USER_GAITS_EMPTY = html.Div(
+    "None yet: build a sequence, name it and save it here.",
+    className="dock-empty",
+)
+
+# Which list shows is remembered for the session, as the tool is.
+gait_source_toggle = dbc.RadioItems(
+    id=POSE_GAIT_SOURCE_ID,
+    options=[
+        {"label": "Built-in", "value": GAIT_SOURCE_BUILTIN},
+        {"label": "Mine", "value": GAIT_SOURCE_MINE},
+    ],
+    value=GAIT_SOURCE_BUILTIN,
+    className="dock-seg dock-push",
+    inputClassName="btn-check",
+    labelClassName="dock-seg-item",
+    labelCheckedClassName="active",
+    persistence=True,
+    persistence_type="session",
+)
+
+# Both lists stay mounted; the one not picked is only hidden.
+library_section = _section(
+    "Gaits",
+    [
+        html.Div(
+            _builtin_gait_list(),
+            id=POSE_GAIT_LIST_IDS[GAIT_SOURCE_BUILTIN],
+            className="dock-gait-list",
+        ),
+        html.Div(
+            [
+                # Keeps the whole sequence under the name; a gait of that
+                # name already there is replaced.
+                html.Div(
+                    [
+                        dbc.Input(
+                            id=POSE_USER_GAIT_NAME_ID,
+                            placeholder="Name",
+                            maxLength=40,
+                            size="sm",
+                        ),
+                        _button(
+                            "Save sequence",
+                            POSE_USER_GAIT_SAVE_BTN_ID,
+                            color="primary",
+                            title="Keep the whole sequence as a gait of your own",
+                        ),
+                    ],
+                    className="dock-gait-save",
+                ),
+                html.Div(id=POSE_USER_GAIT_MESSAGE_ID, className="dock-message"),
+                html.Div(USER_GAITS_EMPTY, id=POSE_USER_GAIT_LIST_ID, className="dock-gait-list"),
+            ],
+            id=POSE_GAIT_LIST_IDS[GAIT_SOURCE_MINE],
+            className="dock-gait-mine",
+            style={"display": "none"},
+        ),
+    ],
+    head=[gait_source_toggle],
+    class_name="dock-library",
+)
+
+
+# ---- The sequence ----
 
 keyframes_part = html.Div(
     [
@@ -409,94 +552,100 @@ keyframes_part = html.Div(
                     class_name="dock-add-btn",
                     title="Record the pose as a keyframe",
                 ),
-                # A gait goes in as its keyframes, where a pose would.
-                dbc.DropdownMenu(
-                    _gait_menu_items(),
-                    label="+ Gait",
-                    direction="up",
-                    size="sm",
-                    color="primary",
-                    class_name="dock-gait-menu",
-                ),
             ],
             className="dock-track",
         ),
-        # The keyframe selected; with none, the time and easing are the next one's.
+        # The keyframe selected; with none, the time and easing are the next
+        # one's. Two rows: what it is and how it is reached, then what can be
+        # done to it.
         html.Div(
             [
-                html.Span("New keyframe", id=POSE_KF_EDITOR_LABEL_ID, className="dock-kf-label"),
                 html.Div(
                     [
-                        field_label("Transition"),
-                        dbc.InputGroup(
+                        html.Span(
+                            "New keyframe", id=POSE_KF_EDITOR_LABEL_ID, className="dock-kf-label"
+                        ),
+                        html.Div(
                             [
-                                # Applied when the field is left or Enter is
-                                # pressed, not per digit. No min, max or step,
-                                # for the same reason as the speed's: the
-                                # range is kept by edit() in page_pose.py.
-                                dbc.Input(
-                                    id=POSE_DURATION_ID,
-                                    type="number",
-                                    value=DEFAULT_DURATION_MS,
-                                    debounce=True,
+                                field_label("Transition"),
+                                dbc.InputGroup(
+                                    [
+                                        # Applied when the field is left or Enter is
+                                        # pressed, not per digit. No min, max or step,
+                                        # for the same reason as the speed's: the
+                                        # range is kept by edit() in page_pose.py.
+                                        dbc.Input(
+                                            id=POSE_DURATION_ID,
+                                            type="number",
+                                            value=DEFAULT_DURATION_MS,
+                                            debounce=True,
+                                        ),
+                                        dbc.InputGroupText("ms"),
+                                    ],
+                                    size="sm",
+                                    className="ind-duration-input",
                                 ),
-                                dbc.InputGroupText("ms"),
                             ],
-                            size="sm",
-                            className="ind-duration-input",
+                            className="dock-inline-field",
+                            title=(
+                                "Time to reach this keyframe from the one before it, "
+                                f"{MIN_DURATION_MS} to {MAX_DURATION_MS} ms"
+                            ),
+                        ),
+                        html.Div(
+                            dcc.Checklist(
+                                id=POSE_KF_EASE_ID,
+                                options=[{"label": "Ease in", "value": "ease"}],
+                                value=["ease"],
+                                className="dock-check",
+                            ),
+                            title=(
+                                "Start and stop the move into this keyframe gently. Off, "
+                                "it runs at a steady speed, as a gait's moves do."
+                            ),
                         ),
                     ],
-                    className="dock-inline-field",
-                    title=(
-                        "Time to reach this keyframe from the one before it, "
-                        f"{MIN_DURATION_MS} to {MAX_DURATION_MS} ms"
-                    ),
-                ),
-                html.Div(
-                    dcc.Checklist(
-                        id=POSE_KF_EASE_ID,
-                        options=[{"label": "Ease in", "value": "ease"}],
-                        value=["ease"],
-                        className="dock-check",
-                    ),
-                    title=(
-                        "Start and stop the move into this keyframe gently. Off, "
-                        "it runs at a steady speed, as a gait's moves do."
-                    ),
-                ),
-                _button(
-                    "Save pose",
-                    POSE_UPDATE_BTN_ID,
-                    outline=True,
-                    disabled=True,
-                    title="Overwrite the selected keyframe with the pose",
+                    className="dock-kf-row",
                 ),
                 html.Div(
                     [
                         _button(
-                            "◀",
-                            POSE_EARLIER_BTN_ID,
+                            "Save pose",
+                            POSE_UPDATE_BTN_ID,
                             outline=True,
                             disabled=True,
-                            title="Move earlier",
+                            title="Overwrite the selected keyframe with the pose",
+                        ),
+                        html.Div(
+                            [
+                                _button(
+                                    "◀",
+                                    POSE_EARLIER_BTN_ID,
+                                    outline=True,
+                                    disabled=True,
+                                    title="Move earlier",
+                                ),
+                                _button(
+                                    "▶",
+                                    POSE_LATER_BTN_ID,
+                                    outline=True,
+                                    disabled=True,
+                                    title="Move later",
+                                ),
+                            ],
+                            className="btn-group",
                         ),
                         _button(
-                            "▶",
-                            POSE_LATER_BTN_ID,
+                            "Delete",
+                            POSE_DELETE_BTN_ID,
+                            color="danger",
                             outline=True,
                             disabled=True,
-                            title="Move later",
+                            title="Delete the selected keyframe",
+                            class_name="dock-push",
                         ),
                     ],
-                    className="btn-group",
-                ),
-                _button(
-                    "Delete",
-                    POSE_DELETE_BTN_ID,
-                    color="danger",
-                    outline=True,
-                    disabled=True,
-                    title="Delete the selected keyframe",
+                    className="dock-kf-row",
                 ),
             ],
             className="dock-kf-editor",
@@ -613,6 +762,7 @@ hidden_components = html.Div(
         dcc.Store(id=POSE_PLAY_STATE_STORE_ID, data=False),
         dcc.Store(id=POSE_VIEW_MODE_ID, data=MODE_EDIT),
         dcc.Store(id=POSE_PLAYHEAD_ID),
+        dcc.Store(id=POSE_USER_GAITS_VERSION_ID, data=0),
         dcc.Interval(
             id=POSE_INTERVAL_ID,
             interval=1000 // PREVIEW_FPS,
@@ -626,6 +776,7 @@ hidden_components = html.Div(
 
 POSE_DOCK = html.Div(
     [
+        html.Div(library_section, className="dock-col dock-col-library"),
         html.Div(sequence_section, className="dock-col"),
         html.Div([playback_section, robot_section], className="dock-col dock-col-run"),
         hidden_components,
