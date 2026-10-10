@@ -122,6 +122,88 @@ def test_a_foot_dragged_past_its_legs_reach_is_held_as_near_as_it_gets(robot):
     assert pl.with_foot_near(held, 0, target, robot) == held
 
 
+def held_in_reach(state, robot):
+    """Whether the state is one a body held within reach is left in."""
+    feet = pl.body_feet(state, robot)
+    return kf.feet_to_pose(feet, robot, pl.BODY_LIMIT_MARGIN_DEG)[1] == []
+
+
+@pytest.mark.parametrize("robot", ROBOTS, ids=ROBOT_IDS)
+def test_a_body_moved_within_reach_goes_where_it_is_put(robot):
+    start = pl.standby_state()
+    assert pl.with_body_near(start, TILT, robot) == tilted()
+
+
+@pytest.mark.parametrize("robot", ROBOTS, ids=ROBOT_IDS)
+@pytest.mark.parametrize("key", pl.BODY_KEYS)
+@pytest.mark.parametrize("way", [-1, 1])
+def test_a_body_pushed_past_its_legs_reach_stops_where_they_can_follow(robot, key, way):
+    start = tilted()
+    # As far as the sliders go, which no robot's legs do.
+    asked = {**TILT, key: way * (1.0 if key.startswith("percent") else 39.0)}
+    assert pl.solve(pl.make_state(asked, start["offsets"]), robot)[2] != []
+
+    held = pl.with_body_near(start, asked, robot)
+    assert held_in_reach(held, robot)
+    assert held["offsets"] == start["offsets"]
+    # Only that way, part of the way, in whole steps back from what was
+    # asked, and as few of them as the legs reach with.
+    assert {k: v for k, v in held["body"].items() if k != key} == {
+        k: v for k, v in start["body"].items() if k != key
+    }
+    step = dict(zip(pl.BODY_KEYS, pl.BODY_STEPS))[key]
+    back = (asked[key] - held["body"][key]) * way / step
+    assert back == pytest.approx(round(back), abs=1e-6) and back >= 1
+    assert (held["body"][key] - start["body"][key]) * way > 0
+    further = pl.make_state({**held["body"], key: held["body"][key] + way * step}, held["offsets"])
+    assert not held_in_reach(further, robot)
+
+    # Pushed again, it stays.
+    assert pl.with_body_near(held, asked, robot) == held
+
+
+@pytest.mark.parametrize("robot", ROBOTS, ids=ROBOT_IDS)
+def test_a_body_pushed_two_ways_goes_the_way_it_can(robot):
+    # Sideways a little, which the legs reach, and up further than they do.
+    start = tilted()
+    asked = {**TILT, "percent_x": 0.1, "percent_z": 1.0}
+    held = pl.with_body_near(start, asked, robot)
+    assert held_in_reach(held, robot)
+    assert held["body"]["percent_x"] == pytest.approx(0.1)
+    assert TILT["percent_z"] < held["body"]["percent_z"] < 1.0
+
+
+@pytest.mark.parametrize("robot", ROBOTS, ids=ROBOT_IDS)
+def test_a_body_whose_legs_are_out_of_reach_already_goes_where_it_is_put(robot):
+    # A foot put where its leg cannot reach: there is nothing to hold to.
+    offsets = np.zeros((6, 3))
+    offsets[2] = [0.0, 0.0, 1000.0]
+    start = pl.make_state({}, offsets)
+    assert pl.solve(start, robot)[2] == [2]
+    assert pl.with_body_near(start, TILT, robot) == pl.make_state(TILT, offsets)
+
+
+@pytest.mark.parametrize("robot", ROBOTS, ids=ROBOT_IDS)
+def test_a_body_can_be_moved_from_a_foot_held_at_its_limit(robot):
+    # The foot's own margin is wider than the body's, so the body is still
+    # held from there, and can be moved back.
+    start = pl.standby_state()
+    foot = drawn_feet(start, robot)[0]
+    away = np.append(foot[:2], 0) / np.hypot(*foot[:2])
+    stretched = pl.with_foot_near(start, 0, foot + 500.0 * away, robot)
+    assert held_in_reach(stretched, robot)
+    # Away from the foot the leg cannot follow; towards it, it can.
+    side = get_simulator_dimensions(robot)["middle"]
+    back = {"percent_x": -30.0 * away[0] / side}
+    assert pl.with_body_near(stretched, back, robot)["body"]["percent_x"] != pytest.approx(
+        back["percent_x"]
+    )
+    towards = {"percent_x": 0.05 * np.sign(away[0])}
+    assert pl.with_body_near(stretched, towards, robot)["body"]["percent_x"] == pytest.approx(
+        towards["percent_x"]
+    )
+
+
 @pytest.mark.parametrize("robot", ROBOTS, ids=ROBOT_IDS)
 def test_setting_a_legs_joints_moves_only_that_foot(robot):
     state = tilted()

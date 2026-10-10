@@ -142,6 +142,16 @@ def test_foot_past_a_joint_limit_is_reported():
     assert bad == [1]
 
 
+def test_a_joint_near_its_limit_is_reported_with_a_margin():
+    robot = ROBOT_CONFIGS["nougat"]
+    limit = get_joint_limits(robot)["tibia"]
+    pose = make_pose(0, 20, limit - 0.2, {leg: {} for leg in range(6)})
+    feet = pose_to_feet(pose, robot)
+    assert feet_to_pose(feet, robot)[1] == []
+    assert feet_to_pose(feet, robot, margin=0.1)[1] == []
+    assert feet_to_pose(feet, robot, margin=0.5)[1] == list(range(6))
+
+
 def solved_leg(foot, leg, robot):
     """(the leg's joints, whether it is bad) with its foot at `foot`, the
     other feet at standby."""

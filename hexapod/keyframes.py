@@ -95,13 +95,14 @@ def ground_height(robot_config):
     return min(foot[2] for foot in standby_feet(robot_config))
 
 
-def feet_to_pose(feet, robot_config):
+def feet_to_pose(feet, robot_config, margin=0.0):
     """Solve the joints for six foot positions.
 
     Returns (pose, bad_legs): the simulator pose dict (hexapod/models.py) and
     the indices of the legs that cannot put their foot there, either because
     it is out of reach or because it would take a joint past the robot's
-    mechanical limits. A bad leg's angles are not meaningful.
+    mechanical limits -- or, with `margin`, nearer than that many degrees to
+    them. A bad leg's angles are not meaningful.
     """
     targets = np.asarray(feet, dtype=float).reshape(6, 3)
     with np.errstate(invalid="ignore"):
@@ -121,7 +122,7 @@ def feet_to_pose(feet, robot_config):
             bad_legs.append(leg_id)
             continue
         leg = pose[leg_id]
-        if any(abs(leg[joint]) > limits[joint] + _LIMIT_SLACK for joint in limits):
+        if any(abs(leg[joint]) > limits[joint] - margin + _LIMIT_SLACK for joint in limits):
             bad_legs.append(leg_id)
 
     return pose, bad_legs
