@@ -13,6 +13,7 @@ import numpy as np
 import pytest
 
 from hexapod.keyframes import (
+    LIMIT_MARGIN_DEG,
     MAX_DURATION_MS,
     MIN_DURATION_MS,
     KeyframeFileError,
@@ -25,6 +26,7 @@ from hexapod.keyframes import (
     keyframe_times_ms,
     load,
     make_keyframe,
+    nearest_reachable_foot,
     pose_to_feet,
     pose_to_scene,
     sequence_duration_ms,
@@ -35,7 +37,7 @@ from hexapod.models import VirtualHexapod
 from hexapod.path_generator import generate_poses
 from hexapod.robot_config import get_simulator_dimensions
 from pages.helpers import make_pose
-from hexapod.robot_config import GENERIC_CONFIG, get_sequence_fps
+from hexapod.robot_config import GENERIC_CONFIG, get_joint_limits, get_sequence_fps
 from tests.robots import ROBOT_CONFIGS
 
 ROBOTS = list(ROBOT_CONFIGS.values()) + [GENERIC_CONFIG]
@@ -138,6 +140,110 @@ def test_foot_past_a_joint_limit_is_reported():
     feet[1] = [radius * np.cos(np.radians(70)), radius * np.sin(np.radians(70)), z]
     _, bad = feet_to_pose(feet, robot)
     assert bad == [1]
+
+
+def solved_leg(foot, leg, robot):
+    """(the leg's joints, whether it is bad) with its foot at `foot`, the
+    other feet at standby."""
+    feet = np.array(standby_feet(robot))
+    feet[leg] = foot
+    pose, bad = feet_to_pose(feet, robot)
+    return pose[leg], leg in bad
+
+
+def reach_of(robot):
+    """About how far a leg reaches from its joints, for sizing a drag."""
+    config = robot["config"]
+    return config["legJoint1ToJoint2"] + config["legJoint2ToJoint3"] + config["legJoint3ToTip"]
+
+
+# Ways to drag a foot from standby: every mix of right or left, forward or
+# back, and up or down.
+DRAGS = [np.array(drag) - 1.0 for drag in np.ndindex(3, 3, 3) if drag != (1, 1, 1)]
+
+
+@pytest.mark.parametrize("robot", ROBOTS, ids=ROBOT_IDS)
+def test_a_foot_within_reach_is_its_own_nearest(robot):
+    feet = np.array(standby_feet(robot))
+    for leg in range(6):
+        for moved in (feet[leg], feet[leg] + [8, -6, 25]):
+            assert nearest_reachable_foot(moved, leg, robot) == list(moved)
+
+
+@pytest.mark.parametrize("robot", ROBOTS, ids=ROBOT_IDS)
+def test_a_foot_out_of_reach_is_held_where_its_leg_can_put_it(robot):
+    feet = np.array(standby_feet(robot))
+    limits = get_joint_limits(robot)
+    held = 0
+    for leg in range(6):
+        for drag in DRAGS:
+            for far in (0.5, 1.5, 6.0):
+                target = feet[leg] + drag * far * reach_of(robot)
+                foot = nearest_reachable_foot(target, leg, robot)
+                joints, bad = solved_leg(foot, leg, robot)
+                assert not bad
+                if foot != list(target):
+                    held += 1
+                    # Against a limit, and the margin inside it.
+                    assert all(
+                        abs(joints[joint]) <= limits[joint] - LIMIT_MARGIN_DEG + 1e-3
+                        for joint in limits
+                    )
+                    _, target_bad = solved_leg(target, leg, robot)
+                    assert target_bad or any(
+                        abs(joints[joint]) > limits[joint] - LIMIT_MARGIN_DEG - 1e-3
+                        for joint in limits
+                    )
+    assert held > 100
+
+
+@pytest.mark.parametrize("robot", ROBOTS, ids=ROBOT_IDS)
+def test_a_held_foot_is_as_near_as_the_simulator_can_put_one(robot):
+    # Every pose on a grid of joint angles within the limits, drawn by the
+    # simulator's own model: none of their feet is nearer what was asked for.
+    limits = {
+        joint: limit - LIMIT_MARGIN_DEG for joint, limit in get_joint_limits(robot).items()
+    }
+    grid = []
+    for coxia in np.linspace(-limits["coxia"], limits["coxia"], 7):
+        for femur in np.linspace(-limits["femur"], limits["femur"], 9):
+            for tibia in np.linspace(-limits["tibia"], limits["tibia"], 9):
+                pose = {
+                    leg: {"coxia": coxia, "femur": femur, "tibia": tibia} for leg in range(6)
+                }
+                feet = pose_to_feet(pose, robot)
+                # Not those the solver would not hand back: a foot folded up
+                # behind its own femur.
+                _, bad = feet_to_pose(feet, robot)
+                grid.append((np.array(feet), bad))
+
+    feet = np.array(standby_feet(robot))
+    for leg in range(6):
+        reachable = np.array([posed[leg] for posed, bad in grid if leg not in bad])
+        for drag in DRAGS:
+            target = feet[leg] + drag * 1.5 * reach_of(robot)
+            foot = nearest_reachable_foot(target, leg, robot)
+            nearest = np.linalg.norm(reachable - target, axis=1).min()
+            assert np.linalg.norm(foot - target) <= nearest + 1e-2
+
+
+@pytest.mark.parametrize("robot", ROBOTS, ids=ROBOT_IDS)
+def test_a_foot_dragged_out_of_reach_slides_without_a_jump(robot):
+    # Pulled straight away from the body, lifted and pushed down, each well
+    # past what the leg can reach, a little at a time: the foot never moves
+    # more than twice as far as it was dragged.
+    step = 2.0
+    feet = np.array(standby_feet(robot))
+    for leg in range(6):
+        outward = np.append(feet[leg][:2], 0) / np.hypot(*feet[leg][:2])
+        up = np.array([0.0, 0.0, 1.0])
+        for direction in (outward, up, -up, (outward + up) / np.sqrt(2)):
+            last = feet[leg]
+            for dragged in np.arange(step, 1.5 * reach_of(robot), step):
+                target = feet[leg] + dragged * direction
+                foot = np.array(nearest_reachable_foot(target, leg, robot))
+                assert np.linalg.norm(foot - last) < 2 * step
+                last = foot
 
 
 def test_scene_marks_lifted_feet_off_the_ground():

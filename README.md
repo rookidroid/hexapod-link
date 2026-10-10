@@ -203,9 +203,11 @@ add up:
   the view by its handles: **Move** gives it arrows, **Rotate** rings. A
   dragged body goes as far as its sliders do.
 - **A foot** — drag its arrows in the view to move it, or type its **X**,
-  **Y** and **Up** (height above the floor) in millimetres. A foot that
-  cannot reach a spot (or would take a joint past its limit) stays where it
-  was. **Put feet back** undoes the moves of them all.
+  **Y** and **Up** (height above the floor) in millimetres. A foot dragged
+  past what its leg can reach (or where a joint would pass its limit) is
+  held as near as the leg gets, following along the edge of its reach; one
+  typed there stays where it was. **Put feet back** undoes the moves of
+  them all.
 
 The joint angles can be typed too, picked or not: the leg's foot goes where
 they put it.

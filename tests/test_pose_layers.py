@@ -94,6 +94,35 @@ def test_a_moved_foot_lands_where_it_was_put_and_stays_as_the_body_moves(robot):
 
 
 @pytest.mark.parametrize("robot", ROBOTS, ids=ROBOT_IDS)
+def test_a_foot_dragged_past_its_legs_reach_is_held_as_near_as_it_gets(robot):
+    state = tilted()
+    start = drawn_feet(state, robot)[0]
+
+    # Within reach, it goes where it is dragged.
+    target = start + [10.0, 5.0, 30.0]
+    assert pl.with_foot_near(state, 0, target, robot) == pl.with_foot_at(state, 0, target, robot)
+
+    # Further than the leg is long, it stops short, on the way there, and
+    # the leg can still be posed. The body and the other feet stay.
+    away = np.append(start[:2], 0) / np.hypot(*start[:2])
+    target = start + 500.0 * away
+    _, _, bad = pl.solve(pl.with_foot_at(state, 0, target, robot), robot)
+    assert bad == [0]
+    held = pl.with_foot_near(state, 0, target, robot)
+    _, _, bad = pl.solve(held, robot)
+    assert bad == []
+    foot = drawn_feet(held, robot)[0]
+    np.testing.assert_allclose(pl.view_feet(held, robot)[0], foot, atol=1e-2)
+    assert np.linalg.norm(foot - start) > 10.0
+    assert np.linalg.norm(foot - target) < np.linalg.norm(start - target)
+    assert held["body"] == state["body"]
+    np.testing.assert_allclose(drawn_feet(held, robot)[1:], drawn_feet(state, robot)[1:], atol=1e-2)
+
+    # Dragged on along the edge of its reach, it stays where it is held.
+    assert pl.with_foot_near(held, 0, target, robot) == held
+
+
+@pytest.mark.parametrize("robot", ROBOTS, ids=ROBOT_IDS)
 def test_setting_a_legs_joints_moves_only_that_foot(robot):
     state = tilted()
     _, before, _ = pl.solve(state, robot)

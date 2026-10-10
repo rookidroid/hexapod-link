@@ -105,6 +105,20 @@ def with_foot_at(state, leg, target, robot_config):
     return make_state(state["body"], offsets)
 
 
+def with_foot_near(state, leg, target, robot_config):
+    """with_foot_at() for a foot being dragged: at `target` if its leg can
+    reach it, else as near as the leg gets (kf.nearest_reachable_foot), so
+    the leg follows along the edge of its reach. None if it gets nowhere."""
+    _, rotation, origin = _placement(state, robot_config)
+    world = np.asarray(target, dtype=float) + [0.0, 0.0, kf.ground_height(robot_config)]
+    foot = kf.nearest_reachable_foot((world - origin) @ rotation, leg, robot_config)
+    if foot is None:
+        return None
+    offsets = np.array(state["offsets"], dtype=float)
+    offsets[leg] = rotation @ foot + origin - kf.standby_feet(robot_config)[leg]
+    return make_state(state["body"], offsets)
+
+
 def with_leg_angles(state, leg, angles, robot_config):
     """The state with one leg's joints set, as {"coxia": ...} for those that
     change: its foot goes wherever those angles put it, the body staying."""

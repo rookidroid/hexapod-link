@@ -235,6 +235,9 @@ BODY_WIDGET_KEYS = dict(zip(IK_WIDGETS_IDS, pl.BODY_KEYS))
 BODY_KEY_RANGES = dict(zip(pl.BODY_KEYS, BODY_RANGES))
 # The leg and joint each joint field sets.
 JOINT_FIELD_KEYS = {field_id: (leg, joint) for leg, joint, field_id in POSE_JOINT_FIELDS}
+# A dragged foot put this far (mm) short of the cursor was held at its leg's
+# limit; nearer is only rounding.
+FOOT_HELD_MM = 0.01
 
 
 # The Robot panel's dimensions, as JSON (pages/shared.py).
@@ -466,9 +469,9 @@ def edit(
 
     def bump(new_state, at=pose_store.get("at")):
         # The sequence number makes the pose differ from the one before even
-        # when the feet do not, so a refused drag is still redrawn and the
-        # foot springs back to where it was. A pose edited stays where in the
-        # sequence it was taken from.
+        # when the feet do not, so a foot dropped past its leg's reach is
+        # still redrawn, and goes to where its leg ends. A pose edited stays
+        # where in the sequence it was taken from.
         return _pose_store(robot_config, new_state, pose_store.get("seq", 0) + 1, at)
 
     def set_frames(new_frames):
@@ -479,18 +482,26 @@ def edit(
         target = foot_target.get("foot")
         if not isinstance(leg, int) or not 0 <= leg < 6 or not target or len(target) != 3:
             raise PreventUpdate
-        moved = pl.with_foot_at(state, leg, target, robot_config)
-        _, _, bad_legs = pl.solve(moved, robot_config)
-        if leg in bad_legs:
+        # A foot dragged past what its leg can reach is held as near as the
+        # leg gets, so the leg follows the cursor along the edge of its reach
+        # rather than stopping until the cursor comes back.
+        moved = pl.with_foot_near(state, leg, target, robot_config)
+        final = bool(foot_target.get("final"))
+        if moved is None or leg in pl.solve(moved, robot_config)[2]:
             message = _pose_alert(
                 f"{leg_label(leg)} cannot reach there, or a joint would pass its limit."
             )
             # While dragging the foot is left where the cursor has it; once
             # dropped it goes back to the last place it could reach.
-            out_pose = bump(state) if foot_target.get("final") else no_update
+            out_pose = bump(state) if final else no_update
         else:
-            out_pose = bump(moved)
-            message = ""
+            short = np.subtract(pl.view_feet(moved, robot_config)[leg], target)
+            held = np.linalg.norm(short) > FOOT_HELD_MM
+            message = _pose_alert(f"{leg_label(leg)} is at its limit.") if held else ""
+            # Held where it already is, there is nothing new to draw, or to
+            # send the robot, until it is dropped: then the foot, left under
+            # the cursor while dragging, goes to where its leg ends.
+            out_pose = bump(moved) if final or moved != state else no_update
 
     elif trigger == POSE_SELECTION_ID:
         # Something else picked: what was said of the last move is stale.

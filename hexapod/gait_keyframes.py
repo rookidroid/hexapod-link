@@ -43,12 +43,6 @@ RIGID_MM = 2.0
 # Gaits that are not cycles: played once, from the first frame to the last.
 ONE_SHOT = {"standup"}
 
-# How far inside a joint's limit (degrees) a pose that asks for more is held:
-# a straight move between two poses on the limit bulges past it a little
-# (0.21 degrees at most, on Mochi's sideways walk), and this keeps the whole
-# move inside. About a servo tick.
-LIMIT_MARGIN_DEG = 0.5
-
 # Points checked against the joints' limits between two frames of the gait,
 # since a sequence played at another speed or frame rate lands between them.
 LIMIT_CHECKS_PER_FRAME = 4
@@ -57,7 +51,8 @@ LIMIT_CHECKS_PER_FRAME = 4
 def robot_poses(motion_name, robot_config):
     """The gait's poses, each joint held to the robot's limits."""
     limits = {
-        joint: limit - LIMIT_MARGIN_DEG for joint, limit in get_joint_limits(robot_config).items()
+        joint: limit - kf.LIMIT_MARGIN_DEG
+        for joint, limit in get_joint_limits(robot_config).items()
     }
     poses = generate_poses(motion_name, robot_config)
     for pose in poses:
