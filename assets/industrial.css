@@ -872,9 +872,9 @@ body {
 /* ===========================================
    VIEW
    The three.js view (assets/hexapod_view.js) fills its area; buttons sit in
-   the top-right corner and the pose -- its joint angles, and the controls of
-   what is picked -- in the bottom-left, all drawn for the dark monitor in
-   either theme.
+   the top-right corner, how the body picked is dragged over the top edge, and
+   the pose -- its joint angles, and the controls of what is picked -- in the
+   bottom-left, all drawn for the dark monitor in either theme.
    =========================================== */
 
 .hexapod-view-frame,
@@ -999,6 +999,57 @@ body {
 @media (max-width: 575.98px) {
     .hexapod-view-controls {
         top: 52px;
+    }
+}
+
+/* How the body picked is dragged, by arrows or by rings: over the middle of
+   the view's top edge, above the handles it changes. */
+.hexapod-view-tool {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    z-index: 3;
+    transform: translateX(-50%);
+}
+
+.view-tool {
+    --chamfer: 7px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0.6rem;
+}
+
+.view-tool .ind-field-label {
+    margin: 0;
+}
+
+/* No room between the corners: it goes under the reset buttons. */
+@media (max-width: 991.98px) {
+    .hexapod-view-tool {
+        top: 48px;
+        left: auto;
+        right: 12px;
+        transform: none;
+    }
+}
+
+/* The robot's controls have left the top-left corner: it goes there, bare. */
+@media (max-width: 575.98px) {
+    .hexapod-view-tool {
+        top: 12px;
+        left: 12px;
+        right: auto;
+    }
+
+    .view-tool {
+        padding: 0;
+        border: none;
+        clip-path: none;
+    }
+
+    .view-tool .ind-field-label {
+        display: none;
     }
 }
 
@@ -1174,16 +1225,6 @@ body {
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--hud-picked);
-}
-
-.hud-adjust-mode {
-    display: flex;
-    align-items: center;
-    gap: 0.45rem;
-}
-
-.hud-adjust-mode .ind-field-label {
-    margin: 0;
 }
 
 .hud-panel .dock-seg-item {

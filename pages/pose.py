@@ -73,6 +73,7 @@ from widgets.pose_ui import (
     POSE_ANGLES_ID,
     POSE_BODY_MODE_ID,
     POSE_BODY_TARGET_ID,
+    POSE_BODY_TOOL_ID,
     POSE_CLEAR_FEET_BTN_ID,
     POSE_DELETE_BTN_ID,
     POSE_DOWNLOAD_ID,
@@ -158,7 +159,8 @@ PICK_IDS = [POSE_PICK_BODY_ID, *POSE_PICK_LEG_IDS]
 
 
 # Show the controls of what is picked, the body's or a foot's, and light its
-# button. The others are only hidden, so their sliders keep their values.
+# button; with the body's, the toggle over the view that says how it is
+# dragged. The others are only hidden, so their sliders keep their values.
 clientside_callback(
     """
     function(picked) {
@@ -174,6 +176,7 @@ clientside_callback(
             body || foot ? hide : show,
             body ? show : hide,
             foot ? show : hide,
+            body ? show : hide,
             foot ? labels[picked] + " foot" : window.dash_clientside.no_update,
         ].concat(lit.map(function (on) { return on ? "%s is-picked" : "%s"; }));
     }
@@ -182,6 +185,7 @@ clientside_callback(
     Output(POSE_ADJUST_HINT_ID, "style"),
     Output(POSE_ADJUST_BODY_ID, "style"),
     Output(POSE_ADJUST_FOOT_ID, "style"),
+    Output(POSE_BODY_TOOL_ID, "style"),
     Output(POSE_FOOT_TITLE_ID, "children"),
     *[Output(button_id, "className") for button_id in PICK_IDS],
     Input(POSE_SELECTION_ID, "data"),

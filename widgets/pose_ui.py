@@ -8,9 +8,11 @@
 #             its sliders or by dragging its handles in the view
 #   a foot    move it, by dragging it in the view or typing where it goes
 #
-# Over the view too, the pose and the camera can be reset; streaming to the
-# robot and the robot's dimensions are there as well (widgets/robot_link_ui.py,
-# widgets/dimensions_ui.py). Along the bottom, the dock builds a sequence of
+# Over the view too, the pose and the camera can be reset, and while the body
+# is picked a toggle says what dragging it does, move it or turn it; streaming
+# to the robot and the robot's dimensions are there as well
+# (widgets/robot_link_ui.py, widgets/dimensions_ui.py). Along the bottom, the
+# dock builds a sequence of
 # keyframes -- poses collected here, and gaits from its library: the robot's,
 # and sequences saved as gaits of one's own -- and plays it: previewing it in
 # the view, and running it on the robot.
@@ -63,6 +65,8 @@ POSE_ADJUST_FOOT_ID = "pose-adjust-foot"
 
 # Which handles the body picked has in the view, to drag it by: arrows that
 # move it, or rings that turn it. The values are the view's names for them.
+# The toggle sits over the view, in the tool shown while the body is picked.
+POSE_BODY_TOOL_ID = "pose-body-tool"
 POSE_BODY_MODE_ID = "pose-body-mode"
 BODY_MODE_MOVE = "translate"
 BODY_MODE_ROTATE = "rotate"
@@ -251,6 +255,29 @@ VIEW_OVERLAY = [
     ),
 ]
 
+body_mode_toggle = dbc.RadioItems(
+    id=POSE_BODY_MODE_ID,
+    options=[
+        {"label": "Move", "value": BODY_MODE_MOVE},
+        {"label": "Rotate", "value": BODY_MODE_ROTATE},
+    ],
+    value=BODY_MODE_MOVE,
+    className="dock-seg",
+    inputClassName="btn-check",
+    labelClassName="dock-seg-item",
+    labelCheckedClassName="active",
+)
+
+# Beside the handles it changes, not down with the body's sliders: shown only
+# while the body is picked.
+VIEW_TOOL = html.Div(
+    [field_label("Drag body to"), body_mode_toggle],
+    id=POSE_BODY_TOOL_ID,
+    className="hud-panel view-tool",
+    title="What dragging the body in the view does: its arrows move it, its rings turn it",
+    style={"display": "none"},
+)
+
 
 # ................................
 # THE POSE
@@ -310,30 +337,10 @@ ADJUST_HINT = html.Div(
     className="hud-hint",
 )
 
-body_mode_toggle = dbc.RadioItems(
-    id=POSE_BODY_MODE_ID,
-    options=[
-        {"label": "Move", "value": BODY_MODE_MOVE},
-        {"label": "Rotate", "value": BODY_MODE_ROTATE},
-    ],
-    value=BODY_MODE_MOVE,
-    className="dock-seg",
-    inputClassName="btn-check",
-    labelClassName="dock-seg-item",
-    labelCheckedClassName="active",
-)
-
 ADJUST_BODY = html.Div(
     [
         html.Div(
-            [
-                html.Span("Body", className="hud-adjust-title"),
-                html.Div(
-                    [field_label("Drag to"), body_mode_toggle],
-                    className="hud-adjust-mode",
-                    title="What dragging the body in the view does: its arrows move it, its rings turn it",
-                ),
-            ],
+            html.Span("Body", className="hud-adjust-title"),
             className="hud-adjust-head",
         ),
         # The joints are solved to keep the feet planted.
