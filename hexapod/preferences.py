@@ -55,10 +55,11 @@ def save_theme(theme):
 
 
 # The workspace's sizes, set by dragging its splitters (assets/workspace_resize.js):
-# the width of the tool panel and the height of the dock, in CSS pixels. None
-# for one never dragged, or set back with a double-click, which leaves it to
-# the stylesheet.
-LAYOUT_SIZES = ("panel_w", "dock_h")
+# the width of the tool panel, the height of the dock and the widths of the
+# dock's side columns (the Gaits library, and Playback and Robot), in CSS
+# pixels. None for one never dragged, or set back with a double-click, which
+# leaves it to the stylesheet.
+LAYOUT_SIZES = ("panel_w", "dock_h", "lib_w", "run_w")
 # Far wider than any sensible value either way: only junk is refused here;
 # the page keeps them within the window.
 LAYOUT_MIN_PX = 100
@@ -74,7 +75,7 @@ def _layout_size(value):
 
 
 def load_layout():
-    """{"panel_w", "dock_h"}, each in pixels or None."""
+    """Each of LAYOUT_SIZES, in pixels or None."""
     saved = load_preferences().get("layout")
     saved = saved if isinstance(saved, dict) else {}
     return {key: _layout_size(saved.get(key)) for key in LAYOUT_SIZES}

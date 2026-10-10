@@ -52,7 +52,12 @@ mimetypes.add_type("font/woff2", ".woff2")
 
 # The saved workspace sizes, by preference key, and the CSS variable each sets
 # (WORKSPACE in assets/industrial.css).
-LAYOUT_VARIABLES = {"panel_w": "--panel-w", "dock_h": "--dock-h"}
+LAYOUT_VARIABLES = {
+    "panel_w": "--panel-w",
+    "dock_h": "--dock-h",
+    "lib_w": "--lib-w",
+    "run_w": "--run-w",
+}
 
 
 class HexapodDash(Dash):

@@ -18,6 +18,7 @@ from widgets.robot_link_ui import (
     STREAM_MAX_STEP_ID,
     STREAM_SWITCH_ID,
 )
+from widgets.section_maker import make_splitter
 from hexapod.robot_link import ROBOT_LINK
 from hexapod.preferences import save_layout, save_theme
 from hexapod.robot_config import describe, describe_firmware, get_simulator_dimensions
@@ -106,27 +107,14 @@ def make_view(view_id, scene=None, overlay=None, hud=None, controls=None, drive=
 #
 # Above `lg` the tool panel's width and the dock's height can be dragged, by
 # a splitter on the panel's edge and one on the dock's (or, focused, with the
-# arrow keys), and double-clicking one puts it back. That is done in the page
-# (assets/workspace_resize.js); a size let go of comes back through the
+# arrow keys), and double-clicking one puts it back; so can the widths of the
+# dock's side columns (POSE_DOCK in widgets/pose_ui.py). That is done in the
+# page (assets/workspace_resize.js); the sizes let go of come back through the
 # sizes store, to be kept with the preferences and served with the page the
 # next time (hexapod_link.py).
 # ......................
 
 LAYOUT_SIZES_STORE_ID = "layout-sizes"
-# The splitters' classes, which assets/workspace_resize.js looks for.
-SPLITTER_CLASS = "ws-splitter"
-PANEL_SPLITTER_CLASS = "ws-splitter-panel"
-DOCK_SPLITTER_CLASS = "ws-splitter-dock"
-
-
-def _splitter(class_name, orientation, label):
-    return html.Div(
-        className=f"{SPLITTER_CLASS} {class_name}",
-        role="separator",
-        tabIndex="0",
-        title=f"Drag to {label}; double-click to reset",
-        **{"aria-orientation": orientation, "aria-label": label.capitalize()},
-    )
 
 
 def make_workspace(rail, panels, view, dock):
@@ -136,8 +124,8 @@ def make_workspace(rail, panels, view, dock):
             html.Aside(panels, className="ws-panel"),
             html.Div(view, className="ws-view"),
             html.Div(dock, className="ws-dock"),
-            _splitter(PANEL_SPLITTER_CLASS, "vertical", "resize the tool panel"),
-            _splitter(DOCK_SPLITTER_CLASS, "horizontal", "resize the dock"),
+            make_splitter("panel", "vertical", "resize the tool panel"),
+            make_splitter("dock", "horizontal", "resize the dock"),
             dcc.Store(id=LAYOUT_SIZES_STORE_ID),
         ],
         className="workspace",
@@ -146,8 +134,8 @@ def make_workspace(rail, panels, view, dock):
 
 @callback(Input(LAYOUT_SIZES_STORE_ID, "data"), prevent_initial_call=True)
 def keep_layout_sizes(sizes):
-    """Keep the sizes as a splitter was let go, {"panel_w", "dock_h"} in
-    pixels, None for one left to the stylesheet."""
+    """Keep the sizes as a splitter was let go, by preference key
+    (hexapod/preferences.py) in pixels, None for one left to the stylesheet."""
     if isinstance(sizes, dict):
         save_layout(sizes)
 

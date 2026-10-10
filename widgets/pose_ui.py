@@ -25,6 +25,7 @@ from widgets.section_maker import (
     make_field_grid,
     make_leg_sides,
     make_number_field,
+    make_splitter,
     panel_section,
 )
 
@@ -364,7 +365,8 @@ ANGLES_HUD = html.Details(
 # gaits to put into the sequence: the robot's, and one's own. In the middle,
 # the sequence: the track of keyframes -- poses, and gaits put in as theirs --
 # and an editor for the one selected. On the right, playing it: in the view,
-# then on the robot.
+# then on the robot. The side columns' widths can be dragged; the middle one
+# takes what is left.
 # ................................
 
 
@@ -777,8 +779,11 @@ hidden_components = html.Div(
 POSE_DOCK = html.Div(
     [
         html.Div(library_section, className="dock-col dock-col-library"),
-        html.Div(sequence_section, className="dock-col"),
+        html.Div(sequence_section, className="dock-col dock-col-sequence"),
         html.Div([playback_section, robot_section], className="dock-col dock-col-run"),
+        # On the lines between the columns; the sequence's takes what is left.
+        make_splitter("lib", "vertical", "resize the Gaits library"),
+        make_splitter("run", "vertical", "resize Playback and Robot"),
         hidden_components,
     ],
     className="dock",

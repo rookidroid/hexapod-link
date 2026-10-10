@@ -158,10 +158,14 @@
 
     --topbar-h: 52px;
     --rail-w: 68px;
-    /* The tool panel's width and the dock's height; dragging the workspace's
-       splitters sets them on <html> instead (assets/workspace_resize.js). */
+    /* The tool panel's width, the dock's height and the widths of the dock's
+       side columns (a percentage there is of the dock); dragging the
+       workspace's splitters sets them on <html> instead
+       (assets/workspace_resize.js). */
     --panel-w: clamp(300px, 24vw, 380px);
     --dock-h: 15rem;
+    --lib-w: clamp(14rem, 18%, 18rem);
+    --run-w: clamp(22rem, 28%, 28rem);
     /* How much of the workspace the view always keeps, whatever they are set
        to: a window made smaller narrows them, and they come back with it. */
     --view-min-w: 360px;
@@ -463,19 +467,38 @@ body {
     opacity: 1;
 }
 
-.ws-splitter-panel {
-    grid-area: panel;
-    justify-self: end;
+.ws-splitter[aria-orientation="vertical"] {
     width: 8px;
-    margin-right: -5px;
     cursor: col-resize;
 }
 
-.ws-splitter-panel::after {
+.ws-splitter[aria-orientation="vertical"]::after {
     top: 0;
     bottom: 0;
     left: 2px;
     width: 3px;
+}
+
+.ws-splitter-panel {
+    grid-area: panel;
+    justify-self: end;
+    margin-right: -5px;
+}
+
+/* The dock's: on the line after the Gaits library, and on the line before
+   Playback and Robot. */
+.ws-splitter-lib {
+    grid-row: 1;
+    grid-column: 1;
+    justify-self: end;
+    margin-right: -4px;
+}
+
+.ws-splitter-run {
+    grid-row: 1;
+    grid-column: 3;
+    justify-self: start;
+    margin-left: -4px;
 }
 
 .ws-splitter-dock {
@@ -1520,7 +1543,9 @@ body {
 .dock {
     display: grid;
     flex: 1 0 auto;
-    grid-template-columns: clamp(14rem, 18%, 18rem) minmax(0, 1fr) clamp(22rem, 28%, 28rem);
+    /* The side columns as set, but never so wide the sequence is squeezed
+       out: each keeps to its share of the dock. */
+    grid-template-columns: min(var(--lib-w), 35%) minmax(0, 1fr) min(var(--run-w), 40%);
 }
 
 .dock-col {
@@ -1535,6 +1560,20 @@ body {
 
 .dock-col-library {
     border-right: 1px solid var(--ind-border);
+}
+
+/* Each in its own column, placed rather than flowed: the splitters between
+   them are placed on those columns too, and would push them along. */
+.dock-col-library {
+    grid-area: 1 / 1;
+}
+
+.dock-col-sequence {
+    grid-area: 1 / 2;
+}
+
+.dock-col-run {
+    grid-area: 1 / 3;
 }
 
 .dock-section + .dock-section {
@@ -1971,6 +2010,12 @@ body {
 @media (max-width: 991.98px) {
     .dock {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    .dock-col-library,
+    .dock-col-sequence,
+    .dock-col-run {
+        grid-area: auto;
     }
 
     .dock-col-run {

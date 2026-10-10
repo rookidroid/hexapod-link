@@ -216,9 +216,10 @@ are read out in the corner of the view (click the heading to fold them away),
 and with **Stream to robot** on, in the view's top-left corner, every
 reachable pose is sent to the servos as it changes. The tool, the pose and the
 sequence are remembered across a reload. Drag the right edge of the tool panel
-to make it wider or narrower, and the top edge of the dock to make it taller
-or shorter (or focus either edge and use the arrow keys); double-click an edge
-to put it back. The sizes are kept from one launch to the next.
+to make it wider or narrower, the top edge of the dock to make it taller or
+shorter, and the lines between the dock's columns to share its width between
+them (or focus an edge and use the arrow keys); double-click an edge to put
+it back. The sizes are kept from one launch to the next.
 
 The dock has three columns. On the left, **Gaits** is the library of gaits to
 put into the sequence: **Built-in**, the robot's own, and **Mine**, sequences

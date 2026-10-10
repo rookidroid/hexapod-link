@@ -1,6 +1,7 @@
-// The workspace's splitters (make_workspace in pages/shared.py): one on the
-// tool panel's right edge sets its width, one on the dock's top edge its
-// height. Drag one, or focus it and use the arrow keys (Shift for bigger
+// The workspace's splitters (make_splitter in widgets/section_maker.py): one
+// on the tool panel's right edge sets its width, one on the dock's top edge
+// its height, and one either side of the dock's middle column the width of
+// the column beside it, the middle one taking what is left. Drag one, or focus it and use the arrow keys (Shift for bigger
 // steps); double-click it to put the size back to the stylesheet's.
 //
 // A size is a CSS variable on <html> (WORKSPACE in assets/industrial.css),
@@ -23,6 +24,13 @@
     var PANEL_MIN_W = 220;
     var PANEL_MAX_W = 720;
     var DOCK_MIN_H = 140;
+    // The dock's columns: the side ones' least, and most as a share of the
+    // dock (as capped in the stylesheet), and what the sequence always keeps.
+    var LIB_MIN_W = 180;
+    var LIB_MAX_SHARE = 0.35;
+    var RUN_MIN_W = 260;
+    var RUN_MAX_SHARE = 0.4;
+    var SEQUENCE_MIN_W = 320;
     var KEY_STEP = 16;
     var KEY_STEP_BIG = 64;
 
@@ -36,9 +44,10 @@
             // at (x, y).
             current: function (box) { return box.width; },
             fromPointer: function (x, y, box) { return x - box.left; },
-            range: function (workspace) {
-                var rail = workspace.querySelector(".ws-rail");
-                var room = workspace.clientWidth - (rail ? rail.offsetWidth : 0) - VIEW_MIN_W;
+            range: function () {
+                var ws = document.querySelector(".workspace");
+                var rail = ws.querySelector(".ws-rail");
+                var room = ws.clientWidth - (rail ? rail.offsetWidth : 0) - VIEW_MIN_W;
                 return [PANEL_MIN_W, Math.max(PANEL_MIN_W, Math.min(PANEL_MAX_W, room))];
             },
             keys: {ArrowLeft: -1, ArrowRight: 1},
@@ -50,24 +59,63 @@
             cursor: "row-resize",
             current: function (box) { return box.height; },
             fromPointer: function (x, y, box) { return box.bottom - y; },
-            range: function (workspace) {
-                var room = workspace.clientHeight - VIEW_MIN_H;
+            range: function () {
+                var room = document.querySelector(".workspace").clientHeight - VIEW_MIN_H;
                 return [DOCK_MIN_H, Math.max(DOCK_MIN_H, room)];
             },
             keys: {ArrowUp: 1, ArrowDown: -1},
         },
+        lib: {
+            variable: "--lib-w",
+            key: "lib_w",
+            selector: ".dock-col-library",
+            cursor: "col-resize",
+            current: function (box) { return box.width; },
+            fromPointer: function (x, y, box) { return x - box.left; },
+            range: function () {
+                return columnRange(LIB_MIN_W, LIB_MAX_SHARE, ".dock-col-run");
+            },
+            keys: {ArrowLeft: -1, ArrowRight: 1},
+        },
+        run: {
+            variable: "--run-w",
+            key: "run_w",
+            selector: ".dock-col-run",
+            cursor: "col-resize",
+            current: function (box) { return box.width; },
+            // On its left edge: dragging left widens it.
+            fromPointer: function (x, y, box) { return box.right - x; },
+            range: function () {
+                return columnRange(RUN_MIN_W, RUN_MAX_SHARE, ".dock-col-library");
+            },
+            keys: {ArrowLeft: 1, ArrowRight: -1},
+        },
     };
+
+    // How wide a side column of the dock may be: no more than its share of
+    // the dock, and leaving the sequence its room beside the other one.
+    function columnRange(least, share, other) {
+        var dock = document.querySelector(".dock");
+        var beside = document.querySelector(other);
+        var width = dock.clientWidth;
+        var room = width - (beside ? beside.offsetWidth : 0) - SEQUENCE_MIN_W;
+        return [least, Math.max(least, Math.min(width * share, room))];
+    }
 
     var root = document.documentElement;
     var dragging = null;
     // A key held down saves once, a moment after it is let go; per splitter.
     var saveTimers = {};
 
+    // A splitter's kind is its "ws-splitter-<kind>" class.
     function sizeOf(splitter) {
-        if (splitter.classList.contains("ws-splitter-panel")) {
-            return SIZES.panel;
+        var kinds = Object.keys(SIZES);
+        for (var i = 0; i < kinds.length; i++) {
+            if (splitter.classList.contains("ws-splitter-" + kinds[i])) {
+                return SIZES[kinds[i]];
+            }
         }
-        return splitter.classList.contains("ws-splitter-dock") ? SIZES.dock : null;
+        return null;
     }
 
     function workspace() {
@@ -80,11 +128,10 @@
     }
 
     function clamp(size, px) {
-        var ws = workspace();
-        if (!ws) {
+        if (!workspace()) {
             return Math.round(px);
         }
-        var range = size.range(ws);
+        var range = size.range();
         return Math.round(Math.min(Math.max(px, range[0]), range[1]));
     }
 
