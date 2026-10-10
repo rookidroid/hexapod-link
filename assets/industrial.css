@@ -1081,17 +1081,19 @@ body {
 
 /* ---- The pose ----
    The joint angles, a column per leg under the button that picks its foot,
-   then the controls of what is picked: the body's, or that foot's. */
+   then the controls of what is picked: the body's, or that foot's. Kept
+   narrow: it is the angles' fields that set how wide it is, and the view is
+   what it sits over. */
 
-.angles-hud {
-    padding: 0.35rem 0.6rem;
+.pose-hud {
+    padding: 0.35rem 0.5rem;
 }
 
-.angles-hud[open] {
+.pose-hud[open] {
     padding-bottom: 0.55rem;
 }
 
-.angles-hud > summary,
+.pose-hud > summary,
 .dims-hud > summary,
 .drive-hud > summary {
     font-size: 0.75rem;
@@ -1105,43 +1107,52 @@ body {
 
 /* Folded away while a leg is out of reach: the warning inside it cannot be
    seen, so the folded overlay turns red instead. */
-.angles-hud.is-bad:not([open]) {
+.pose-hud.is-bad:not([open]) {
     background: rgba(140, 24, 24, 0.88);
     border-color: rgba(255, 92, 92, 0.85);
 }
 
-.angles-hud.is-bad:not([open]) > summary {
+.pose-hud.is-bad:not([open]) > summary {
     color: #ffd6d6;
 }
 
-.angles-hud.is-bad:not([open]) > summary::after {
+.pose-hud.is-bad:not([open]) > summary::after {
     content: ' ⚠';
 }
 
-.angles-hud[open] > summary,
+.pose-hud[open] > summary,
 .dims-hud[open] > summary,
 .drive-hud[open] > summary {
     margin-bottom: 0.3rem;
 }
 
-.angles-hud .ind-joint-grid {
+.pose-hud .ind-joint-grid {
     --bs-table-color: var(--hud-text);
 }
 
-.angles-hud .ind-joint-grid thead th,
-.angles-hud .ind-joint-grid tbody th {
+.pose-hud .ind-joint-grid thead th,
+.pose-hud .ind-joint-grid tbody th {
     color: var(--hud-muted);
 }
 
-.angles-hud .ind-joint-grid input {
-    width: 4.1rem;
-    padding-block: 0.1rem;
+.pose-hud .ind-joint-grid th,
+.pose-hud .ind-joint-grid td {
+    padding: 0.1rem;
+}
+
+/* Room for "-74.9": no joint turns as far as three digits. */
+.pose-hud .ind-joint-grid input {
+    width: 3.1rem;
+    min-height: 0;
+    height: 1.5rem;
+    padding: 0 0.3rem;
     font-family: var(--font-mono);
+    font-size: 0.74rem;
     font-variant-numeric: tabular-nums;
 }
 
 /* A leg out of reach has no angles: a dash in their place. */
-.angles-hud .ind-joint-grid input::placeholder {
+.pose-hud .ind-joint-grid input::placeholder {
     color: #ffb4b4;
     opacity: 1;
     text-align: center;
@@ -1152,7 +1163,7 @@ body {
 .hud-pick {
     display: block;
     width: 100%;
-    padding: 0.1rem 0.4rem;
+    padding: 0.05rem 0.25rem;
     font-family: var(--font-mono);
     font-size: 0.72rem;
     font-weight: 700;
@@ -1192,7 +1203,7 @@ body {
     display: none;
 }
 
-.angles-hud .ind-alert {
+.pose-hud .ind-alert {
     color: #ffb4b4;
     background: rgba(255, 92, 92, 0.12);
     margin-top: 0.4rem;
@@ -1257,6 +1268,11 @@ body {
 .hud-body-sliders .ind-inline-slider {
     min-width: 0;
     margin-bottom: 0.2rem;
+}
+
+/* Dash pads a slider to 34px tall; these are stacked three deep. */
+.hud-body-sliders .dash-slider-root {
+    padding-block: 13px;
 }
 
 .hud-adjust .ind-field-grid {

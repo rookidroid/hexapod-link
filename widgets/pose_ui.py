@@ -94,10 +94,10 @@ POSE_JOINT_FIELDS = [
 POSE_JOINT_FIELD_IDS = [field_id for _, _, field_id in POSE_JOINT_FIELDS]
 # Says which legs are out of reach, under the angles.
 POSE_ANGLES_ID = "pose-angles"
-ANGLES_HUD_ID = "pose-angles-hud"
+POSE_HUD_ID = "pose-hud"
 # The update_pose callback (pages/pose.py) adds "is-bad" to it while a
 # leg is out of reach.
-ANGLES_HUD_CLASS = "hud-panel angles-hud"
+POSE_HUD_CLASS = "hud-panel pose-hud"
 POSE_MESSAGE_ID = "pose-message"
 POSE_RESET_BTN_ID = "pose-reset-btn"
 POSE_CLEAR_FEET_BTN_ID = "pose-clear-feet-btn"
@@ -317,7 +317,7 @@ def _pick_button(label, button_id, title):
 # the leg's foot where it leads.
 angle_table = make_joint_grid(
     [
-        (index, html.Span(f"J{joint_number(joint)}", title=joint_label(joint)))
+        (index, html.Span(f"J{joint_number(joint)}", title=f"{joint_label(joint)}, in degrees"))
         for index, joint in enumerate(JOINT_NAMES)
     ],
     [
@@ -385,18 +385,19 @@ ADJUST_FOOT = html.Div(
     style={"display": "none"},
 )
 
-# A native <details>, so it folds away without a callback.
-ANGLES_HUD = html.Details(
+# A native <details>, so it folds away without a callback. Folded until
+# wanted, or served as it was left (pages/workspace.py); picking the body or
+# a foot in the view opens it (pages/pose.py).
+POSE_HUD = html.Details(
     [
-        html.Summary("Joint angles (°)"),
+        html.Summary("Pose", title="The joint angles, and the controls of the body or foot picked"),
         angle_table,
         html.Div(id=POSE_ANGLES_ID, className="hud-message"),
         html.Div(id=POSE_MESSAGE_ID, className="hud-message"),
         html.Div([ADJUST_HINT, ADJUST_BODY, ADJUST_FOOT], className="hud-adjust"),
     ],
-    id=ANGLES_HUD_ID,
-    open=True,
-    className=ANGLES_HUD_CLASS,
+    id=POSE_HUD_ID,
+    className=POSE_HUD_CLASS,
 )
 
 

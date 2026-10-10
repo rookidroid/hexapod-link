@@ -62,8 +62,8 @@ from widgets.dimensions_ui import DIMENSIONS_JSON_ID
 from widgets.pose_ui import (
     MODE_EDIT,
     MODE_PREVIEW,
-    ANGLES_HUD_CLASS,
-    ANGLES_HUD_ID,
+    POSE_HUD_CLASS,
+    POSE_HUD_ID,
     GAIT_SOURCES,
     PICK_BTN_CLASS,
     POSE_ADD_BTN_ID,
@@ -212,6 +212,31 @@ clientside_callback(
     Output(POSE_RENDER_ACK_ID, "data", allow_duplicate=True),
     *[Input(button_id, "n_clicks") for button_id in PICK_IDS],
     State(POSE_SELECTION_ID, "data"),
+    prevent_initial_call=True,
+)
+
+# Picking the body or a foot in the view, or dragging it, opens the pose
+# overlay if it is folded away: the joint angles it moves, and its controls,
+# are in there. Set on the element itself rather than through Dash, which never
+# hears of one folded by hand and so would not open it again.
+clientside_callback(
+    """
+    function() {
+        var moving = window.dash_clientside.callback_context.triggered.some(
+            function (trigger) { return trigger.value !== null && trigger.value !== undefined; }
+        );
+        var hud = document.getElementById("%s");
+        if (moving && hud) {
+            hud.open = true;
+        }
+        return window.dash_clientside.no_update;
+    }
+    """
+    % POSE_HUD_ID,
+    Output(POSE_RENDER_ACK_ID, "data", allow_duplicate=True),
+    Input(POSE_SELECTION_ID, "data"),
+    Input(POSE_FOOT_TARGET_ID, "data"),
+    Input(POSE_BODY_TARGET_ID, "data"),
     prevent_initial_call=True,
 )
 
@@ -870,7 +895,7 @@ _last_sent = {"key": None}
 @callback(
     Output(POSE_SCENE_STORE_ID, "data"),
     Output(POSE_ANGLES_ID, "children"),
-    Output(ANGLES_HUD_ID, "className"),
+    Output(POSE_HUD_ID, "className"),
     Input(POSE_STATE_STORE_ID, "data"),
     DIMENSIONS_INPUT,
 )
@@ -891,7 +916,7 @@ def update_pose(pose_store, dimensions_json):
     scene["seq"] = pose_store.get("seq", 0)
     # Marked when a leg is out of reach, so the overlay says so even folded
     # away, when the warning inside it cannot be seen.
-    hud_class = f"{ANGLES_HUD_CLASS} is-bad" if bad_legs else ANGLES_HUD_CLASS
+    hud_class = f"{POSE_HUD_CLASS} is-bad" if bad_legs else POSE_HUD_CLASS
     return scene, _reach_warning(bad_legs), hud_class
 
 

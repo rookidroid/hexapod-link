@@ -22,7 +22,7 @@ from hexapod.preferences import load_layout, load_theme
 from hexapod.robot_link import ROBOT_LINK
 from pages.drive import register_drive_route
 from pages.shell import make_topbar
-from pages.workspace import WORKSPACE
+from pages.workspace import workspace
 from style_settings import EXTERNAL_STYLESHEETS
 from texts import APP_TITLE
 
@@ -100,8 +100,9 @@ register_drive_route(server)
 
 def serve_layout():
     """Built per page load, so the top bar's theme button matches the saved
-    theme (see HexapodDash above). There is one screen, served at any path."""
-    return html.Div([make_topbar(load_theme()), WORKSPACE], className="app-shell")
+    theme (see HexapodDash above) and the view's overlays are folded as they
+    were left. There is one screen, served at any path."""
+    return html.Div([make_topbar(load_theme()), workspace()], className="app-shell")
 
 
 app.layout = serve_layout

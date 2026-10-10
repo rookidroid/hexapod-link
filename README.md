@@ -189,9 +189,10 @@ $ python tools/fake_robot.py nougat
 ### Using it
 
 The window is one screen: the top bar, the 3D view, and the dock along the
-bottom. The pose is set on the view itself: in its bottom-left corner are the
-**joint angles**, and under them the controls of whatever is picked. Click the
-body or a foot in the view to pick it, or its button over the angles —
+bottom. The pose is set on the view itself: in its bottom-left corner,
+**Pose** has the joint angles, and under them the controls of whatever is
+picked. Click the body or a foot in the view to pick it, or its button over
+the angles —
 **Body**, or a leg's (**L1** to **R3**); click it again, or empty space in the
 view, to let go.
 
@@ -201,8 +202,7 @@ add up:
 - **The body** — translate and rotate it over wherever the feet are planted;
   the joints are solved to keep them there. Use its sliders, or drag it in
   the view by its handles: over the view's top edge, **Move** gives it
-  arrows, **Rotate** rings. A
-  dragged body goes as far as its sliders do, and either way the body stops
+  arrows, **Rotate** rings. A dragged body goes as far as its sliders do, and either way the body stops
   where its legs can no longer follow.
 - **A foot** — drag its arrows in the view to move it, or type its **X**,
   **Y** and **Up** (height above the floor) in millimetres. A foot dragged
@@ -222,8 +222,11 @@ streamed is solved on it too.
 
 Neither layer undoes the other: tilt the body, lift a foot, and both stay,
 and the body's sliders always show the pose as it is. **Reset pose**, over the
-view, clears both; **Reset view** frames the robot again. Click the heading of
-the joint angles to fold them, and what is under them, away. With **Stream to
+view, clears both; **Reset view** frames the robot again. **Pose**,
+**Dimensions** and the **Controller** start folded away, to leave the view
+clear: click a heading to open or fold one, and it is remembered for the next
+time the app starts. Picking or dragging the body or a foot in the view opens
+**Pose** by itself. With **Stream to
 robot** on, in the view's top-left corner, every reachable pose is sent to the
 servos as it changes. The pose and the sequence are remembered across a
 reload. Drag the top edge of the dock to make it taller or shorter, and the

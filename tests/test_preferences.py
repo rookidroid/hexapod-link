@@ -5,9 +5,11 @@ import pytest
 from hexapod.preferences import (
     DEFAULT_THEME,
     load_layout,
+    load_panels,
     load_theme,
     preferences_path,
     save_layout,
+    save_panels,
     save_preference,
     save_theme,
 )
@@ -98,3 +100,30 @@ def test_a_size_out_of_range_is_not_kept(preferences_file, value):
 def test_an_unusable_layout_is_ignored(preferences_file, contents):
     preferences_file.write_text(contents, encoding="utf-8")
     assert load_layout() == NO_LAYOUT
+
+
+ALL_FOLDED = {"pose": False, "controller": False, "dimensions": False}
+
+
+def test_panels_start_folded(preferences_file):
+    assert load_panels() == ALL_FOLDED
+
+
+def test_panels_are_saved_one_at_a_time(preferences_file):
+    assert save_theme("dark")
+    assert save_panels({"pose": True, "n": 123})
+    assert save_panels({"controller": True})
+    assert load_panels() == {**ALL_FOLDED, "pose": True, "controller": True}
+    assert load_theme() == "dark"
+
+    assert save_panels({"pose": False})
+    assert load_panels() == {**ALL_FOLDED, "controller": True}
+
+
+@pytest.mark.parametrize(
+    "contents",
+    ['{"panels": [true]}', '{"panels": {"pose": "yes", "controller": 1, "other": true}}'],
+)
+def test_unusable_panels_stay_folded(preferences_file, contents):
+    preferences_file.write_text(contents, encoding="utf-8")
+    assert load_panels() == ALL_FOLDED

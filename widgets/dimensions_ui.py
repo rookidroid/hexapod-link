@@ -44,7 +44,8 @@ widgets = [
     for widget_id, name in zip(DIMENSION_WIDGET_IDS, WIDGET_NAMES)
 ]
 
-# A native <details>, folded until wanted: the view is what it sits over.
+# A native <details>, folded until wanted: the view is what it sits over. Or
+# served as it was left (pages/workspace.py).
 DIMENSIONS_HUD = html.Details(
     [
         html.Summary("Dimensions"),

@@ -88,3 +88,25 @@ def save_layout(sizes):
         if key in sizes:
             layout[key] = _layout_size(sizes[key])
     return save_preference("layout", layout)
+
+
+# The overlays on the view that fold away (pages/workspace.py): whether each
+# was left open, by hand (assets/hud_panels.js). They all start folded, so the
+# view starts clear.
+PANELS = ("pose", "controller", "dimensions")
+
+
+def load_panels():
+    """Whether each of PANELS is open."""
+    saved = load_preferences().get("panels")
+    saved = saved if isinstance(saved, dict) else {}
+    return {key: saved.get(key) is True for key in PANELS}
+
+
+def save_panels(states):
+    """Store the states given, keeping a saved one not among them."""
+    panels = load_panels()
+    for key in PANELS:
+        if key in states:
+            panels[key] = states[key] is True
+    return save_preference("panels", panels)

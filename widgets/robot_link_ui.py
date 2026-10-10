@@ -228,7 +228,8 @@ DRIVE_LAYOUT = {"move": DRIVE_MOVE_PAD, "body": DRIVE_BODY_PAD, "labels": DRIVE_
 # pages/pose.py.
 _speed = ROBOT_LINK.robot_config["speed"]
 
-# A native <details>, so it folds away without a callback.
+# A native <details>, so it folds away without a callback; folded until
+# wanted, or served as it was left (pages/workspace.py).
 DRIVE_HUD = html.Details(
     [
         html.Summary(
@@ -275,6 +276,5 @@ DRIVE_HUD = html.Details(
         ),
     ],
     id=DRIVE_HUD_ID,
-    open=True,
     className="hud-panel drive-hud",
 )

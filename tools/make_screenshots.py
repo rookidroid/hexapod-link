@@ -317,12 +317,16 @@ def main():
     from settings import PREFERENCES_ENV
 
     os.environ[PREFERENCES_ENV] = os.path.join(prefs_dir, "preferences.json")
-    from hexapod.preferences import save_theme
+    from hexapod.preferences import save_panels, save_theme
+
+    # The view's overlays start folded; the shots show the pose and
+    # the controller.
+    save_panels({"pose": True, "controller": True})
 
     import hexapod_link  # noqa: E402  (imported late; it builds the whole app)
     from pages.workspace import WORKSPACE
     from widgets.pose_ui import (
-        ANGLES_HUD_ID,
+        POSE_HUD_ID,
         POSE_RESET_BTN_ID,
         POSE_RESET_VIEW_BTN_ID,
     )
@@ -375,7 +379,7 @@ def main():
             apply_values(
                 WORKSPACE,
                 {
-                    ANGLES_HUD_ID: hidden,
+                    POSE_HUD_ID: hidden,
                     POSE_RESET_BTN_ID: hidden,
                     POSE_RESET_VIEW_BTN_ID: hidden,
                     STREAM_HUD_ID: hidden,

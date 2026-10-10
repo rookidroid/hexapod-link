@@ -9,7 +9,7 @@ import json
 from dash import callback, clientside_callback, dcc, html
 from dash.dependencies import Input, Output, State
 
-from hexapod.preferences import save_layout, save_theme
+from hexapod.preferences import save_layout, save_panels, save_theme
 from texts import APP_TITLE, APP_VERSION
 from widgets.components import make_splitter
 from widgets.dimensions_ui import DIMENSIONS_JSON
@@ -77,9 +77,17 @@ def make_view(view_id, scene=None, overlay=None, hud=None, controls=None, drive=
 # That is done in the page (assets/workspace_resize.js); the sizes let go of
 # come back through the sizes store, to be kept with the preferences and
 # served with the page the next time (hexapod_link.py).
+#
+# The overlays on the view that fold away are kept the same way: one folded or
+# opened by hand (assets/hud_panels.js) comes back through the panels store,
+# and the layout is served with each as it was left (pages/workspace.py).
 # ......................
 
 LAYOUT_SIZES_STORE_ID = "layout-sizes"
+PANEL_STATES_STORE_ID = "panel-states"
+# Names the preference a folding overlay is kept under (PANELS in
+# hexapod/preferences.py), for assets/hud_panels.js.
+PANEL_ATTRIBUTE = "data-panel"
 
 
 def make_workspace(view, dock):
@@ -89,6 +97,7 @@ def make_workspace(view, dock):
             html.Div(dock, className="ws-dock"),
             make_splitter("dock", "horizontal", "resize the dock"),
             dcc.Store(id=LAYOUT_SIZES_STORE_ID),
+            dcc.Store(id=PANEL_STATES_STORE_ID),
             DIMENSIONS_JSON,
         ],
         className="workspace",
@@ -101,6 +110,13 @@ def keep_layout_sizes(sizes):
     (hexapod/preferences.py) in pixels, None for one left to the stylesheet."""
     if isinstance(sizes, dict):
         save_layout(sizes)
+
+
+@callback(Input(PANEL_STATES_STORE_ID, "data"), prevent_initial_call=True)
+def keep_panel_states(states):
+    """Keep an overlay as it was folded or opened, by preference key."""
+    if isinstance(states, dict):
+        save_panels(states)
 
 
 # The status pill is the app's link readout: whether the robot is reachable,
