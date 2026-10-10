@@ -36,8 +36,8 @@
 # that robot's name, and a different robot connecting starts the editor
 # afresh.
 #
-# The robot modelled is the connected one (or the last one, or the generic
-# model), measured as the Dimensions panel has it: they start on the
+# The robot modelled is the connected one (or the last one, or Nougat, the
+# default), measured as the Dimensions panel has it: they start on the
 # robot's own and can be edited to try another body. Feet and keyframes are
 # moves from standby and keep their meaning on the resized body; what is
 # streamed to the robot is solved on it too.
@@ -132,6 +132,7 @@ from widgets.pose_ui import (
     POSE_VIEW_MODE_ID,
     PREVIEW_FPS,
     SELECT_BODY,
+    SPEED_DEFAULT_PCT,
     SPEED_MAX_PCT,
     SPEED_MIN_PCT,
     USER_GAITS_EMPTY,
@@ -1145,11 +1146,11 @@ def delete_user_gait(_confirmed, version):
 
 def _speed_pct(value):
     """The playback speed a typed value stands for: a whole percent, within
-    range; 100 for one that is not a number."""
+    range; the default for one that is not a number."""
     try:
         return int(min(max(round(float(value)), SPEED_MIN_PCT), SPEED_MAX_PCT))
     except (TypeError, ValueError):
-        return 100
+        return SPEED_DEFAULT_PCT
 
 
 def _options(loop_values, speed_pct):
@@ -1165,7 +1166,7 @@ def _options(loop_values, speed_pct):
 )
 def set_speed(speed_pct):
     """Show the playback speed as it is played: in range, a whole percent,
-    and 100 for a box left empty."""
+    and the default for a box left empty."""
     applied = _speed_pct(speed_pct)
     return no_update if applied == speed_pct else applied
 

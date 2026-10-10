@@ -35,7 +35,7 @@ DIMENSIONS_HUD_ID = "dimensions-hud"
 DIMENSIONS_JSON_ID = "hexapod-dimensions-values"
 DIMENSIONS_JSON = html.Div(id=DIMENSIONS_JSON_ID, style={"display": "none"})
 
-# Start on the geometry of the robot last connected (or the generic model).
+# Start on the geometry of the robot last connected (or Nougat's, the default).
 # `follow_robot_config` in pages/robot.py keeps these on the connected robot
 # from then on.
 _DEFAULT_DIMENSIONS = get_simulator_dimensions(ROBOT_LINK.robot_config)
@@ -49,7 +49,7 @@ DIMENSIONS_HUD = html.Details(
     [
         html.Summary("Dimensions"),
         # Which robot the model is: the one connected, the last one, or the
-        # generic model. The measurements below start on its own.
+        # default. The measurements below start on its own.
         html.Div(
             describe(ROBOT_LINK.robot_config),
             id=ROBOT_INFO_ID,

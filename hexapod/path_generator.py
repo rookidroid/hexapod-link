@@ -7,7 +7,7 @@
 import numpy as np
 
 from hexapod.naming import LEG_NAMES
-from hexapod.robot_config import GENERIC_CONFIG, get_leg_signs
+from hexapod.robot_config import DEFAULT_CONFIG, get_leg_signs
 
 
 # --- Path Library Functions (from path_tool/path_lib.py) ---
@@ -353,7 +353,7 @@ def gen_standup_path(standby_coordinate, laydown_coordinate, steps=28):
 # are indexed directly; hexapod/naming.py holds that correspondence.
 
 
-def generate_poses(motion_name, robot_config=GENERIC_CONFIG):
+def generate_poses(motion_name, robot_config=DEFAULT_CONFIG):
     """
     Generates a list of poses for a given motion name, one per frame.
 

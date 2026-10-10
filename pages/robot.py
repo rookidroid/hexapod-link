@@ -45,16 +45,10 @@ def update_dimensions(front, side, middle, coxia, femur, tibia):
         "coxia": coxia or 0,
         "femur": femur or 0,
         "tibia": tibia or 0,
+        # The robot's legs are mounted at the angles it reports, whatever the
+        # body measurements are edited to.
+        "mount_angles": get_simulator_dimensions(ROBOT_LINK.robot_config)["mount_angles"],
     }
-
-    # A real robot's legs are mounted at the angles it reports, whatever the
-    # body measurements are edited to. The generic model has no robot behind
-    # it, so its legs keep pointing out from the cog as the body is resized.
-    robot_config = ROBOT_LINK.robot_config
-    if robot_config["source"] != "generic":
-        dimensions["mount_angles"] = get_simulator_dimensions(robot_config)[
-            "mount_angles"
-        ]
     return json.dumps(dimensions)
 
 

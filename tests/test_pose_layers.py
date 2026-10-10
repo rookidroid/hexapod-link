@@ -13,11 +13,11 @@ import pytest
 
 from hexapod import keyframes as kf
 from hexapod import pose_layers as pl
-from hexapod.robot_config import GENERIC_CONFIG, get_simulator_dimensions, with_dimensions
+from hexapod.robot_config import DEFAULT_CONFIG, get_simulator_dimensions, with_dimensions
 from tests.robots import ROBOT_CONFIGS
 
-ROBOTS = list(ROBOT_CONFIGS.values()) + [GENERIC_CONFIG]
-ROBOT_IDS = list(ROBOT_CONFIGS) + ["generic"]
+ROBOTS = list(ROBOT_CONFIGS.values()) + [DEFAULT_CONFIG]
+ROBOT_IDS = list(ROBOT_CONFIGS) + ["default"]
 
 TILT = {
     "percent_x": 0.15,
@@ -307,8 +307,7 @@ def test_a_resized_robot_is_measured_as_asked_and_still_poses(robot):
     # Mirroring, limits and the robot's identity are its own.
     assert resized["config"]["legScale"] == robot["config"]["legScale"]
     assert resized["joint_limits"] == robot["joint_limits"] and resized["name"] == robot["name"]
-    if robot["source"] != "generic":
-        assert resized["config"]["legMountAngle"] == robot["config"]["legMountAngle"]
+    assert resized["config"]["legMountAngle"] == robot["config"]["legMountAngle"]
 
     # The workspace works on it as on the robot itself.
     state = tilted()

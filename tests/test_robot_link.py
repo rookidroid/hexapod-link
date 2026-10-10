@@ -19,7 +19,7 @@ import pytest
 from hexapod.path_generator import generate_poses
 from hexapod.robot_config import (
     FIRMWARE_COMMANDS,
-    GENERIC_CONFIG,
+    DEFAULT_CONFIG,
     command_id,
     get_joint_limits,
     get_leg_signs,
@@ -143,7 +143,7 @@ def test_leg_signs_come_from_leg_scale():
     assert get_leg_signs(ROBOT_CONFIGS["mochi"]) == (1, 1, 1, -1, -1, -1)
     assert get_leg_signs(ROBOT_CONFIGS["macaroon"]) == (1, 1, 1, -1, -1, -1)
     assert get_leg_signs(ROBOT_CONFIGS["nougat"]) == (-1, 1, 1, 1, -1, -1)
-    assert get_leg_signs(GENERIC_CONFIG) == (1, 1, 1, -1, -1, -1)
+    assert get_leg_signs(DEFAULT_CONFIG) == (-1, 1, 1, 1, -1, -1)
 
 
 def test_mirrored_legs_reflect_about_the_centre():
@@ -375,7 +375,7 @@ def test_an_unknown_motion_is_not_sent():
 def test_the_robots_command_list_resolves_every_motion():
     """The link takes command ids from the robot's own list; for the current
     firmware that must agree with MOTION_COMMANDS above."""
-    for robot in list(ROBOT_CONFIGS.values()) + [GENERIC_CONFIG]:
+    for robot in list(ROBOT_CONFIGS.values()) + [DEFAULT_CONFIG]:
         assert robot["commands"] == FIRMWARE_COMMANDS
         for motion_name, expected in MOTION_COMMANDS.items():
             assert command_id(robot, motion_name) == expected, motion_name

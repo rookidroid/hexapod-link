@@ -48,7 +48,7 @@ from settings import (
 )
 from hexapod import robot_http
 from hexapod.robot_config import (
-    GENERIC_CONFIG,
+    DEFAULT_CONFIG,
     RobotConfigError,
     clamp_speed,
     command_id,
@@ -123,7 +123,7 @@ def servo_angle_to_ticks(angle, servo_min=102, servo_max=512):
     return int(min(max(ticks, servo_min), servo_max))
 
 
-def clamp_pose_angles(coxia, femur, tibia, robot_config=GENERIC_CONFIG):
+def clamp_pose_angles(coxia, femur, tibia, robot_config=DEFAULT_CONFIG):
     """Clamp simulator angles to the robot's mechanically safe joint range.
 
     The simulator permits far more travel than the hardware has (beta and gamma
@@ -138,7 +138,7 @@ def clamp_pose_angles(coxia, femur, tibia, robot_config=GENERIC_CONFIG):
     )
 
 
-def pose_to_ticks(poses, robot_config=GENERIC_CONFIG):
+def pose_to_ticks(poses, robot_config=DEFAULT_CONFIG):
     """Convert a simulator pose dict to a flat list of 18 servo ticks.
 
     `poses` is the structure used throughout the simulator: keys 0-5 (int or
@@ -238,7 +238,7 @@ class RobotLink:
 
     @property
     def robot_config(self):
-        """The config of the robot being modelled: connected, cached or generic."""
+        """The config of the robot being modelled: connected, cached or the default."""
         with self._lock:
             return self._robot_config
 

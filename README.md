@@ -176,8 +176,8 @@ geometry lives in the firmware repo's `software/path_tool/robots/<name>.json`.
 
 The last config received is saved to `~/.hexapod-link/robot_config.json` (set
 `HEXAPOD_LINK_CONFIG_CACHE` to move it), so starting the app without a robot
-still shows the last one. Before any robot has connected it shows a generic
-model. See [`hexapod/robot_config.py`](./hexapod/robot_config.py).
+still shows the last one. Before any robot has connected it shows Nougat, the
+default model. See [`hexapod/robot_config.py`](./hexapod/robot_config.py).
 
 To try the app without hardware, run the stand-in robot and connect to
 `127.0.0.1:8080` (the port is for HTTP; UDP always goes to 1234):

@@ -14,12 +14,12 @@ from hexapod import keyframes as kf
 from hexapod import pose_layers as pl
 from hexapod.gait_keyframes import ONE_SHOT, TOLERANCE_MM, gait_keyframes, robot_poses
 from hexapod.path_generator import generate_poses
-from hexapod.robot_config import GENERIC_CONFIG, get_sequence_fps
+from hexapod.robot_config import DEFAULT_CONFIG, get_sequence_fps
 from tests.robots import ROBOT_CONFIGS
 from widgets.pose_ui import GAIT_MENU, MOTION_TYPES
 
-ROBOTS = list(ROBOT_CONFIGS.values()) + [GENERIC_CONFIG]
-ROBOT_IDS = list(ROBOT_CONFIGS) + ["generic"]
+ROBOTS = list(ROBOT_CONFIGS.values()) + [DEFAULT_CONFIG]
+ROBOT_IDS = list(ROBOT_CONFIGS) + ["default"]
 GAITS = [option["value"] for option in MOTION_TYPES]
 SWAYS = ("rotate_x", "rotate_y", "rotate_z", "twist")
 

@@ -13,7 +13,7 @@ import pytest
 
 from hexapod import robot_http
 from hexapod.robot_config import (
-    GENERIC_CONFIG,
+    DEFAULT_CONFIG,
     RobotConfigError,
     cache_path,
     command_id,
@@ -47,7 +47,7 @@ def nougat():
 
 def _link_to(robot):
     """A link that sends its UDP to `robot` rather than the real port 1234."""
-    return RobotLink(GENERIC_CONFIG, udp_port=robot.udp_port)
+    return RobotLink(DEFAULT_CONFIG, udp_port=robot.udp_port)
 
 
 # ................................................................ parsing
@@ -149,11 +149,14 @@ def test_simulator_dimensions_carry_the_mount_angles():
     )
 
 
-def test_the_generic_model_is_the_simulators_neutral_body():
-    dims = get_simulator_dimensions(GENERIC_CONFIG)
-    assert all(dims[k] == 100 for k in ("front", "side", "middle", "coxia", "femur", "tibia"))
-    assert dims["mount_angles"] == [45, 0, 315, 135, 180, 225]
-    assert GENERIC_CONFIG["source"] == "generic"
+def test_the_default_model_is_nougat():
+    """Measured, mounted and mirrored as the robot itself reports."""
+    nougat = ROBOT_CONFIGS["nougat"]
+    assert get_simulator_dimensions(DEFAULT_CONFIG) == get_simulator_dimensions(nougat)
+    assert DEFAULT_CONFIG["config"]["legScale"] == nougat["config"]["legScale"]
+    assert DEFAULT_CONFIG["joint_limits"] == nougat["joint_limits"]
+    assert DEFAULT_CONFIG["name"] == "nougat" and DEFAULT_CONFIG["label"] == "Nougat"
+    assert DEFAULT_CONFIG["source"] == "default"
 
 
 # .................................................................. cache
@@ -171,8 +174,8 @@ def test_the_cache_round_trips(cache_file):
     assert load_startup_config()["name"] == "nougat"
 
 
-def test_without_a_cache_the_app_starts_generic(cache_file):
-    assert load_startup_config() is GENERIC_CONFIG
+def test_without_a_cache_the_app_starts_on_the_default(cache_file):
+    assert load_startup_config() is DEFAULT_CONFIG
 
 
 def test_an_unreadable_cache_is_ignored(cache_file):
@@ -186,7 +189,7 @@ def test_describe_names_the_robot_and_where_its_config_came_from(cache_file):
     assert describe(ROBOT_CONFIGS["nougat"]) == "Nougat · hexapod_nougat"
     save_cached_config(ROBOT_CONFIGS["nougat"])
     assert "last connected" in describe(load_cached_config())
-    assert "Generic" in describe(GENERIC_CONFIG)
+    assert describe(DEFAULT_CONFIG).startswith("Nougat (default)")
 
 
 # ................................................................... HTTP
@@ -250,11 +253,11 @@ def test_connecting_picks_up_the_robots_speed(nougat, cache_file):
 def test_a_robot_that_does_not_answer_is_not_connected(cache_file):
     with FakeRobot.from_fixture("nougat") as robot:
         address = robot.address
-    link = RobotLink(GENERIC_CONFIG)
+    link = RobotLink(DEFAULT_CONFIG)
     assert not link.connect(address)
     assert not link.connected
     assert "Couldn't read the robot's config" in link.status()["last_error"]
-    assert link.robot_config is GENERIC_CONFIG
+    assert link.robot_config is DEFAULT_CONFIG
     assert link.config_version == 0
     assert not cache_file.exists()
 
@@ -271,7 +274,7 @@ def test_firmware_that_predates_reporting_it_parses():
     payload = load_payload("nougat")
     del payload["firmware"]
     assert parse_robot_config(payload)["firmware"] is None
-    assert GENERIC_CONFIG["firmware"] is None
+    assert DEFAULT_CONFIG["firmware"] is None
 
 
 def test_describe_firmware():

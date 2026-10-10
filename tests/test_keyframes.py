@@ -34,11 +34,11 @@ from hexapod.keyframes import (
 )
 from hexapod.naming import LEG_NAMES
 from hexapod.path_generator import generate_poses
-from hexapod.robot_config import GENERIC_CONFIG, get_joint_limits, get_sequence_fps
+from hexapod.robot_config import DEFAULT_CONFIG, get_joint_limits, get_sequence_fps
 from tests.robots import ROBOT_CONFIGS
 
-ROBOTS = list(ROBOT_CONFIGS.values()) + [GENERIC_CONFIG]
-ROBOT_IDS = list(ROBOT_CONFIGS) + ["generic"]
+ROBOTS = list(ROBOT_CONFIGS.values()) + [DEFAULT_CONFIG]
+ROBOT_IDS = list(ROBOT_CONFIGS) + ["default"]
 
 
 def uniform_pose(coxia, femur, tibia):
@@ -317,7 +317,7 @@ def test_poses_play_on_the_robot_link():
 
 
 def test_durations_are_clamped_and_summed():
-    feet = standby_feet(GENERIC_CONFIG)
+    feet = standby_feet(DEFAULT_CONFIG)
     assert make_keyframe(feet, 1)["duration_ms"] == MIN_DURATION_MS
     assert make_keyframe(feet, 10**9)["duration_ms"] == MAX_DURATION_MS
     assert make_keyframe(feet, None)["duration_ms"] == 500

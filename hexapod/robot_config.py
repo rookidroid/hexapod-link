@@ -1,19 +1,19 @@
 # The config of the physical hexapod being driven.
 #
-# There are no robot definitions in this app. The firmware serves its own at
-# GET /robot_config -- its name and access point, servo range, LUT frame delay,
-# playback speed limits, the motion commands it knows, and its geometry, which
-# is the robot's software/path_tool/robots/<name>.json compiled into the
-# firmware. The link fetches that on every connect (hexapod/robot_link.py), so
-# the simulator always models the robot that is actually on the other end.
+# The firmware serves its own at GET /robot_config -- its name and access
+# point, servo range, LUT frame delay, playback speed limits, the motion
+# commands it knows, and its geometry, which is the robot's
+# software/path_tool/robots/<name>.json compiled into the firmware. The link
+# fetches that on every connect (hexapod/robot_link.py), so the simulator
+# always models the robot that is actually on the other end.
 #
 # The last config received is cached to disk, so the app still shows that robot
 # when started without one. Before any robot has ever connected it falls back
-# to GENERIC_PAYLOAD below.
+# to DEFAULT_PAYLOAD below: Nougat, the one robot defined in this app.
 #
 # A payload is parsed into the dict the rest of the app works with:
 #
-#   name, label, ssid, protocol, source ("robot", "cache" or "generic")
+#   name, label, ssid, protocol, source ("robot", "cache" or "default")
 #   firmware          {"version", "build", "protocol"}, or None if not reported
 #   delay_ms          LUT frame period at 100 % speed
 #   servo_min/max     PWM tick range
@@ -26,7 +26,6 @@
 import json
 import os
 from copy import deepcopy
-from math import atan2, degrees
 from pathlib import Path
 
 from settings import ROBOT_CONFIG_CACHE_ENV, ROBOT_CONFIG_CACHE_PATH
@@ -76,59 +75,46 @@ _FIXED_GAIT = {
 }
 
 
-def _radial_mount_angles(xs, ys):
-    """Leg mount azimuths for legs that point straight out from the cog."""
-    angles = [degrees(atan2(y, x)) for x, y in zip(xs, ys)]
-    # path_tool spells the left legs as negative angles (-225, -180, -135)
-    return [a if i < 3 or a <= 0 else a - 360 for i, a in enumerate(angles)]
+# Nougat's geometry: the firmware repo's software/path_tool/robots/nougat.json.
+_NOUGAT_GEOMETRY = {
+    "name": "nougat",
+    "label": "Nougat",
+    "legMountX": [44.82, 61.03, 44.82, -44.82, -61.03, -44.82],
+    "legMountY": [74.82, 0, -74.82, 74.82, 0, -74.82],
+    "legMountAngle": [45, 0, -45, -225, -180, -135],
+    "legScale": [
+        [1, -1, -1], [1, 1, 1], [1, 1, 1],
+        [1, 1, 1], [1, -1, -1], [1, -1, -1],
+    ],
+    "legRootToJoint1": 0,
+    "legJoint1ToJoint2": 38.0,
+    "legJoint2ToJoint3": 54.06,
+    "legJoint3ToTip": 93.53,
+    "servoMin": 102,
+    "servoMax": 512,
+    "jointLimits": dict(DEFAULT_JOINT_LIMITS),
+    "standbyPosture": [60, 75],
+    "laydownPosture": [25, 25],
+    "gait": {
+        "walk_radius": 40,
+        "fastwalk_y_radius": 50,
+        "fastwalk_z_radius": 40,
+        "fastwalk_x_radius": 15,
+        "turn_radius": 35,
+    },
+}
 
-
-def _generic_geometry():
-    # A neutral body and legs 100 mm each way, with the same leg mirroring as
-    # the robots.
-    front = mid = side = 100.0
-    mount_x = [front, mid, front, -front, -mid, -front]
-    mount_y = [side, 0.0, -side, side, 0.0, -side]
-    return {
-        "name": "generic",
-        "label": "Generic",
-        "legMountX": mount_x,
-        "legMountY": mount_y,
-        "legMountAngle": _radial_mount_angles(mount_x, mount_y),
-        "legScale": [
-            [1, 1, 1], [1, 1, 1], [1, 1, 1],
-            [1, -1, -1], [1, -1, -1], [1, -1, -1],
-        ],
-        "legRootToJoint1": 0,
-        "legJoint1ToJoint2": 100.0,
-        "legJoint2ToJoint3": 100.0,
-        "legJoint3ToTip": 100.0,
-        "servoMin": 102,
-        "servoMax": 512,
-        "jointLimits": dict(DEFAULT_JOINT_LIMITS),
-        "standbyPosture": [60, 75],
-        "laydownPosture": [25, 25],
-        "gait": {
-            "walk_radius": 30,
-            "fastwalk_y_radius": 40,
-            "fastwalk_z_radius": 30,
-            "fastwalk_x_radius": 15,
-            "turn_radius": 35,
-        },
-    }
-
-
-# Stands in for a robot until one has connected. Shaped like a firmware payload
-# so it goes through the same parser.
-GENERIC_PAYLOAD = {
+# Stands in for a robot until one has connected: Nougat, as its firmware
+# reports itself, so it goes through the same parser.
+DEFAULT_PAYLOAD = {
     "protocol": SUPPORTED_PROTOCOL,
-    "name": "generic",
+    "name": "nougat",
     "ssid": "",
     "delay_ms": 12,
     "servo": {"min": 102, "mid": 307, "max": 512},
     "speed": dict(DEFAULT_SPEED),
     "commands": list(FIRMWARE_COMMANDS),
-    "geometry": _generic_geometry(),
+    "geometry": _NOUGAT_GEOMETRY,
 }
 
 
@@ -276,7 +262,7 @@ def parse_robot_config(payload, source="robot"):
     }
 
 
-GENERIC_CONFIG = parse_robot_config(GENERIC_PAYLOAD, source="generic")
+DEFAULT_CONFIG = parse_robot_config(DEFAULT_PAYLOAD, source="default")
 
 
 # ------------------------------------------------------------ fetch / cache
@@ -321,8 +307,8 @@ def load_cached_config():
 
 
 def load_startup_config():
-    """The config to model before any robot connects: cached, else generic."""
-    return load_cached_config() or GENERIC_CONFIG
+    """The config to model before any robot connects: cached, else Nougat's."""
+    return load_cached_config() or DEFAULT_CONFIG
 
 
 # ----------------------------------------------------------------- helpers
@@ -355,11 +341,9 @@ def with_dimensions(robot_config, dimensions):
 
     `dimensions` is in get_simulator_dimensions()'s terms, as the Dimensions
     panel edits them. The mounts move with front, side and middle, each leg
-    keeping its own side and mirroring; the legs take the new lengths. A real
-    robot's legs keep the angles they are mounted at, whatever the body
-    measures; the generic model has no robot behind it, so its legs keep
-    pointing straight out from the cog. Joint limits, gait and the rest are the
-    robot's own.
+    keeping its own side and mirroring; the legs take the new lengths. The
+    legs keep the angles they are mounted at, whatever the body measures.
+    Joint limits, gait and the rest are the robot's own.
 
     A measurement that is missing or not positive keeps the robot's.
     """
@@ -392,8 +376,6 @@ def with_dimensions(robot_config, dimensions):
     config["legJoint1ToJoint2"] = new["coxia"]
     config["legJoint2ToJoint3"] = new["femur"]
     config["legJoint3ToTip"] = new["tibia"]
-    if robot_config["source"] == "generic":
-        config["legMountAngle"] = _radial_mount_angles(xs, ys)
 
     return {**robot_config, "config": config}
 
@@ -440,8 +422,8 @@ def command_id(robot_config, motion_name):
 
 def describe(robot_config):
     """One line naming the robot the simulator is modelling."""
-    if robot_config["source"] == "generic":
-        return "Generic model — connect a robot to load its config"
+    if robot_config["source"] == "default":
+        return f"{robot_config['label']} (default) — connect a robot to load its config"
     ssid = f" · {robot_config['ssid']}" if robot_config["ssid"] else ""
     if robot_config["source"] == "cache":
         return f"{robot_config['label']}{ssid} (last connected)"

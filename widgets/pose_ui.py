@@ -163,6 +163,8 @@ POSE_USER_GAITS_VERSION_ID = "pose-user-gaits-version"
 POSE_SPEED_ID = "pose-speed"
 SPEED_MIN_PCT = 25
 SPEED_MAX_PCT = 200
+# What it starts on, and goes back to when its box is left empty.
+SPEED_DEFAULT_PCT = 60
 
 POSE_SAVE_BTN_ID = "pose-save-btn"
 POSE_DOWNLOAD_ID = "pose-download"
@@ -722,7 +724,7 @@ playback_section = _section(
                                     # the range is kept by set_speed in
                                     # pages/pose.py instead.
                                     type="number",
-                                    value=100,
+                                    value=SPEED_DEFAULT_PCT,
                                     debounce=True,
                                 ),
                                 dbc.InputGroupText("%"),
