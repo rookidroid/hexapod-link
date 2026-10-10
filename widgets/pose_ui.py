@@ -1,4 +1,4 @@
-# Controls of the workspace (pages/workspace.py, pages/page_pose.py).
+# Controls of the workspace (pages/workspace.py, pages/pose.py).
 #
 # The pose is set on the view itself. In its corner, the joint angles are read
 # out and can be typed, and under them are the controls of whatever is picked
@@ -17,12 +17,11 @@
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
-from hexapod.const import NAMES_JOINT, NAMES_LEG
 from hexapod.keyframes import DEFAULT_DURATION_MS, MAX_DURATION_MS, MIN_DURATION_MS
-from hexapod.naming import joint_label, joint_number, leg_label
-from widgets.ik_ui import ROTATE_WIDGETS, TRANSLATE_WIDGETS
+from hexapod.naming import JOINT_NAMES, LEG_NAMES, joint_label, joint_number, leg_label
+from widgets.body_ui import ROTATE_WIDGETS, TRANSLATE_WIDGETS
 from widgets.robot_link_ui import SECTION_CONTROLS_OFFLINE_CLASS
-from widgets.section_maker import (
+from widgets.components import (
     LEG_SIDES,
     field_label,
     make_field_grid,
@@ -51,9 +50,9 @@ POSE_PLAY_STATE_STORE_ID = "pose-play-state"
 POSE_INTERVAL_ID = "pose-interval"
 
 # The buttons that pick what to adjust, as clicking it in the view does: the
-# body's, and each leg's, in id order (NAMES_LEG).
+# body's, and each leg's, in id order (LEG_NAMES).
 POSE_PICK_BODY_ID = "pose-pick-body"
-POSE_PICK_LEG_IDS = [f"pose-pick-{leg_name}" for leg_name in NAMES_LEG]
+POSE_PICK_LEG_IDS = [f"pose-pick-{leg_name}" for leg_name in LEG_NAMES]
 PICK_BTN_CLASS = "hud-pick"
 
 # What is shown under the angles: a hint with nothing picked, or the controls
@@ -82,17 +81,17 @@ def pose_joint_id(leg_name, joint_name):
     return f"pose-joint-{leg_name}-{joint_name}"
 
 
-# Leg by leg in id order (NAMES_LEG), joints coxia, femur, tibia.
+# Leg by leg in id order (LEG_NAMES), joints coxia, femur, tibia.
 POSE_JOINT_FIELDS = [
     (leg_id, joint_name, pose_joint_id(leg_name, joint_name))
-    for leg_id, leg_name in enumerate(NAMES_LEG)
-    for joint_name in NAMES_JOINT
+    for leg_id, leg_name in enumerate(LEG_NAMES)
+    for joint_name in JOINT_NAMES
 ]
 POSE_JOINT_FIELD_IDS = [field_id for _, _, field_id in POSE_JOINT_FIELDS]
 # Says which legs are out of reach, under the angles.
 POSE_ANGLES_ID = "pose-angles"
 ANGLES_HUD_ID = "pose-angles-hud"
-# The update_pose callback (pages/page_pose.py) adds "is-bad" to it while a
+# The update_pose callback (pages/pose.py) adds "is-bad" to it while a
 # leg is out of reach.
 ANGLES_HUD_CLASS = "hud-panel angles-hud"
 POSE_MESSAGE_ID = "pose-message"
@@ -119,7 +118,7 @@ POSE_KF_ITEM_TYPE = "pose-keyframe-item"
 POSE_VIEW_MODE_ID = "pose-view-mode"
 # Where playback came to rest, as {"frame", "n"}: written when it is paused or
 # runs out, and when the scrubber is let go (assets/sequence_scrubber.js).
-# That frame becomes the pose (edit() in pages/page_pose.py).
+# That frame becomes the pose (edit() in pages/pose.py).
 POSE_PLAYHEAD_ID = "pose-playhead"
 POSE_LOOP_ID = "pose-loop"
 POSE_KF_EASE_ID = "pose-keyframe-ease"
@@ -166,7 +165,7 @@ POSE_DOWNLOAD_ID = "pose-download"
 POSE_UPLOAD_ID = "pose-upload"
 
 # Frames a second the preview is drawn at in the browser. The robot gets its
-# own, faster, frames: see run_on_robot() in pages/page_pose.py.
+# own, faster, frames: see run_on_robot() in pages/pose.py.
 PREVIEW_FPS = 25
 
 # The gaits the path tool generates (hexapod/path_generator.py), by the
@@ -270,7 +269,7 @@ def _joint_field(joint_index, column):
     # Applied when the field is left or Enter is pressed, not per digit. Left
     # empty for a leg that cannot reach its foot, whose angles mean nothing.
     return dbc.Input(
-        id=pose_joint_id(ANGLE_COLUMNS[column], NAMES_JOINT[joint_index]),
+        id=pose_joint_id(ANGLE_COLUMNS[column], JOINT_NAMES[joint_index]),
         type="number",
         step=0.1,
         debounce=True,
@@ -290,12 +289,12 @@ def _pick_button(label, button_id, title):
 angle_table = make_joint_grid(
     [
         (index, html.Span(f"J{joint_number(joint)}", title=joint_label(joint)))
-        for index, joint in enumerate(NAMES_JOINT)
+        for index, joint in enumerate(JOINT_NAMES)
     ],
     [
         _pick_button(
             short_leg_name(name),
-            POSE_PICK_LEG_IDS[list(NAMES_LEG).index(name)],
+            POSE_PICK_LEG_IDS[LEG_NAMES.index(name)],
             f"{leg_label(name)}: pick its foot, to move it",
         )
         for name in ANGLE_COLUMNS
@@ -577,7 +576,7 @@ keyframes_part = html.Div(
     [
         # The keyframes in order, each with when it is reached and, on the
         # arrow into it, how long it takes to get there (list_keyframes in
-        # pages/page_pose.py).
+        # pages/pose.py).
         html.Div(
             [
                 html.Div(id=POSE_KF_LIST_ID, className="ind-kf-strip"),
@@ -609,7 +608,7 @@ keyframes_part = html.Div(
                                         # Applied when the field is left or Enter is
                                         # pressed, not per digit. No min, max or step,
                                         # for the same reason as the speed's: the
-                                        # range is kept by edit() in page_pose.py.
+                                        # range is kept by edit() in pages/pose.py.
                                         dbc.Input(
                                             id=POSE_DURATION_ID,
                                             type="number",
@@ -714,7 +713,7 @@ playback_section = _section(
                                     # No min, max or step: the browser hands
                                     # a number outside them over as empty, so
                                     # the range is kept by set_speed in
-                                    # pages/page_pose.py instead.
+                                    # pages/pose.py instead.
                                     type="number",
                                     value=100,
                                     debounce=True,
@@ -786,7 +785,7 @@ robot_section = _section(
 
 # The pose and the sequence being built live in session storage, so they
 # survive a reload. Each store records which robot it was made on; see
-# pages/page_pose.py.
+# pages/pose.py.
 hidden_components = html.Div(
     [
         dcc.Store(id=POSE_FOOT_TARGET_ID),

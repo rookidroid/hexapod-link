@@ -1,4 +1,4 @@
-# Keyframed leg motion for the pose page (pages/page_pose.py).
+# Keyframed leg motion for the workspace (pages/pose.py).
 #
 # A pose here is where the six feet are, not what the joints are doing: a 6x3
 # list of foot tip positions in the robot's body frame, the same frame the path
@@ -9,7 +9,7 @@
 # A keyframe is {"feet": [[x, y, z] * 6], "duration_ms": int}, where the
 # duration is the time taken to reach that pose from the keyframe before it. The
 # first keyframe's duration is only used when the sequence loops, for the move
-# from the last keyframe back round to it. A keyframe made on the pose page
+# from the last keyframe back round to it. A keyframe made in the workspace
 # also keeps the layers the pose was built from, as "state"
 # (hexapod/pose_layers.py); this module carries it along without looking in it.
 #
@@ -21,14 +21,13 @@
 # Nothing here settles the body onto the ground: the body is held still and the
 # feet move around it. That is how the robot sees it too -- it has no idea where
 # the floor is, it only places its feet -- and in the editor it keeps a dragged
-# foot under the cursor instead of the whole robot shifting as it re-balances.
+# foot under the cursor.
 
 import json
 
 import numpy as np
 
 from hexapod.models import VirtualHexapod
-from hexapod.naming import leg_label
 from hexapod.path_generator import (
     gen_posture,
     inverse_kinematics,
@@ -288,33 +287,26 @@ def _posed_model(pose, robot_config):
 def pose_to_feet(pose, robot_config):
     """Where a pose puts the six feet, in the body frame: feet_to_pose run backwards.
 
-    How a pose made from joint angles -- the body and leg sliders of the pose
-    page -- becomes feet that can be dragged and kept as a keyframe.
+    How a pose made from joint angles -- typed into the joint fields, or one
+    of a gait's -- becomes feet that can be dragged and kept as a keyframe.
     """
     hexapod = _posed_model(pose, robot_config)
     return clean_feet([xyz(leg.foot_tip()) for leg in hexapod.legs])
-
-
-def describe_bad_legs(bad_legs):
-    labels = ", ".join(leg_label(leg) for leg in bad_legs)
-    return f"Out of reach or past a joint limit: {labels}"
 
 
 def pose_to_scene(pose, robot_config):
     """The scene the 3D view draws for a pose (hexapod/scene.py).
 
     The legs are posed by the simulator's own linkage model rather than by the
-    path tool's IK, so what is drawn is the same model every other page draws.
-    The body is not settled onto the ground; the floor is drawn where the feet
-    stand at standby, and the support polygon through the feet that are on it.
+    path tool's IK, so what is drawn is a check on what was solved. The floor
+    is drawn where the feet stand at standby, and the support polygon through
+    the feet that are on it.
     """
     hexapod = _posed_model(pose, robot_config)
     ground = ground_height(robot_config)
     feet = [xyz(leg.foot_tip()) for leg in hexapod.legs]
     standing = [foot for foot in feet if foot[2] <= ground + GROUND_TOLERANCE]
-    # The body is held still in the editor, so the world's axes would only sit
-    # on top of the body's own.
-    return hexapod_to_scene(hexapod, ground=ground, support=standing, world_axes=False)
+    return hexapod_to_scene(hexapod, ground, standing)
 
 
 def clamp_duration(duration_ms):
@@ -439,16 +431,16 @@ def keyframe_times_ms(keyframes):
     return times
 
 
-def interpolate(keyframes, robot_config, fps, loop=False, ease=True, speed=1.0):
-    """Simulator poses frame by frame through the keyframes.
+def solve_frames(feet_frames, robot_config):
+    """Simulator poses for each frame of feet: (poses, bad_frames).
 
-    Returns (poses, bad_frames): the poses, ready for RobotLink.play_sequence(),
-    and the indices of the frames where some leg cannot reach. A straight line
-    between two reachable foot positions can pass out of reach, so this is
-    checked here rather than assumed from the keyframes being valid.
+    The poses are ready for RobotLink.play_sequence(); `bad_frames` are the
+    indices of the frames where some leg cannot reach. A straight line between
+    two reachable foot positions can pass out of reach, so this is checked
+    frame by frame rather than assumed from the keyframes being valid.
     """
     poses, bad_frames = [], []
-    for index, feet in enumerate(interpolate_feet(keyframes, fps, loop, ease, speed)):
+    for index, feet in enumerate(feet_frames):
         pose, bad_legs = feet_to_pose(feet, robot_config)
         poses.append(pose)
         if bad_legs:

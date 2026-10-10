@@ -1,6 +1,6 @@
 # Gaits of one's own: a whole sequence saved under a name, to be put into
 # another sequence the way one of the robot's gaits is (the dock's Gaits
-# library, pages/page_pose.py).
+# library, pages/pose.py).
 #
 # Each is a keyframe file, as Save… writes it (hexapod/keyframes.py), with its
 # name added, in GAITS_DIR (settings.py). So a gait's file loads with Load…

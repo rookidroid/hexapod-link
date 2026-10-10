@@ -4,27 +4,12 @@
 
 from pathlib import Path
 
-# The range of each leg joint in degrees
-ALPHA_MAX_ANGLE = 90
-BETA_MAX_ANGLE = 180
-GAMMA_MAX_ANGLE = 180
+# How far the body's rotation sliders go either way, in degrees
 BODY_MAX_ANGLE = 40
 
 # Too slow? set UPDATE_MODE='mouseup'
 # Makes widgets only start updating when you release the mouse button
 UPDATE_MODE = "drag"
-
-DEBUG_MODE = False
-ASSERTION_ENABLED = False
-
-# The inverse kinematics solver already updates the points of the hexapod
-# But there is no guarantee that this pose is correct
-# So better update a fresh hexapod with the resulting poses
-RECOMPUTE_HEXAPOD = True
-
-PRINT_IK_LOCAL_LEG = False
-PRINT_IK = False
-PRINT_MODEL_ON_UPDATE = False
 
 # Make it more granular to prevent overloading the server
 SLIDER_ANGLE_RESOLUTION = 1.5

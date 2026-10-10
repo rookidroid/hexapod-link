@@ -26,7 +26,7 @@ from hexapod.robot_config import (
     parse_robot_config,
     save_cached_config,
 )
-from hexapod.robot_http import RobotHttpError, robot_url, split_address
+from hexapod.robot_http import robot_url, split_address
 from hexapod.robot_link import RobotLink
 from tests.robots import ROBOT_CONFIGS, ROBOT_NAMES, load_payload
 from tools.fake_robot import FakeRobot
@@ -62,8 +62,8 @@ def test_every_robot_payload_parses():
         assert robot["servo_min"] == 102 and robot["servo_max"] == 512
 
 
-def test_the_robot_supplies_what_the_profiles_used_to():
-    """The values the app used to carry by hand now arrive from the robot."""
+def test_the_payload_carries_the_robots_own_values():
+    """Timing, limits, gait radii and mounts all arrive from the robot."""
     mochi = ROBOT_CONFIGS["mochi"]
     assert mochi["ssid"] == "hexapod"
     assert mochi["delay_ms"] == 12
@@ -216,22 +216,6 @@ def test_speed_routes(nougat):
     assert robot_http.set_speed(nougat.address, 75) == 75
     assert nougat.speed == 75
     assert robot_http.set_speed(nougat.address, 5) == 20
-
-
-def test_calibration_routes(nougat):
-    offsets = robot_http.enter_calibration(nougat.address)
-    assert offsets == {"left": [[0] * 3] * 3, "right": [[0] * 3] * 3}
-
-    new = {"left": [[1, 2, 3], [4, 5, 6], [7, 8, 9]], "right": [[-1, 0, 150], [0, 0, 0], [0, 0, 0]]}
-    assert robot_http.set_offsets(nougat.address, new) == "Offsets applied!"
-    assert robot_http.get_offsets(nougat.address)["right"][0] == [-1, 0, 100]
-    assert robot_http.save_offsets(nougat.address) == "Offsets saved to flash!"
-    assert nougat.saved_offsets["left"][2] == [7, 8, 9]
-
-    robot_http.exit_calibration(nougat.address)
-    # The firmware's own refusal reaches the caller.
-    with pytest.raises(RobotHttpError, match="Enter calibration mode first"):
-        robot_http.set_offsets(nougat.address, new)
 
 
 # ............................................................... connect

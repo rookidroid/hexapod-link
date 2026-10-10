@@ -1,11 +1,11 @@
-# One pose in two layers on top of the robot's standby posture, as the pose
-# page (pages/page_pose.py) edits it:
+# One pose in two layers on top of the robot's standby posture, as the
+# workspace (pages/pose.py) edits it:
 #
 #   offsets  how far each foot has been moved from where standby plants it,
 #            in the world (6x3, mm).
 #   body     how the body is moved and tilted over the planted feet: a shift
 #            as a fraction of the body's size, and rotations in degrees, as
-#            the inverse kinematics sliders have always meant them.
+#            the body's sliders (widgets/body_ui.py) set them.
 #
 # The layers add up rather than replace each other, so the body's controls and
 # a foot's keep meaning what they say whichever was used last: tilting the
@@ -66,7 +66,7 @@ def is_state(state):
     return offsets.shape == (6, 3) and np.isfinite(numbers).all() and np.isfinite(offsets).all()
 
 
-def _placement(state, robot_config):
+def placement(state, robot_config):
     """Where the feet are planted in the world, and the body's frame in it.
 
     A point p in the body frame is at rotation @ p + origin in the world.
@@ -87,7 +87,7 @@ def _placement(state, robot_config):
 
 def body_feet(state, robot_config):
     """The feet in the body frame: what the joints are solved from."""
-    planted, rotation, origin = _placement(state, robot_config)
+    planted, rotation, origin = placement(state, robot_config)
     # rotation.T @ (p - origin), for each foot as a row.
     return kf.clean_feet((planted - origin) @ rotation)
 
@@ -101,7 +101,7 @@ def solve(state, robot_config):
 
 def view_feet(state, robot_config):
     """Where the feet are planted, in the view's coordinates (floor at z = 0)."""
-    planted, _, _ = _placement(state, robot_config)
+    planted, _, _ = placement(state, robot_config)
     return kf.clean_feet(planted - [0.0, 0.0, kf.ground_height(robot_config)])
 
 
@@ -117,7 +117,7 @@ def with_foot_near(state, leg, target, robot_config):
     """with_foot_at() for a foot being dragged: at `target` if its leg can
     reach it, else as near as the leg gets (kf.nearest_reachable_foot), so
     the leg follows along the edge of its reach. None if it gets nowhere."""
-    _, rotation, origin = _placement(state, robot_config)
+    _, rotation, origin = placement(state, robot_config)
     world = np.asarray(target, dtype=float) + [0.0, 0.0, kf.ground_height(robot_config)]
     foot = kf.nearest_reachable_foot((world - origin) @ rotation, leg, robot_config)
     if foot is None:
@@ -134,7 +134,7 @@ def with_leg_angles(state, leg, angles, robot_config):
     pose = {leg_id: dict(joints) for leg_id, joints in pose.items()}
     pose[leg].update(angles)
     foot = np.asarray(kf.pose_to_feet(pose, robot_config))[leg]
-    _, rotation, origin = _placement(state, robot_config)
+    _, rotation, origin = placement(state, robot_config)
     offsets = np.array(state["offsets"], dtype=float)
     offsets[leg] = rotation @ foot + origin - kf.standby_feet(robot_config)[leg]
     return make_state(state["body"], offsets)
@@ -143,7 +143,7 @@ def with_leg_angles(state, leg, angles, robot_config):
 def body_frame(state, robot_config):
     """Where the body is, as the view's handle on it has it: {"origin"} in the
     view's coordinates and {"rot"}, its rotations about x, y and z in degrees."""
-    _, _, origin = _placement(state, robot_config)
+    _, _, origin = placement(state, robot_config)
     lifted = origin - [0.0, 0.0, kf.ground_height(robot_config)]
     return {
         "origin": [round(float(c), 3) + 0.0 for c in lifted],
@@ -228,7 +228,7 @@ def scene(state, pose, robot_config):
     or not it would balance there. With the body's frame, for the view's
     handle on it.
     """
-    _, rotation, origin = _placement(state, robot_config)
+    _, rotation, origin = placement(state, robot_config)
     lift = [0.0, 0.0, -kf.ground_height(robot_config)]
     drawn = transform_scene(kf.pose_to_scene(pose, robot_config), rotation, origin + lift)
     standing = [foot for foot in drawn["feet"] if foot[2] <= kf.GROUND_TOLERANCE]
@@ -238,7 +238,8 @@ def scene(state, pose, robot_config):
     return drawn
 
 
-def _as_vector(state):
+def state_to_vector(state):
+    """The layers as one flat array, to interpolate between states."""
     return np.concatenate(
         [
             [state["body"][key] for key in BODY_KEYS],
@@ -247,7 +248,8 @@ def _as_vector(state):
     )
 
 
-def _from_vector(vector):
+def vector_to_state(vector):
+    """state_to_vector() run backwards."""
     body = dict(zip(BODY_KEYS, vector[: len(BODY_KEYS)]))
     offsets = vector[len(BODY_KEYS) :].reshape(6, 3)
     return make_state(body, offsets)
@@ -263,9 +265,9 @@ def sequence(keyframes, robot_config, fps, loop=False, ease=True, speed=1.0):
     and `states` is None.
     """
     if keyframes and all(is_state(frame.get("state")) for frame in keyframes):
-        vectors = [_as_vector(frame["state"]) for frame in keyframes]
+        vectors = [state_to_vector(frame["state"]) for frame in keyframes]
         states = [
-            _from_vector(vector)
+            vector_to_state(vector)
             for vector in kf.interpolate_arrays(vectors, keyframes, fps, loop, ease, speed)
         ]
         feet = [body_feet(state, robot_config) for state in states]
@@ -273,10 +275,5 @@ def sequence(keyframes, robot_config, fps, loop=False, ease=True, speed=1.0):
         states = None
         feet = kf.interpolate_feet(keyframes, fps, loop, ease, speed)
 
-    poses, bad_frames = [], []
-    for index, frame_feet in enumerate(feet):
-        pose, bad_legs = kf.feet_to_pose(frame_feet, robot_config)
-        poses.append(pose)
-        if bad_legs:
-            bad_frames.append(index)
+    poses, bad_frames = kf.solve_frames(feet, robot_config)
     return feet, states, poses, bad_frames

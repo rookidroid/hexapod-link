@@ -2,7 +2,7 @@
    HEXAPOD LINK — WORKSTATION THEME (LIGHT / DARK)
 
    One screen built around the 3D view: a top bar, the view with the pose's
-   controls laid over it, and a dock along the bottom (pages/shared.py
+   controls laid over it, and a dock along the bottom (pages/shell.py
    make_workspace, pages/workspace.py).
 
    Styled after the RX-78-2 Gundam: white armour plates framed in navy,
@@ -14,7 +14,7 @@
 
    Every colour that differs between the themes is a token on :root. The dark
    values override them when <html> carries data-theme="dark"; the attribute is
-   set by hexapod_link.py and the top bar's theme toggle (pages/shared.py).
+   set by hexapod_link.py and the top bar's theme toggle (pages/shell.py).
    ============================================= */
 
 /* Fonts are bundled locally (assets/fonts) rather than pulled from Google
@@ -798,24 +798,6 @@ body {
     margin: 0;
 }
 
-/* A main control and a button that share a line while both fit, and stack
-   when they do not. */
-.ind-wrap-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.ind-wrap-row > .ind-wrap-main {
-    flex: 1 1 11rem;
-    min-width: 0;
-}
-
-.ind-wrap-row > .ind-wrap-side {
-    flex: 0 0 auto;
-}
-
 /* ---- Joint grids ----
    One input per leg and joint; the columns named once, in the header. */
 
@@ -1539,11 +1521,6 @@ body {
 
 .dock-push {
     margin-left: auto;
-}
-
-.dock-grow {
-    flex: 1 1 14rem;
-    min-width: 0;
 }
 
 .dock-note {

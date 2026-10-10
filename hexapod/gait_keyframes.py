@@ -1,7 +1,7 @@
-# The robot's gaits worked out as keyframes. Once in a sequence on the pose
-# page (pages/page_pose.py) they are keyframes like any other -- nothing
-# marks where they came from -- to retime, edit, mix with poses of one's own
-# or put in twice.
+# The robot's gaits worked out as keyframes. Once in a sequence
+# (pages/pose.py) they are keyframes like any other -- nothing marks where
+# they came from -- to retime, edit, mix with poses of one's own or put in
+# twice.
 #
 # A gait from the path generator (hexapod/path_generator.py) is a pose every
 # frame of the robot's own timing -- 20 to 28 to a cycle -- with the feet on
@@ -105,7 +105,7 @@ def frame_state(feet, robot_config):
     }
     # The offsets are taken from the body as it is kept, rounded, so the two
     # layers still put the feet exactly where the gait has them.
-    _, rotation, origin = pl._placement(pl.make_state(body, np.zeros((6, 3))), robot_config)
+    _, rotation, origin = pl.placement(pl.make_state(body, np.zeros((6, 3))), robot_config)
     return pl.make_state(body, feet @ rotation.T + origin - standby)
 
 
@@ -117,7 +117,7 @@ def _fits(vectors, feet, robot_config, start, end, tolerance):
     steps = (end - start) * LIMIT_CHECKS_PER_FRAME
     for step in range(1, steps):
         t = step / steps
-        played = pl.body_feet(pl._from_vector(a + (b - a) * t), robot_config)
+        played = pl.body_feet(pl.vector_to_state(a + (b - a) * t), robot_config)
         if step % LIMIT_CHECKS_PER_FRAME == 0:
             index = start + step // LIMIT_CHECKS_PER_FRAME
             if np.abs(np.asarray(played) - feet[index]).max() > tolerance:
@@ -147,7 +147,7 @@ def gait_keyframes(motion_name, robot_config, tolerance=TOLERANCE_MM):
     cyclic = motion_name not in ONE_SHOT
     # A cycle closes on its first frame again, as frame `count`.
     last = count if cyclic else count - 1
-    vectors = [pl._as_vector(state) for state in states]
+    vectors = [pl.state_to_vector(state) for state in states]
     kept = [0]
     while kept[-1] < last:
         end = kept[-1] + 1

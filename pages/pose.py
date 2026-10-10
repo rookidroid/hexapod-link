@@ -37,7 +37,7 @@
 # afresh.
 #
 # The robot modelled is the connected one (or the last one, or the generic
-# model), measured as the Robot panel's dimensions have it: they start on the
+# model), measured as the Dimensions panel has it: they start on the
 # robot's own and can be edited to try another body. Feet and keyframes are
 # moves from standby and keep their meaning on the resized body; what is
 # streamed to the robot is solved on it too.
@@ -56,8 +56,9 @@ from hexapod import pose_layers as pl
 from hexapod.naming import LEG_LABELS, leg_label
 from hexapod.robot_config import get_sequence_fps, with_dimensions
 from hexapod.robot_link import ROBOT_LINK
-from pages import helpers, shared
-from widgets.ik_ui import BODY_RANGES, IK_WIDGETS_IDS
+from pages.shell import view_ack_id, view_store_id
+from widgets.body_ui import BODY_RANGES, BODY_SLIDER_IDS
+from widgets.dimensions_ui import DIMENSIONS_JSON_ID
 from widgets.pose_ui import (
     MODE_EDIT,
     MODE_PREVIEW,
@@ -149,8 +150,8 @@ from widgets.robot_link_ui import (
 # The view and what is picked
 # ......................
 
-POSE_SCENE_STORE_ID = shared.view_store_id(POSE_VIEW_ID)
-POSE_RENDER_ACK_ID = f"{POSE_VIEW_ID}-ack"
+POSE_SCENE_STORE_ID = view_store_id(POSE_VIEW_ID)
+POSE_RENDER_ACK_ID = view_ack_id(POSE_VIEW_ID)
 
 # The buttons that pick: the body's, then each leg's by id.
 PICK_IDS = [POSE_PICK_BODY_ID, *POSE_PICK_LEG_IDS]
@@ -231,7 +232,7 @@ clientside_callback(
 # ......................
 
 # Which layer each slider sets, and how far each goes either way.
-BODY_WIDGET_KEYS = dict(zip(IK_WIDGETS_IDS, pl.BODY_KEYS))
+BODY_WIDGET_KEYS = dict(zip(BODY_SLIDER_IDS, pl.BODY_KEYS))
 BODY_KEY_RANGES = dict(zip(pl.BODY_KEYS, BODY_RANGES))
 # The leg and joint each joint field sets.
 JOINT_FIELD_KEYS = {field_id: (leg, joint) for leg, joint, field_id in POSE_JOINT_FIELDS}
@@ -240,14 +241,14 @@ JOINT_FIELD_KEYS = {field_id: (leg, joint) for leg, joint, field_id in POSE_JOIN
 FOOT_HELD_MM = 0.01
 
 
-# The Robot panel's dimensions, as JSON (pages/shared.py).
-DIMENSIONS_INPUT = Input(shared.DIMENSIONS_HIDDEN_SECTION_ID, "children")
-DIMENSIONS_STATE = State(shared.DIMENSIONS_HIDDEN_SECTION_ID, "children")
+# The Dimensions panel's measurements, as JSON (pages/robot.py).
+DIMENSIONS_INPUT = Input(DIMENSIONS_JSON_ID, "children")
+DIMENSIONS_STATE = State(DIMENSIONS_JSON_ID, "children")
 
 
 def _robot(dimensions_json=None):
-    """The robot this page models: the connected one's config, measured as
-    the Robot panel has it (robot_config.with_dimensions)."""
+    """The robot the workspace models: the connected one's config, measured as
+    the Dimensions panel has it (robot_config.with_dimensions)."""
     try:
         dimensions = json.loads(dimensions_json) if dimensions_json else None
     except (TypeError, ValueError):
@@ -296,9 +297,22 @@ def _field_value(mm):
     return round(mm, 1) + 0.0
 
 
+def _alert(alert, class_name="mb-3"):
+    return html.Div(f"⚠ {alert}", className=f"ind-alert {class_name}".strip())
+
+
 def _pose_alert(alert):
     """An alert about the pose, for the overlay on the view."""
-    return helpers.make_alert_message(alert, class_name="")
+    return _alert(alert, class_name="")
+
+
+def _reach_warning(bad_legs):
+    """Says which legs (ids) cannot be posed: their foot is out of reach or a
+    joint is past its limit, so their angles mean nothing. Nothing for none."""
+    if not bad_legs:
+        return None
+    labels = ", ".join(leg_label(leg) for leg in bad_legs)
+    return html.Div(f"⚠ Out of reach or past a joint limit: {labels}", className="ind-alert")
 
 
 def _picked_leg(selection):
@@ -358,7 +372,7 @@ def _keyframe_state(keyframe, robot_config):
         duration=Output(POSE_DURATION_ID, "value"),
         ease=Output(POSE_KF_EASE_ID, "value"),
         mode=Output(POSE_VIEW_MODE_ID, "data", allow_duplicate=True),
-        body_sliders=[Output(widget_id, "value") for widget_id in IK_WIDGETS_IDS],
+        body_sliders=[Output(widget_id, "value") for widget_id in BODY_SLIDER_IDS],
         foot_fields=[Output(field_id, "value") for field_id in POSE_FOOT_FIELD_IDS],
         joint_fields=[Output(field_id, "value") for field_id in POSE_JOINT_FIELD_IDS],
     ),
@@ -381,7 +395,7 @@ def _keyframe_state(keyframe, robot_config):
         ),
         upload=Input(POSE_UPLOAD_ID, "contents"),
         _config_store=Input(ROBOT_CONFIG_STORE_ID, "data"),
-        body_values=[Input(widget_id, "value") for widget_id in IK_WIDGETS_IDS],
+        body_values=[Input(widget_id, "value") for widget_id in BODY_SLIDER_IDS],
         # Picking a foot shows where it is.
         selection=Input(POSE_SELECTION_ID, "data"),
         foot_values=[Input(field_id, "value") for field_id in POSE_FOOT_FIELD_IDS],
@@ -472,10 +486,10 @@ def edit(
     frames = list(keyframes_store["keyframes"])
     if selected is not None and not 0 <= selected < len(frames):
         selected = out_selected = None
-    if trigger in (None, shared.DIMENSIONS_HIDDEN_SECTION_ID) and selected is not None:
+    if trigger in (None, DIMENSIONS_JSON_ID) and selected is not None:
         # Back on the page with a keyframe selected: show its time, not the
-        # input's default. (The Robot panel's dimensions arriving can be what runs
-        # this first on a page load.)
+        # input's default. (The dimensions arriving can be what runs this
+        # first on a page load.)
         out_duration = frames[selected]["duration_ms"]
 
     state = pose_store["state"]
@@ -578,7 +592,7 @@ def edit(
 
     elif slider in BODY_WIDGET_KEYS:
         # Only the slider moved is read: the others show the pose already.
-        value = body_values[IK_WIDGETS_IDS.index(slider)]
+        value = body_values[BODY_SLIDER_IDS.index(slider)]
         body = {**state["body"], BODY_WIDGET_KEYS[slider]: value}
         moved, slider_held = _moved_body(state, body, robot_config)
         message = _pose_alert(BODY_HELD_ALERT) if slider_held else ""
@@ -781,7 +795,7 @@ def edit(
     if slider in BODY_WIDGET_KEYS:
         body_sliders = [
             value if slider_held and widget_id == slider else no_update
-            for widget_id, value in zip(IK_WIDGETS_IDS, body_sliders)
+            for widget_id, value in zip(BODY_SLIDER_IDS, body_sliders)
         ]
 
     if foot_leg is not None:
@@ -873,7 +887,7 @@ def update_pose(pose_store, dimensions_json):
     # Marked when a leg is out of reach, so the overlay says so even folded
     # away, when the warning inside it cannot be seen.
     hud_class = f"{ANGLES_HUD_CLASS} is-bad" if bad_legs else ANGLES_HUD_CLASS
-    return scene, helpers.make_reach_warning(bad_legs), hud_class
+    return scene, _reach_warning(bad_legs), hud_class
 
 
 # Hands the scene to the view: the pose, whose body and feet can be picked
@@ -1095,9 +1109,9 @@ def save_user_gait(_n_clicks, _n_submit, name, keyframes_store, version):
     try:
         gait_library.save_gait(name, frames, robot_config)
     except ValueError as error:
-        return no_update, no_update, helpers.make_alert_message(error)
+        return no_update, no_update, _alert(error)
     except OSError as error:
-        return no_update, no_update, helpers.make_alert_message(f"Could not save the gait: {error}")
+        return no_update, no_update, _alert(f"Could not save the gait: {error}")
     return (version or 0) + 1, "", ""
 
 
@@ -1116,7 +1130,7 @@ def delete_user_gait(_confirmed, version):
     try:
         gait_library.delete_gait(ctx.triggered_id["index"])
     except OSError as error:
-        return no_update, helpers.make_alert_message(f"Could not delete the gait: {error}")
+        return no_update, _alert(f"Could not delete the gait: {error}")
     return (version or 0) + 1, ""
 
 
@@ -1153,7 +1167,7 @@ def set_speed(speed_pct):
 
 
 def _bad_frames_message(bad_frames, total):
-    return helpers.make_alert_message(
+    return _alert(
         f"{len(bad_frames)} of {total} frames pass out of reach between "
         "keyframes. Add a keyframe in between to route the feet around."
     )
@@ -1374,10 +1388,6 @@ def stop_on_robot(_n_clicks):
 OFFLINE_MESSAGE = "Connect a robot to run this on the hardware."
 
 
-# The speed sliders that are the link's speed: the controller's.
-SPEED_SLIDER_IDS = (DRIVE_SPEED_ID,)
-
-
 @callback(
     output=dict(
         controls_class=Output(POSE_ROBOT_CONTROLS_ID, "className"),
@@ -1385,22 +1395,20 @@ SPEED_SLIDER_IDS = (DRIVE_SPEED_ID,)
         run_off=Output(POSE_RUN_BTN_ID, "disabled"),
         stop_off=Output(POSE_STOP_BTN_ID, "disabled"),
         message=Output(POSE_ROBOT_MESSAGE_ID, "children", allow_duplicate=True),
-        speed_mins=[Output(slider_id, "min") for slider_id in SPEED_SLIDER_IDS],
-        speed_maxes=[Output(slider_id, "max") for slider_id in SPEED_SLIDER_IDS],
-        speed_values=[
-            Output(slider_id, "value", allow_duplicate=True) for slider_id in SPEED_SLIDER_IDS
-        ],
+        speed_min=Output(DRIVE_SPEED_ID, "min"),
+        speed_max=Output(DRIVE_SPEED_ID, "max"),
+        speed=Output(DRIVE_SPEED_ID, "value", allow_duplicate=True),
     ),
     inputs=dict(_n_intervals=Input(ROBOT_POLL_INTERVAL_ID, "n_intervals")),
     state=dict(
         message=State(POSE_ROBOT_MESSAGE_ID, "children"),
-        speed_values=[State(slider_id, "value") for slider_id in SPEED_SLIDER_IDS],
-        speed_mins=[State(slider_id, "min") for slider_id in SPEED_SLIDER_IDS],
-        speed_maxes=[State(slider_id, "max") for slider_id in SPEED_SLIDER_IDS],
+        speed=State(DRIVE_SPEED_ID, "value"),
+        speed_min=State(DRIVE_SPEED_ID, "min"),
+        speed_max=State(DRIVE_SPEED_ID, "max"),
     ),
     prevent_initial_call="initial_duplicate",
 )
-def sync_robot_controls(_n_intervals, message, speed_values, speed_mins, speed_maxes):
+def sync_robot_controls(_n_intervals, message, speed, speed_min, speed_max):
     """Grey the robot controls -- the dock's and the controller's -- out while
     there is no robot, and keep the controller's speed on the link's.
 
@@ -1409,11 +1417,8 @@ def sync_robot_controls(_n_intervals, message, speed_values, speed_mins, speed_m
     only written when they differ, so the speed callback is not retriggered
     every second.
     """
-    speed = ROBOT_LINK.robot_config["speed"]
+    limits = ROBOT_LINK.robot_config["speed"]
     link_speed = ROBOT_LINK.speed_pct
-    mins_out = [no_update if value == speed["min"] else speed["min"] for value in speed_mins]
-    maxes_out = [no_update if value == speed["max"] else speed["max"] for value in speed_maxes]
-    values_out = [no_update if value == link_speed else link_speed for value in speed_values]
 
     offline = not ROBOT_LINK.connected
     if offline:
@@ -1427,7 +1432,7 @@ def sync_robot_controls(_n_intervals, message, speed_values, speed_mins, speed_m
         run_off=offline,
         stop_off=offline,
         message=new_message,
-        speed_mins=mins_out,
-        speed_maxes=maxes_out,
-        speed_values=values_out,
+        speed_min=no_update if speed_min == limits["min"] else limits["min"],
+        speed_max=no_update if speed_max == limits["max"] else limits["max"],
+        speed=no_update if speed == link_speed else link_speed,
     )

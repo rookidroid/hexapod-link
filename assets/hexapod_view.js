@@ -3,9 +3,9 @@
 // It draws a scene the server builds (hexapod/scene.py) and nothing else: the
 // kinematics all happen in Python. The scene goes in a dcc.Store and a
 // clientside callback hands it to hexapodView.render() -- see
-// pages/page_pose.py.
+// pages/pose.py.
 //
-// While it shows the pose (pages/page_pose.py) the view is also editable: a
+// While it shows the pose (pages/pose.py) the view is also editable: a
 // foot, or the body, can be clicked to pick it up -- which the page hears of
 // through the "pose-selection" store, and shows its controls -- and then
 // dragged by its handles: a foot by arrows, the body by arrows that move it
@@ -27,7 +27,7 @@
 (function () {
     "use strict";
 
-    // The pose page's stores, written while editing.
+    // The workspace's stores, written while editing.
     var FOOT_TARGET_ID = "pose-foot-target";
     var BODY_TARGET_ID = "pose-body-target";
     var SELECTION_ID = "pose-selection";
@@ -450,10 +450,10 @@
         // What a click picks the body by.
         parts.bodyParts = [parts.body, parts.bodyTrim, parts.head, parts.cog];
 
-        // Up to six axis arrows: the body's own three and the world's three.
-        // Drawn on top of everything, as a HUD overlay.
+        // The body's own three axis arrows, drawn on top of everything, as a
+        // HUD overlay.
         var axisColors = { x: c.axisX, y: c.axisY, z: c.axisZ };
-        for (var a = 0; a < 6; a++) {
+        for (var a = 0; a < 3; a++) {
             var axisMaterial = new T.MeshBasicMaterial({
                 color: c.axisX,
                 transparent: true,
@@ -778,8 +778,7 @@
                 continue;
             }
             arrow.shaft.material.color.set(parts.axisColors[axis.axis]);
-            arrow.shaft.material.opacity = axis.world ? 0.55 : 1;
-            var radius = parts.axisRadius * (axis.world ? 0.7 : 1);
+            var radius = parts.axisRadius;
             // The arrowhead takes the last of the length.
             var to = vec(T, axis.to);
             var neck = vec(T, axis.from).lerp(to, 0.78).toArray();
@@ -1015,7 +1014,7 @@
     }
 
     // Picks up a foot, by its leg's id, or the body ("body"), or lets go
-    // (null), as clicking in the view would: for the pose page's buttons.
+    // (null), as clicking in the view would: for the workspace's buttons.
     function selectIn(containerId, what) {
         var v = views[containerId];
         if (v && v.parts) {
@@ -1034,26 +1033,10 @@
         }
     }
 
-    // Where a foot is drawn, in page pixels, or null before the first draw.
-    // For scripts that drive the pose page in a browser.
-    function footScreenPosition(containerId, leg) {
-        var v = views[containerId];
-        if (!v || !v.parts) {
-            return null;
-        }
-        var p = v.parts.feet[leg].position.clone().project(v.camera);
-        var rect = v.renderer.domElement.getBoundingClientRect();
-        return {
-            x: rect.left + ((p.x + 1) / 2) * rect.width,
-            y: rect.top + ((1 - p.y) / 2) * rect.height,
-        };
-    }
-
     window.hexapodView = {
         render: render,
         resetCamera: resetCamera,
         select: selectIn,
         setBodyMode: setBodyMode,
-        footScreenPosition: footScreenPosition,
     };
 })();

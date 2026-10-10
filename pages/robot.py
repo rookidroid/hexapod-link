@@ -1,42 +1,42 @@
+"""What the robot link's controls do: connecting, following the connected
+robot's geometry, the status pill, and the stream controls. Their widgets are
+in widgets/robot_link_ui.py and widgets/dimensions_ui.py.
+"""
+
 import json
-from dash import callback, clientside_callback, dcc, html, no_update
-from dash.dependencies import Output, Input, State
+
+from dash import callback, no_update
+from dash.dependencies import Input, Output, State
+
+from hexapod.robot_config import describe, describe_firmware, get_simulator_dimensions
+from hexapod.robot_link import ROBOT_LINK
 from widgets.dimensions_ui import (
     DIMENSION_CALLBACK_INPUTS,
     DIMENSION_WIDGET_IDS,
+    DIMENSIONS_JSON_ID,
 )
 from widgets.robot_link_ui import (
-    TOPBAR_CONNECTION,
-    ROBOT_INFO_ID,
     ROBOT_CONFIG_STORE_ID,
-    ROBOT_IP_INPUT_ID,
     ROBOT_CONNECT_BTN_ID,
+    ROBOT_INFO_ID,
+    ROBOT_IP_INPUT_ID,
     ROBOT_POLL_INTERVAL_ID,
     SECTION_CONTROLS_CLASS,
     SECTION_CONTROLS_OFFLINE_CLASS,
+    STATUS_PILL_ID,
     STREAM_CONTROLS_ID,
     STREAM_MAX_STEP_ID,
     STREAM_SWITCH_ID,
+    status_pill_class,
 )
-from widgets.section_maker import make_splitter
-from hexapod.robot_link import ROBOT_LINK
-from hexapod.preferences import save_layout, save_theme
-from hexapod.robot_config import describe, describe_firmware, get_simulator_dimensions
-from texts import APP_TITLE, APP_VERSION
 
 
 # ......................
-# Update hexapod dimensions callback
+# The robot's dimensions
 # ......................
 
-DIMENSIONS_HIDDEN_SECTION_ID = "hexapod-dimensions-values"
-DIMENSIONS_HIDDEN_SECTION = html.Div(
-    id=DIMENSIONS_HIDDEN_SECTION_ID, style={"display": "none"}
-)
-DIMS_JSON_CALLBACK_OUTPUT = Output(DIMENSIONS_HIDDEN_SECTION_ID, "children")
 
-
-@callback(DIMS_JSON_CALLBACK_OUTPUT, DIMENSION_CALLBACK_INPUTS)
+@callback(Output(DIMENSIONS_JSON_ID, "children"), DIMENSION_CALLBACK_INPUTS)
 def update_dimensions(front, side, middle, coxia, femur, tibia):
     dimensions = {
         "front": front or 0,
@@ -59,183 +59,7 @@ def update_dimensions(front, side, middle, coxia, femur, tibia):
 
 
 # ......................
-# The 3D view
-#
-# The hexapod is drawn by assets/hexapod_view.js (three.js). A scene
-# (hexapod/scene.py) goes in the view's store and a clientside callback hands
-# it to the view in the browser; the camera stays wherever the user left it.
-# ......................
-
-
-def view_store_id(view_id):
-    return f"{view_id}-scene"
-
-
-def make_view(view_id, scene=None, overlay=None, hud=None, controls=None, drive=None):
-    """The element the view draws into, and the store its scene goes in.
-
-    `overlay` is laid over the view's top-right corner, for a button or two
-    that act on the view itself; `hud` over its bottom-left, for a readout;
-    `controls` over its top-left, for what acts on what the view shows; and
-    `drive` over its bottom-right, for driving the robot itself.
-    """
-    children = [
-        html.Div(id=view_id, className="hexapod-view"),
-        dcc.Store(id=view_store_id(view_id), data=scene),
-        dcc.Store(id=f"{view_id}-ack"),
-    ]
-    if overlay:
-        children.append(html.Div(overlay, className="hexapod-view-overlay"))
-    if hud:
-        children.append(html.Div(hud, className="hexapod-view-hud"))
-    if controls:
-        children.append(html.Div(controls, className="hexapod-view-controls"))
-    if drive:
-        children.append(html.Div(drive, className="hexapod-view-drive"))
-    return html.Div(children, className="hexapod-view-frame")
-
-
-# ......................
-# The app shell
-#
-# One screen: the top bar, then the workspace -- the view, and the dock along
-# the bottom. The grid is laid out in the WORKSPACE block of
-# assets/industrial.css, which also decides who scrolls: above `lg` the dock
-# does, and the view takes whatever room is left; below it the two stack and
-# the page scrolls as a whole.
-#
-# Above `lg` the dock's height can be dragged, by a splitter on its top edge
-# (or, focused, with the arrow keys), and double-clicking it puts it back; so
-# can the widths of the dock's side columns (POSE_DOCK in widgets/pose_ui.py).
-# That is done in the page (assets/workspace_resize.js); the sizes let go of
-# come back through the sizes store, to be kept with the preferences and
-# served with the page the next time (hexapod_link.py).
-# ......................
-
-LAYOUT_SIZES_STORE_ID = "layout-sizes"
-
-
-def make_workspace(view, dock):
-    return html.Main(
-        [
-            html.Div(view, className="ws-view"),
-            html.Div(dock, className="ws-dock"),
-            make_splitter("dock", "horizontal", "resize the dock"),
-            dcc.Store(id=LAYOUT_SIZES_STORE_ID),
-            DIMENSIONS_HIDDEN_SECTION,
-        ],
-        className="workspace",
-    )
-
-
-@callback(Input(LAYOUT_SIZES_STORE_ID, "data"), prevent_initial_call=True)
-def keep_layout_sizes(sizes):
-    """Keep the sizes as a splitter was let go, by preference key
-    (hexapod/preferences.py) in pixels, None for one left to the stylesheet."""
-    if isinstance(sizes, dict):
-        save_layout(sizes)
-
-
-# The status pill is the app's link readout: whether the robot is reachable,
-# which one it is, and whether it is being streamed to. The state modifier
-# colours its LED (STATUS PILL in industrial.css); its tooltip has the detail.
-STATUS_PILL_ID = "status-pill"
-_PILL_BASE_CLASS = "status-pill"
-
-
-def _pill_class(state):
-    return f"{_PILL_BASE_CLASS} {state}"
-
-
-def make_topbar(theme):
-    return html.Header(
-        [
-            html.Div(
-                [
-                    html.Span(APP_TITLE, className="topbar-title"),
-                    html.Span(f"v{APP_VERSION}", className="topbar-version"),
-                ],
-                className="topbar-brand",
-            ),
-            TOPBAR_CONNECTION,
-            html.Div(
-                "Offline",
-                id=STATUS_PILL_ID,
-                className=_pill_class("is-offline"),
-                title="Disconnected",
-                role="status",
-            ),
-            make_theme_toggle(theme),
-        ],
-        className="topbar",
-    )
-
-
-# ......................
-# Light / dark theme
-#
-# The theme is a data-theme attribute on <html> (plus data-bs-theme for
-# Bootstrap's own components); industrial.css swaps its colour tokens on it.
-# hexapod_link.py writes the saved theme into the page before it is served, so
-# a dark start never flashes light; these callbacks handle switching after that.
-# ......................
-
-THEME_TOGGLE_ID = "theme-toggle"
-THEME_STORE_ID = "theme-store"
-
-# What the button offers is the other theme, so it shows that one's icon.
-_THEME_TOGGLE_ICON = {"light": "☾", "dark": "☀"}
-_THEME_TOGGLE_TITLE = {"light": "Switch to dark theme", "dark": "Switch to light theme"}
-
-
-def make_theme_toggle(theme):
-    """The top bar's button and the store it drives, rendered for `theme`."""
-    return html.Div(
-        [
-            dcc.Store(id=THEME_STORE_ID, data=theme),
-            html.Button(
-                _THEME_TOGGLE_ICON[theme],
-                id=THEME_TOGGLE_ID,
-                className="icon-btn",
-                title=_THEME_TOGGLE_TITLE[theme],
-            ),
-        ],
-        className="d-flex",
-    )
-
-
-@callback(
-    Output(THEME_STORE_ID, "data"),
-    Input(THEME_TOGGLE_ID, "n_clicks"),
-    State(THEME_STORE_ID, "data"),
-    prevent_initial_call=True,
-)
-def toggle_theme(_n_clicks, theme):
-    theme = "light" if theme == "dark" else "dark"
-    save_theme(theme)
-    return theme
-
-
-clientside_callback(
-    """
-    function (theme) {
-        var root = document.documentElement;
-        root.setAttribute("data-theme", theme);
-        root.setAttribute("data-bs-theme", theme);
-        return [ICONS[theme], TITLES[theme]];
-    }
-    """.replace("ICONS", json.dumps(_THEME_TOGGLE_ICON)).replace(
-        "TITLES", json.dumps(_THEME_TOGGLE_TITLE)
-    ),
-    Output(THEME_TOGGLE_ID, "children"),
-    Output(THEME_TOGGLE_ID, "title"),
-    Input(THEME_STORE_ID, "data"),
-    prevent_initial_call=True,
-)
-
-
-# ......................
-# Physical robot link callbacks
+# Connecting, and the status pill
 # ......................
 
 
@@ -339,7 +163,7 @@ def update_robot_status(_n_intervals):
         label, state = f"{status['robot_label']} · Online", "is-online"
 
     tooltip = f"{text}\n{firmware}" if firmware else text
-    return label, _pill_class(state), tooltip
+    return label, status_pill_class(state), tooltip
 
 
 # ......................

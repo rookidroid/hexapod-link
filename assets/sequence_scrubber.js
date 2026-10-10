@@ -2,7 +2,7 @@
 //
 // Grabbing it is asking to see the sequence, so it switches the view to it,
 // as Play does; letting go makes the frame it was left on the pose, as
-// pausing does (POSE_PLAYHEAD_ID, picked up by edit() in pages/page_pose.py).
+// pausing does (POSE_PLAYHEAD_ID, picked up by edit() in pages/pose.py).
 // Done here rather than in a callback on the slider's value: the app moves
 // the scrubber too -- back to the start whenever the keyframes change -- and
 // that must neither take the view off the pose nor replace it.

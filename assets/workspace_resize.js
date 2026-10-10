@@ -1,4 +1,4 @@
-// The workspace's splitters (make_splitter in widgets/section_maker.py): one
+// The workspace's splitters (make_splitter in widgets/components.py): one
 // on the dock's top edge sets its height, and one either side of the dock's
 // middle column the width of the column beside it, the middle one taking what
 // is left. Drag one, or focus it and use the arrow keys (Shift for bigger
@@ -7,7 +7,7 @@
 // A size is a CSS variable on <html> (WORKSPACE in assets/industrial.css),
 // where hexapod_link.py writes the saved ones before the page is served. One
 // let go of goes to the sizes store, to be kept with the preferences
-// (keep_layout_sizes in pages/shared.py). A drag is held to the window, so
+// (keep_layout_sizes in pages/shell.py). A drag is held to the window, so
 // the view always keeps some room; the stylesheet keeps that room too when
 // the window is made smaller than the sizes were set for.
 //

@@ -10,7 +10,7 @@
 #   joint index  1             2              3
 #   firmware     Joint 1       Joint 2        Joint 3
 #   simulator    coxia         femur          tibia
-#                alpha         beta           gamma
+#   angle        alpha         beta           gamma   (hexapod/linkage.py)
 #
 # The index order is already the same in both projects -- compare `left_legs` /
 # `right_legs` in the firmware's config.h and `legNames` in path_tool's
@@ -47,12 +47,7 @@ LEG_LABELS = (
 # "Joint i + 1".
 JOINT_NAMES = ("coxia", "femur", "tibia")
 
-# The angle each joint is posed by, in the same order. The simulator's kinematics
-# talk in alpha/beta/gamma; they are the same three joints under another name.
-JOINT_ANGLE_NAMES = ("alpha", "beta", "gamma")
-
 _JOINT_INDEX = {name: i for i, name in enumerate(JOINT_NAMES)}
-_JOINT_INDEX.update({name: i for i, name in enumerate(JOINT_ANGLE_NAMES)})
 
 _LEG_INDEX = {name: i for i, name in enumerate(LEG_NAMES)}
 
@@ -70,20 +65,10 @@ def leg_label(leg):
 
 
 def joint_number(joint):
-    """The firmware's joint number (1-3) for an anatomical or angle name."""
+    """The firmware's joint number (1-3) for an anatomical name."""
     return _JOINT_INDEX[joint] + 1
 
 
 def joint_label(joint):
-    """The firmware's joint number, keeping the name it was asked about.
-
-    `joint_label("coxia")` is "Joint 1 (coxia)" and `joint_label("alpha")` is
-    "Joint 1 (alpha)", so a widget can carry the number without giving up the
-    vocabulary of the page it sits on.
-    """
+    """The firmware's joint number, with its name: "Joint 1 (coxia)"."""
     return f"Joint {joint_number(joint)} ({joint})"
-
-
-def joint_short_label(joint):
-    """Abbreviated form for places too narrow for the full label."""
-    return f"J{joint_number(joint)} {joint}"

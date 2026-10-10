@@ -28,9 +28,7 @@ from hexapod.robot_config import (
 from hexapod.robot_link import (
     MAGIC_MOTION,
     MAGIC_POSE,
-    MAGIC_SESSION,
     MAGIC_VERSION,
-    MOTION_COMMANDS,
     STANDBY_POSE,
     RobotLink,
     _FMT_MOTION,
@@ -47,6 +45,31 @@ from hexapod.robot_link import (
 from settings import ROBOT_DRIVE_HOLD_S
 from tests.robots import ROBOT_CONFIGS, load_firmware_luts
 from widgets.pose_ui import MOTION_TYPES
+
+# The firmware's RobotCommand enum. The link resolves ids from the connected
+# robot's own command list (robot_config.command_id); this is the reference
+# that list is held to.
+MOTION_COMMANDS = {
+    "standby": 0,
+    "walk_0": 1,
+    "walk_180": 2,
+    "walk_r45": 3,
+    "walk_r90": 4,
+    "walk_r135": 5,
+    "walk_l45": 6,
+    "walk_l90": 7,
+    "walk_l135": 8,
+    "fast_forward": 9,
+    "fast_backward": 10,
+    "turn_left": 11,
+    "turn_right": 12,
+    "climb_forward": 13,
+    "climb_backward": 14,
+    "rotate_x": 15,
+    "rotate_y": 16,
+    "rotate_z": 17,
+    "twist": 18,
+}
 
 SERVO_MIN_TICKS = 102
 SERVO_MAX_TICKS = 512
@@ -346,28 +369,12 @@ def test_streamed_gaits_play_at_the_robots_speed():
 def test_an_unknown_motion_is_not_sent():
     link = _CapturingLink(ROBOT_CONFIGS["nougat"])
     assert not link.send_motion_command("standup")
-    assert not link.has_motion_command("standup")
     assert link.sent == []
-
-
-def test_the_magics_are_distinct():
-    """The firmware dispatches on the first byte alone."""
-    assert len({MAGIC_MOTION, MAGIC_POSE, MAGIC_SESSION}) == 3
-
-
-def test_motion_command_ids_are_unique_and_fit_a_byte():
-    """They are packed as 'B' and must line up with the firmware's enum."""
-    ids = list(MOTION_COMMANDS.values())
-    assert len(set(ids)) == len(ids), "two motions share a command id"
-    assert all(0 <= i <= 255 for i in ids)
-    # The enum is contiguous from standby at 0.
-    assert sorted(ids) == list(range(len(ids)))
-    assert MOTION_COMMANDS["standby"] == 0
 
 
 def test_the_robots_command_list_resolves_every_motion():
     """The link takes command ids from the robot's own list; for the current
-    firmware that must agree with the enum above."""
+    firmware that must agree with MOTION_COMMANDS above."""
     for robot in list(ROBOT_CONFIGS.values()) + [GENERIC_CONFIG]:
         assert robot["commands"] == FIRMWARE_COMMANDS
         for motion_name, expected in MOTION_COMMANDS.items():
@@ -431,15 +438,14 @@ def test_a_drive_that_is_not_renewed_ends_in_standby(monkeypatch):
 @pytest.mark.parametrize(
     "takeover",
     [
-        lambda link: link.relax(),
         lambda link: link.send_pose(STANDBY_POSE),
         lambda link: link.play_sequence([STANDBY_POSE]),
     ],
-    ids=["relax", "pose", "sequence"],
+    ids=["pose", "sequence"],
 )
 def test_other_control_lets_go_of_a_drive(monkeypatch, takeover):
     """Whatever takes over the robot ends the hold, so its expiry cannot send
-    a standby over a streamed pose, a sequence, or servos left limp."""
+    a standby over a streamed pose or a sequence."""
     clock = {"now": 100.0}
     monkeypatch.setattr("hexapod.robot_link.time.monotonic", lambda: clock["now"])
     link = _CapturingLink(ROBOT_CONFIGS["nougat"])

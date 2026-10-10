@@ -69,7 +69,7 @@ serving on http://127.0.0.1:8050 (ctrl-c to stop)
 
 Then open the printed URL in a browser.
 
-- Modify default settings with [`settings.py`](./settings.py) — joint limits, robot link ports/rates, UI resolution, etc.
+- Modify default settings with [`settings.py`](./settings.py) — robot link ports/rates, slider resolution, where preferences and gaits are kept, etc. Joint limits come from the robot's own config.
 - Modify the UI colours in [`assets/industrial.css`](./assets/industrial.css): the light theme's tokens are on `:root`, and the dark theme overrides them under `:root[data-theme="dark"]`.
 - Modify the 3D view's colours with [`style_settings.py`](./style_settings.py). The view is a dark CAD-style monitor in both themes.
 - The robot is drawn by one three.js view, [`assets/hexapod_view.js`](./assets/hexapod_view.js), fed scenes built by [`hexapod/scene.py`](./hexapod/scene.py). Left-drag orbits, the wheel zooms and right-drag pans; with the Feet tool the feet can also be picked up. The bundled three.js in `assets/vendor/` is rebuilt (with Node) by [`tools/build_three_bundle.sh`](./tools/build_three_bundle.sh).
@@ -331,11 +331,12 @@ $ pip install -r requirements-dev.txt
 $ pytest
 ```
 
-The suite (~1950 lines across [`tests/`](./tests)) covers forward/inverse
-kinematics, leg patterns, path/motion generation, keyframe sequences,
-leg-naming conversions, the robot-link streaming protocol, reading each robot's config (against
-`tools/fake_robot.py`), and the saved UI preferences — all without needing a
-display, a browser, or a physical robot.
+The suite in [`tests/`](./tests) covers the kinematics (feet to joints and
+back, the body and foot layers of a pose), gait path generation, keyframe
+sequences and gaits worked out as keyframes, leg-naming conversions, the
+robot-link streaming protocol, reading each robot's config (against
+`tools/fake_robot.py`), and the saved preferences and gait library — all
+without needing a display, a browser, or a physical robot.
 
 ## CI/CD
 

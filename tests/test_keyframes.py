@@ -1,10 +1,10 @@
-"""The pose page's keyframes: solving joints from feet and back, and timing.
+"""Keyframes: solving joints from feet and back, and timing.
 
-The page places feet in the path tool's body frame and draws them with the
-simulator's linkage model, so the first thing checked is that those two agree:
-a foot solved by one lands where the other draws it, and a pose set by joint
-angles (the body's sliders, a leg's fields) turns into feet that solve back to it. The
-rest covers what a sequence turns into on its way to the robot.
+The workspace places feet in the path tool's body frame and draws them with
+the simulator's linkage model, so the first thing checked is that those two
+agree: a foot solved by one lands where the other draws it, and a pose set by
+joint angles (a leg's fields, a gait's frame) turns into feet that solve back
+to it. The rest covers what a sequence turns into on its way to the robot.
 """
 
 import json
@@ -21,7 +21,6 @@ from hexapod.keyframes import (
     feet_to_pose,
     frame_times,
     ground_height,
-    interpolate,
     interpolate_feet,
     keyframe_times_ms,
     load,
@@ -30,18 +29,24 @@ from hexapod.keyframes import (
     pose_to_feet,
     pose_to_scene,
     sequence_duration_ms,
+    solve_frames,
     standby_feet,
 )
-from hexapod.ik_solver.ik_solver2 import solve_inverse_kinematics
-from hexapod.models import VirtualHexapod
+from hexapod.naming import LEG_NAMES
 from hexapod.path_generator import generate_poses
-from hexapod.robot_config import get_simulator_dimensions
-from pages.helpers import make_pose
 from hexapod.robot_config import GENERIC_CONFIG, get_joint_limits, get_sequence_fps
 from tests.robots import ROBOT_CONFIGS
 
 ROBOTS = list(ROBOT_CONFIGS.values()) + [GENERIC_CONFIG]
 ROBOT_IDS = list(ROBOT_CONFIGS) + ["generic"]
+
+
+def uniform_pose(coxia, femur, tibia):
+    """Every leg at the same joint angles."""
+    return {
+        leg_id: {"id": leg_id, "name": name, "coxia": coxia, "femur": femur, "tibia": tibia}
+        for leg_id, name in enumerate(LEG_NAMES)
+    }
 
 
 def lifted(feet, leg, dz):
@@ -85,29 +90,8 @@ def test_feet_round_trip_through_their_pose(robot):
 
 
 @pytest.mark.parametrize("robot", ROBOTS, ids=ROBOT_IDS)
-def test_body_pose_survives_the_trip_through_feet(robot):
-    # What moving the body does: solve a tilted, shifted body, keep it as feet,
-    # and solve the joints back from those for the readout and the robot.
-    parameters = {
-        "hip_stance": 0,
-        "leg_stance": 0,
-        "percent_x": 0.1,
-        "percent_y": -0.1,
-        "percent_z": 0.05,
-        "rot_x": 6,
-        "rot_y": -4.5,
-        "rot_z": 3,
-    }
-    hexapod = VirtualHexapod(get_simulator_dimensions(robot))
-    poses, _, _ = solve_inverse_kinematics(hexapod, parameters)
-    pose, bad = feet_to_pose(pose_to_feet(poses, robot), robot)
-    assert bad == []
-    assert_same_pose(pose, poses)
-
-
-@pytest.mark.parametrize("robot", ROBOTS, ids=ROBOT_IDS)
 def test_leg_pattern_survives_the_trip_through_feet(robot):
-    poses = make_pose(5, 20, -10, {leg: {} for leg in range(6)})
+    poses = uniform_pose(5, 20, -10)
     pose, bad = feet_to_pose(pose_to_feet(poses, robot), robot)
     assert bad == []
     assert_same_pose(pose, poses)
@@ -145,7 +129,7 @@ def test_foot_past_a_joint_limit_is_reported():
 def test_a_joint_near_its_limit_is_reported_with_a_margin():
     robot = ROBOT_CONFIGS["nougat"]
     limit = get_joint_limits(robot)["tibia"]
-    pose = make_pose(0, 20, limit - 0.2, {leg: {} for leg in range(6)})
+    pose = uniform_pose(0, 20, limit - 0.2)
     feet = pose_to_feet(pose, robot)
     assert feet_to_pose(feet, robot)[1] == []
     assert feet_to_pose(feet, robot, margin=0.1)[1] == []
@@ -303,15 +287,19 @@ def test_single_keyframe_is_one_frame():
     assert interpolate_feet([], fps=50) == []
 
 
-def test_interpolate_reports_frames_that_pass_out_of_reach():
+def _solved(keyframes, robot, fps):
+    return solve_frames(interpolate_feet(keyframes, fps), robot)
+
+
+def test_solving_reports_frames_that_pass_out_of_reach():
     robot = ROBOT_CONFIGS["nougat"]
     start = standby_feet(robot)
-    poses, bad = interpolate([make_keyframe(start)], robot, fps=50)
+    poses, bad = _solved([make_keyframe(start)], robot, fps=50)
     assert len(poses) == 1 and bad == []
 
     far = [list(foot) for foot in start]
     far[5] = [c * 10 for c in far[5]]
-    _, bad = interpolate([make_keyframe(start), make_keyframe(far, 100)], robot, fps=50)
+    _, bad = _solved([make_keyframe(start), make_keyframe(far, 100)], robot, fps=50)
     assert bad and bad[-1] == 5
 
 
@@ -322,7 +310,7 @@ def test_poses_play_on_the_robot_link():
     start = standby_feet(robot)
     keyframes = [make_keyframe(start), make_keyframe(lifted(start, 1, 20), 300)]
     fps = get_sequence_fps(robot)
-    poses, bad = interpolate(keyframes, robot, fps=fps)
+    poses, bad = _solved(keyframes, robot, fps=fps)
     assert bad == []
     assert len(poses) == 1 + round(0.3 * fps)
     assert all(len(pose_to_ticks(pose, robot)) == 18 for pose in poses)
