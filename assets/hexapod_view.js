@@ -51,7 +51,8 @@
         body: "#e8ecf2",
         bodyOutline: "#3b7bff",
         leg: "#dfe6ef",
-        joint: "#3b7bff",
+        joint: "#55627e",
+        jointAccent: "#3b7bff",
         foot: "#4cc9f0",
         footSelected: "#f7c600",
         head: "#f7c600",
@@ -127,10 +128,19 @@
         var camera = new T.PerspectiveCamera(40, 1, 1, 100000);
         camera.up.set(0, 0, 1);
 
-        scene.add(new T.HemisphereLight(0xffffff, 0x223355, 1.6));
-        var sun = new T.DirectionalLight(0xffffff, 1.4);
-        sun.position.set(1, -2, 3);
+        // The sun casts the robot's shadow on the floor; where it stands and
+        // how much it covers go by the robot's size (buildParts). A weak light
+        // from the other side keeps the faces turned away from it readable.
+        renderer.shadowMap.enabled = true;
+        scene.add(new T.HemisphereLight(0xffffff, 0x223355, 1.5));
+        var sun = new T.DirectionalLight(0xffffff, 2.2);
+        sun.castShadow = true;
+        sun.shadow.mapSize.set(2048, 2048);
+        sun.shadow.radius = 3;
         scene.add(sun);
+        var fill = new T.DirectionalLight(0x9db8ff, 0.6);
+        fill.position.set(-2, 3, 1);
+        scene.add(fill);
 
         var orbit = new T.OrbitControls(camera, renderer.domElement);
         orbit.enableDamping = false;
@@ -155,6 +165,7 @@
             camera: camera,
             orbit: orbit,
             gizmo: gizmo,
+            sun: sun,
             bodyHandle: bodyHandle,
             raycaster: new T.Raycaster(),
             root: new T.Group(),
@@ -243,6 +254,7 @@
                 o.geometry.dispose();
             }
         });
+        v.sun.dispose();
         v.renderer.dispose();
         // Browsers allow only a handful of live WebGL contexts; give this one
         // back now rather than whenever the canvas is collected.
@@ -325,103 +337,169 @@
             );
         }
 
-        var legRadius = size * 0.009;
-        var jointRadius = size * 0.015;
-        var footRadius = size * 0.022;
+        // A part of the robot itself, which is what throws a shadow.
+        function solid(geometry, material) {
+            var mesh = new T.Mesh(geometry, material);
+            mesh.castShadow = true;
+            v.root.add(mesh);
+            return mesh;
+        }
 
-        var cylinder = new T.CylinderGeometry(1, 1, 1, 16);
-        cylinder.rotateX(Math.PI / 2); // along z, so lookAt() aims it
+        var linkRadius = size * 0.013;
+        var hubRadius = size * 0.021;
+        var footRadius = size * 0.017;
+        var thickness = size * 0.034;
+
+        // Unit shapes along z, so lookAt() aims them, scaled where they are
+        // placed. A link narrows towards its far end: the femur a little, and
+        // the tibia from there down to the foot.
+        function along(geometry) {
+            return geometry.rotateX(Math.PI / 2);
+        }
+        var cylinder = along(new T.CylinderGeometry(1, 1, 1, 32));
+        var femur = along(new T.CylinderGeometry(0.8, 1, 1, 24));
+        var tibia = along(new T.CylinderGeometry(0.35, 0.8, 1, 24));
+        var cone = along(new T.CylinderGeometry(0, 1, 1, 16));
         var sphere = new T.SphereGeometry(1, 24, 16);
 
         var parts = { legs: [], joints: [], feet: [], axes: [] };
+        parts.thickness = thickness;
 
-        // The floor: a large tile and a grid on it.
-        var groundSize = size * 3;
-        var ground = new T.Mesh(
-            new T.PlaneGeometry(groundSize, groundSize),
-            mat(c.ground, { roughness: 1, transparent: true, opacity: 0.9 })
+        // The floor: a disc that fades into the background towards its rim,
+        // the grid on it fading with it, and over both what the robot's
+        // shadow falls on.
+        var groundRadius = size * 2.5;
+        var cell = size / 10;
+        var groundColor = new T.Color(c.ground);
+        var backgroundColor = new T.Color(c.background);
+        var gridColor = new T.Color(c.grid);
+        function floorColor(r) {
+            var t = smoothstep(r, groundRadius * 0.3, groundRadius);
+            return groundColor.clone().lerp(backgroundColor, t);
+        }
+        function lineColor(r, major) {
+            var strength = 1 - smoothstep(r, groundRadius * 0.25, groundRadius * 0.9);
+            return floorColor(r).lerp(gridColor, strength * (major ? 1 : 0.45));
+        }
+        var disc = discGeometry(T, groundRadius, 12, 96, floorColor);
+        var floor = new T.Mesh(
+            disc,
+            new T.MeshBasicMaterial({
+                vertexColors: true,
+                polygonOffset: true,
+                polygonOffsetFactor: 1,
+                polygonOffsetUnits: 1,
+            })
         );
-        var grid = new T.GridHelper(groundSize, 30, c.grid, c.grid);
-        grid.rotation.x = Math.PI / 2;
+        var grid = new T.LineSegments(
+            gridGeometry(T, groundRadius, cell, 5, lineColor),
+            new T.LineBasicMaterial({ vertexColors: true })
+        );
+        var shadow = new T.Mesh(
+            disc,
+            new T.ShadowMaterial({ opacity: 0.4, depthWrite: false })
+        );
+        shadow.receiveShadow = true;
+        shadow.renderOrder = 1;
         parts.ground = new T.Group();
-        parts.ground.add(ground, grid);
+        parts.ground.add(floor, grid, shadow);
         v.root.add(parts.ground);
 
+        var reach = size * 1.2;
+        v.sun.position.set(size, -2 * size, 3 * size);
+        var lit = v.sun.shadow.camera;
+        lit.left = lit.bottom = -reach;
+        lit.right = lit.top = reach;
+        lit.near = size;
+        lit.far = size * 7;
+        lit.updateProjectionMatrix();
+        v.sun.shadow.normalBias = size * 0.002;
+
+        // The polygon the robot stands on, filled faintly and outlined.
         parts.support = new T.Mesh(
             new T.BufferGeometry(),
             new T.MeshBasicMaterial({
                 color: c.support,
                 transparent: true,
-                opacity: 0.25,
+                opacity: 0.16,
                 side: T.DoubleSide,
                 depthWrite: false,
             })
         );
-        v.root.add(parts.support);
-
-        parts.body = new T.Mesh(
+        parts.support.renderOrder = 2;
+        parts.supportOutline = new T.LineLoop(
             new T.BufferGeometry(),
-            mat(c.body, { transparent: true, opacity: 0.85, side: T.DoubleSide })
+            new T.LineBasicMaterial({ color: c.support, transparent: true, opacity: 0.7 })
         );
-        v.root.add(parts.body);
-        parts.bodyEdges = [];
-        for (var e = 0; e < 6; e++) {
-            var edge = new T.Mesh(cylinder, mat(c.bodyOutline));
-            edge.userData.radius = legRadius * 1.2;
-            parts.bodyEdges.push(edge);
-            v.root.add(edge);
-        }
+        parts.supportOutline.renderOrder = 3;
+        v.root.add(parts.support, parts.supportOutline);
 
-        parts.head = new T.Mesh(sphere, mat(c.head));
-        parts.head.scale.setScalar(jointRadius * 1.2);
-        parts.cog = new T.Mesh(sphere, mat(c.cog));
-        parts.cog.scale.setScalar(jointRadius * 1.2);
+        // The body: a plate, with a band round its side that shows it picked
+        // up, a chevron on top pointing to the front, and a disc at its centre.
+        parts.body = solid(new T.BufferGeometry(), mat(c.body));
+        parts.bodyTrim = solid(new T.BufferGeometry(), mat(c.bodyOutline));
+        parts.head = new T.Mesh(
+            new T.BufferGeometry(),
+            mat(c.head, { emissive: c.head, emissiveIntensity: 0.35, side: T.DoubleSide })
+        );
+        parts.cog = new T.Mesh(cylinder, mat(c.cog, { emissive: c.cog, emissiveIntensity: 0.25 }));
+        parts.cog.scale.set(hubRadius * 0.7, hubRadius * 0.7, thickness * 1.12);
         v.root.add(parts.head, parts.cog);
         // What a click picks the body by.
-        parts.bodyParts = [parts.body, parts.head, parts.cog].concat(parts.bodyEdges);
+        parts.bodyParts = [parts.body, parts.bodyTrim, parts.head, parts.cog];
 
         // Up to six axis arrows: the body's own three and the world's three.
         // Drawn on top of everything, as a HUD overlay.
         var axisColors = { x: c.axisX, y: c.axisY, z: c.axisZ };
         for (var a = 0; a < 6; a++) {
-            var axis = new T.Mesh(
-                cylinder,
-                new T.MeshBasicMaterial({ color: c.axisX, transparent: true, depthTest: false })
-            );
-            axis.renderOrder = 10;
-            axis.visible = false;
+            var axisMaterial = new T.MeshBasicMaterial({
+                color: c.axisX,
+                transparent: true,
+                depthTest: false,
+            });
+            var axis = { shaft: new T.Mesh(cylinder, axisMaterial), head: new T.Mesh(cone, axisMaterial) };
+            axis.shaft.renderOrder = axis.head.renderOrder = 10;
+            axis.shaft.visible = axis.head.visible = false;
             parts.axes.push(axis);
-            v.root.add(axis);
+            v.root.add(axis.shaft, axis.head);
         }
         parts.axisColors = axisColors;
-        parts.axisRadius = legRadius * 0.45;
+        parts.axisRadius = size * 0.004;
 
+        // A joint is a disc on the axis it turns about, with a band round its
+        // middle in the body's trim colour.
+        var armour = mat(c.leg);
+        var hub = mat(c.joint);
+        var accent = mat(c.jointAccent);
         for (var i = 0; i < 6; i++) {
-            var segments = [];
-            for (var s = 0; s < 3; s++) {
-                var seg = new T.Mesh(cylinder, mat(c.leg));
-                seg.userData.radius = legRadius;
+            var segments = [cylinder, femur, tibia].map(function (shape) {
+                var seg = solid(shape, armour);
+                seg.userData.radius = linkRadius;
                 seg.userData.leg = i;
-                segments.push(seg);
-                v.root.add(seg);
-            }
+                return seg;
+            });
             parts.legs.push(segments);
 
             var joints = [];
             for (var j = 0; j < 3; j++) {
-                var joint = new T.Mesh(sphere, mat(c.joint));
-                joint.scale.setScalar(jointRadius);
+                var joint = solid(cylinder, hub);
+                if (j === 0) {
+                    joint.scale.set(hubRadius, hubRadius, thickness * 1.2);
+                } else {
+                    joint.scale.set(hubRadius * 0.9, hubRadius * 0.9, linkRadius * 2.4);
+                }
+                var band = new T.Mesh(cylinder, accent);
+                band.scale.set(1.08, 1.08, 0.22);
+                joint.add(band);
                 joint.userData.leg = i;
                 joints.push(joint);
-                v.root.add(joint);
             }
             parts.joints.push(joints);
 
-            var foot = new T.Mesh(sphere, mat(c.foot, { emissive: c.foot, emissiveIntensity: 0.25 }));
+            var foot = solid(sphere, mat(c.foot, { emissive: c.foot, emissiveIntensity: 0.35 }));
             foot.scale.setScalar(footRadius);
             foot.userData.leg = i;
             parts.feet.push(foot);
-            v.root.add(foot);
         }
 
         parts.legParts = [];
@@ -431,6 +509,78 @@
 
         v.parts = parts;
         v.size = size;
+    }
+
+    function smoothstep(x, from, to) {
+        var t = Math.min(1, Math.max(0, (x - from) / (to - from)));
+        return t * t * (3 - 2 * t);
+    }
+
+    // A disc on z = 0 in `rings` rings of `segments` pieces, each vertex
+    // coloured by colorAt(its distance from the centre).
+    function discGeometry(T, radius, rings, segments, colorAt) {
+        var positions = [];
+        var normals = [];
+        var colors = [];
+        var index = [];
+        for (var ring = 0; ring <= rings; ring++) {
+            var r = (radius * ring) / rings;
+            var color = colorAt(r);
+            for (var s = 0; s < segments; s++) {
+                var angle = (2 * Math.PI * s) / segments;
+                positions.push(r * Math.cos(angle), r * Math.sin(angle), 0);
+                normals.push(0, 0, 1);
+                colors.push(color.r, color.g, color.b);
+            }
+        }
+        for (var inner = 0; inner < rings; inner++) {
+            for (var i = 0; i < segments; i++) {
+                var a = inner * segments + i;
+                var b = inner * segments + ((i + 1) % segments);
+                index.push(a, a + segments, b + segments, a, b + segments, b);
+            }
+        }
+        var geometry = new T.BufferGeometry();
+        geometry.setAttribute("position", new T.Float32BufferAttribute(positions, 3));
+        geometry.setAttribute("normal", new T.Float32BufferAttribute(normals, 3));
+        geometry.setAttribute("color", new T.Float32BufferAttribute(colors, 3));
+        geometry.setIndex(index);
+        return geometry;
+    }
+
+    // The lines of a grid of `cell` squares on z = 0, out to `radius`, every
+    // `majorEvery`th one major. Each is cut into pieces a cell long, so that
+    // colorAt(distance from the centre, major) can fade it along its length.
+    function gridGeometry(T, radius, cell, majorEvery, colorAt) {
+        var positions = [];
+        var colors = [];
+        var count = Math.floor(radius / cell);
+
+        function point(across, along, major, swap) {
+            var color = colorAt(Math.hypot(across, along), major);
+            positions.push(swap ? along : across, swap ? across : along, 0);
+            colors.push(color.r, color.g, color.b);
+        }
+
+        for (var line = -count; line <= count; line++) {
+            var across = line * cell;
+            var major = line % majorEvery === 0;
+            for (var piece = -count; piece < count; piece++) {
+                var from = piece * cell;
+                var to = from + cell;
+                if (Math.hypot(across, from) > radius || Math.hypot(across, to) > radius) {
+                    continue;
+                }
+                for (var swap = 0; swap < 2; swap++) {
+                    point(across, from, major, swap);
+                    point(across, to, major, swap);
+                }
+            }
+        }
+        var geometry = new T.BufferGeometry();
+        geometry.setAttribute("position", new T.Float32BufferAttribute(positions, 3));
+        geometry.setAttribute("color", new T.Float32BufferAttribute(colors, 3));
+        return geometry;
     }
 
     function placeSegment(T, mesh, a, b) {
@@ -444,6 +594,12 @@
         mesh.position.copy(from).add(to).multiplyScalar(0.5);
         mesh.scale.set(mesh.userData.radius, mesh.userData.radius, length);
         mesh.lookAt(to);
+    }
+
+    // Puts a disc at `point`, to turn about `axis` (a unit vector).
+    function placeDisc(T, mesh, point, axis) {
+        mesh.position.copy(point);
+        mesh.quaternion.setFromUnitVectors(new T.Vector3(0, 0, 1), axis);
     }
 
     function polygonGeometry(T, points, z) {
@@ -460,6 +616,95 @@
         return geometry;
     }
 
+    // Flat-faced geometry from triangles, each three Vector3s.
+    function facetGeometry(T, triangles) {
+        var positions = [];
+        triangles.forEach(function (triangle) {
+            triangle.forEach(function (p) {
+                positions.push(p.x, p.y, p.z);
+            });
+        });
+        var geometry = new T.BufferGeometry();
+        geometry.setAttribute("position", new T.Float32BufferAttribute(positions, 3));
+        geometry.computeVertexNormals();
+        return geometry;
+    }
+
+    // The body as a plate `thickness` thick about its outline `ring`
+    // (Vector3s, anticlockwise seen from `up`), its top and bottom edges cut
+    // back by `chamfer`. Two geometries: the faces, and the band left round
+    // the side between the two cuts.
+    function plateGeometry(T, ring, up, thickness, chamfer) {
+        var n = ring.length;
+        var centre = new T.Vector3();
+        var radius = 0;
+        ring.forEach(function (p) {
+            centre.add(p);
+        });
+        centre.divideScalar(n);
+        ring.forEach(function (p) {
+            radius += p.distanceTo(centre) / n;
+        });
+        var inset = radius > 0 ? Math.max(0, 1 - chamfer / radius) : 1;
+
+        // `ring` drawn in by `scale` and moved `height` along `up`.
+        function level(scale, height) {
+            return ring.map(function (p) {
+                return p.clone().sub(centre).multiplyScalar(scale).add(centre).addScaledVector(up, height);
+            });
+        }
+        var half = thickness / 2;
+        var bottom = level(inset, -half);
+        var low = level(1, chamfer - half);
+        var high = level(1, half - chamfer);
+        var top = level(inset, half);
+
+        function band(lower, upper) {
+            var triangles = [];
+            for (var i = 0; i < n; i++) {
+                var j = (i + 1) % n;
+                triangles.push([lower[i], lower[j], upper[j]], [lower[i], upper[j], upper[i]]);
+            }
+            return triangles;
+        }
+        // The top and bottom are fans from the centre, which sees the whole
+        // outline even of a body narrower at its middle than at its ends.
+        var faces = band(bottom, low).concat(band(high, top));
+        var above = centre.clone().addScaledVector(up, half);
+        var below = centre.clone().addScaledVector(up, -half);
+        for (var i = 0; i < n; i++) {
+            var j = (i + 1) % n;
+            faces.push([above, top[i], top[j]], [below, bottom[j], bottom[i]]);
+        }
+        return { faces: facetGeometry(T, faces), trim: facetGeometry(T, band(low, high)) };
+    }
+
+    // The body's own up, from its outline; straight up for a body that has
+    // been given no area.
+    function bodyUp(T, body) {
+        var across = vec(T, body[3]).sub(vec(T, body[0]));
+        var back = vec(T, body[2]).sub(vec(T, body[0]));
+        var up = across.cross(back);
+        return up.lengthSq() > 1e-6 ? up.normalize() : up.set(0, 0, 1);
+    }
+
+    // What a leg's knee and ankle turn about: across the plane the leg bends
+    // in, which the body's up lies in too. Taken with whichever link is
+    // furthest from in line with that.
+    function legAxis(T, points, up) {
+        var axis = new T.Vector3(1, 0, 0);
+        var best = 1e-6;
+        for (var s = 0; s < 3; s++) {
+            var link = vec(T, points[s + 1]).sub(vec(T, points[s]));
+            var across = new T.Vector3().crossVectors(up, link);
+            if (across.lengthSq() > best) {
+                best = across.lengthSq();
+                axis = across;
+            }
+        }
+        return axis.normalize();
+    }
+
     // ------------------------------------------------------------- drawing
 
     function draw(v, data) {
@@ -468,25 +713,50 @@
 
         parts.ground.position.z = data.ground - 0.5;
 
+        var support = data.support || [];
         parts.support.geometry.dispose();
-        parts.support.geometry = polygonGeometry(T, data.support || [], data.ground + 0.5);
+        parts.support.geometry = polygonGeometry(T, support, data.ground + 0.5);
+        parts.supportOutline.geometry.dispose();
+        parts.supportOutline.geometry = new T.BufferGeometry().setFromPoints(
+            support.map(function (p) {
+                return new T.Vector3(p[0], p[1], data.ground + 0.6);
+            })
+        );
 
-        // Body outline in the order that walks round the hexagon: the vertices
-        // come in leg order, right side front to back then left side.
-        var ring = [0, 1, 2, 5, 4, 3].map(function (i) {
-            return data.body[i];
+        // The body's outline in the order that walks round the hexagon
+        // anticlockwise: the vertices come in leg order, right side front to
+        // back then left side.
+        var up = bodyUp(T, data.body);
+        var ring = [3, 4, 5, 2, 1, 0].map(function (i) {
+            return vec(T, data.body[i]);
         });
+        var plate = plateGeometry(T, ring, up, parts.thickness, parts.thickness * 0.22);
         parts.body.geometry.dispose();
-        parts.body.geometry = polygonGeometry(T, ring);
-        for (var e = 0; e < 6; e++) {
-            placeSegment(T, parts.bodyEdges[e], ring[e], ring[(e + 1) % 6]);
-        }
-        parts.head.position.copy(vec(T, data.head));
-        parts.cog.position.copy(vec(T, data.cog || [0, 0, 0]));
+        parts.body.geometry = plate.faces;
+        parts.bodyTrim.geometry.dispose();
+        parts.bodyTrim.geometry = plate.trim;
         var bodyPicked = v.editable && v.selected === BODY;
-        parts.bodyEdges.forEach(function (edge) {
-            edge.material.color.set(bodyPicked ? v.colors.footSelected : v.colors.bodyOutline);
-        });
+        parts.bodyTrim.material.color.set(bodyPicked ? v.colors.footSelected : v.colors.bodyOutline);
+
+        // On the plate's top face, a chevron from the centre towards the head.
+        var cog = vec(T, data.cog || [0, 0, 0]);
+        var forward = vec(T, data.head).sub(cog);
+        var side = new T.Vector3().crossVectors(forward, up);
+        var halfFront = vec(T, data.body[0]).distanceTo(vec(T, data.body[3])) / 2;
+        side.setLength(Math.min(0.24 * forward.length(), 0.5 * halfFront));
+        var face = cog.clone().addScaledVector(up, parts.thickness * 0.53);
+        function onFace(along, across) {
+            return face.clone().addScaledVector(forward, along).addScaledVector(side, across);
+        }
+        var tip = onFace(0.82, 0);
+        var notch = onFace(0.62, 0);
+        parts.head.geometry.dispose();
+        parts.head.geometry = facetGeometry(T, [
+            [tip, onFace(0.5, -1), notch],
+            [tip, notch, onFace(0.5, 1)],
+        ]);
+        placeDisc(T, parts.cog, cog, up);
+
         // The body being dragged stays under the cursor, as a foot does.
         if (data.frame && !(v.dragging && v.selected === BODY)) {
             v.bodyHandle.position.copy(vec(T, data.frame.origin));
@@ -499,16 +769,22 @@
 
         var axes = data.axes || [];
         for (var a = 0; a < parts.axes.length; a++) {
-            var mesh = parts.axes[a];
+            var arrow = parts.axes[a];
             var axis = axes[a];
             if (!axis) {
-                mesh.visible = false;
+                arrow.shaft.visible = arrow.head.visible = false;
                 continue;
             }
-            mesh.material.color.set(parts.axisColors[axis.axis]);
-            mesh.material.opacity = axis.world ? 0.55 : 1;
-            mesh.userData.radius = parts.axisRadius * (axis.world ? 0.7 : 1);
-            placeSegment(T, mesh, axis.from, axis.to);
+            arrow.shaft.material.color.set(parts.axisColors[axis.axis]);
+            arrow.shaft.material.opacity = axis.world ? 0.55 : 1;
+            var radius = parts.axisRadius * (axis.world ? 0.7 : 1);
+            // The arrowhead takes the last of the length.
+            var to = vec(T, axis.to);
+            var neck = vec(T, axis.from).lerp(to, 0.78).toArray();
+            arrow.shaft.userData.radius = radius;
+            arrow.head.userData.radius = radius * 2.6;
+            placeSegment(T, arrow.shaft, axis.from, neck);
+            placeSegment(T, arrow.head, neck, axis.to);
         }
 
         for (var i = 0; i < 6; i++) {
@@ -516,8 +792,11 @@
             for (var s = 0; s < 3; s++) {
                 placeSegment(T, parts.legs[i][s], points[s], points[s + 1]);
             }
+            // The hip turns about the body's up, the knee and ankle across
+            // the leg.
+            var across = legAxis(T, points, up);
             for (var j = 0; j < 3; j++) {
-                parts.joints[i][j].position.copy(vec(T, points[j]));
+                placeDisc(T, parts.joints[i][j], vec(T, points[j]), j === 0 ? up : across);
             }
             // The foot being dragged stays under the cursor; it is put back
             // where the server says once the drag is over.

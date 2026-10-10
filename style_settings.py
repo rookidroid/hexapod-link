@@ -11,7 +11,8 @@ EXTERNAL_STYLESHEETS = ["/assets/bootstrap.min.css"]
 # overlays. hexapod/scene.py hands these to it with every scene.
 
 BODY_MESH_COLOR = "#e8ecf2"       # White armour
-BODY_COLOR = "#3b7bff"            # Federation blue body outline and joints
+BODY_COLOR = "#3b7bff"            # Federation blue body trim and joint rings
+JOINT_COLOR = "#55627e"          # Inner-frame grey joint hubs
 COG_COLOR = "#e63946"             # Red core block
 HEAD_COLOR = "#f7c600"            # V-fin yellow head; also a picked-up foot
 LEG_COLOR = "#dfe6ef"             # White armour legs
