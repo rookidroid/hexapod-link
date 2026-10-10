@@ -6,369 +6,266 @@
 
 <img src="assets/icon.png" align="right" width="120" alt="">
 
-A browser-based (and desktop) hexapod robot simulator built from first
-principles, with forward/inverse kinematics, gait animation, and real-time
-WiFi control of a physical [rookidroid](https://rookidroid.com/) hexapod. 🕷️
+Pose, animate and drive a six-legged robot from your computer. 🕷️
 
-This is a fork of [mithi/hexapod-robot-simulator](https://github.com/mithi/hexapod-robot-simulator),
-rebranded as **Hexapod Link** and extended with a desktop app, real-robot
-streaming control, and a rebuilt CI/test suite.
+Hexapod Link shows your [rookidroid](https://rookidroid.com/) hexapod in 3D.
+Move its body and feet with the mouse, string poses and walks into a routine,
+then play it on the real robot over WiFi. No robot yet? Everything but the
+last step works without one.
 
 <p align="center">
-  <img src="docs/images/walk.gif" width="620" alt="One tripod gait cycle playing in the 3D view">
+  <img src="docs/images/walk.gif" width="760" alt="A hexapod walking in the 3D view">
 </p>
 
-# Features
+## What you can do
 
-| STATUS | FEATURE   | DESCRIPTION  |
-|---|-----------|--------------|
-| 🎉 | Forward Kinematics | Given the angles of each joint, what does the robot look like? |
-| 🎉 | Inverse Kinematics | What are the angles of each joint to make the robot look the way I want? Is it even possible? Why or why not? |
-| 🎉 | Gaits | Put the robot's gaits into a sequence as keyframes, retime and edit them, and stream them to it. |
-| 🎉 | Controller | Drive the robot with its own built-in gaits from a controller over the 3D view, laid out like the Android app's: hold a pad to walk, turn or move the body, let go to stop. |
-| 🎉 | Pose Editor | Set a pose by moving the body and placing the feet in 3D, string the poses into a timed keyframe sequence, preview it and run it on the robot. |
-| 🎉 | Customizability | Set the dimensions of the robot's body and legs, and pose that body. |
-| 🎉 | Real-time Robot Control | Drive a physical ESP32 hexapod over WiFi, from single joints to whole-body gaits. Works with any robot in the family (Nougat, Mochi, Macaroon, ...): each one serves its own config. |
-| 🎉 | Desktop App | Runs as a native window (Windows/Linux) via PyInstaller + pywebview, no browser required. |
-| 🎉 | Light & Dark Themes | Switch from the top bar; the choice is remembered between launches. |
-| 🎉 | Simplicity | Minimal dependencies. Numpy for calculations, Dash for the UI, and a bundled copy of three.js for the 3D view. |
+- **Pose it.** Click the body or a foot and drag it where you want it. The app
+  works out every joint angle for you, and stops where a leg can no longer reach.
+- **Choreograph it.** Collect your poses and the robot's ready-made gaits
+  (walk, turn, climb, twist, ...) into a sequence, set the timing, and watch it
+  play.
+- **Drive it.** Hold a pad on the on-screen controller and the robot walks,
+  turns or wobbles; let go and it stops.
+- **See it on the real thing.** Connect over WiFi and the robot follows what
+  is on screen: one pose, a whole sequence, or its own gaits.
+- **Use any robot in the family.** Nougat, Mochi, Macaroon, ...: the robot
+  tells the app its size and limits when it connects, so the model on screen
+  always matches.
 
-## Preview
+## The window
 
-The screenshots follow your GitHub colour mode: light here shows the light
-theme, dark shows the dark one.
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/app-dark.png"><img src="docs/images/app.png" alt="The Hexapod Link window"></picture>
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/app-dark.png"><img src="docs/images/app.png" alt="The Hexapod Link workspace"></picture>
+Everything is on one screen:
 
-The whole app is one screen: click the body or a foot in the 3D view to pick
-it up and pose the robot with it, with the joint angles, streaming to the
-robot, the robot's dimensions and a controller to drive it over the view.
-Along the bottom, string poses, the robot's gaits and gaits of your own into a
-keyframe sequence, preview it and run it on the robot.
+| Where | What it is for |
+|---|---|
+| **Top bar** | The robot's address, **Connect**, a status light, and the ☾ / ☀ button for the light or dark theme. |
+| **3D view** | The robot. Drag with the left mouse button to look around it, turn the wheel to zoom, drag with the right button to slide the view. |
+| **Pose** (bottom left) | The angle of every joint, and the controls for whatever you have picked up. |
+| **Stream to robot** and **Dimensions** (top left) | Send the pose to the robot as you change it; see or edit the robot's measurements. |
+| **Controller** (bottom right) | Pads that drive the robot. |
+| **Gaits · Sequence · Playback** (along the bottom) | Build a routine and play it. |
 
-Everything above is generated from the running app by
-[`tools/make_screenshots.py`](./tools/make_screenshots.py), which captures it
-in both themes (`app.png` and `app-dark.png` in `docs/images/`), and
-the app icon by [`tools/make_icon.py`](./tools/make_icon.py). Rerun those after
-a UI or theme change rather than editing the images by hand.
+**Pose**, **Dimensions** and **Controller** fold away: click a heading to open
+or close it.
 
-## Requirements
+## Get started
 
-- [x] Python 3.13+ (CI runs 3.13 and 3.14)
-- [x] See [`requirements.txt`](./requirements.txt) for runtime dependencies (Dash, Numpy, Flask)
-- [x] See [`requirements-dev.txt`](./requirements-dev.txt) for linting/test tools
-- [x] See [`requirements-desktop.txt`](./requirements-desktop.txt) for the desktop app (adds waitress, pywebview, PyInstaller)
+### 1. Install and start the app
 
-## Run
+You need a Windows or Linux computer with [Python](https://www.python.org/downloads/)
+3.13 or newer. On Windows, tick **Add python.exe to PATH** in the Python
+installer.
 
-```bash
-$ pip install -r requirements.txt
-$ python hexapod_link.py --no-window --port 8050
-serving on http://127.0.0.1:8050 (ctrl-c to stop)
-```
+1. Download the app: on this page, **Code → Download ZIP**, then unzip it.
+2. Open a terminal in the unzipped folder. On Windows: open the folder in File
+   Explorer, type `cmd` in the address bar and press Enter.
+3. Install what the app needs. This is only needed the first time:
 
-Then open the printed URL in a browser.
+   ```bash
+   pip install -r requirements-desktop.txt
+   ```
 
-- Modify default settings with [`settings.py`](./settings.py) — robot link ports/rates, slider resolution, where preferences and gaits are kept, etc. Joint limits come from the robot's own config.
-- Modify the UI colours in [`assets/industrial.css`](./assets/industrial.css): the light theme's tokens are on `:root`, and the dark theme overrides them under `:root[data-theme="dark"]`.
-- Modify the 3D view's colours with [`style_settings.py`](./style_settings.py). The view is a dark CAD-style monitor in both themes.
-- The robot is drawn by one three.js view, [`assets/hexapod_view.js`](./assets/hexapod_view.js), fed scenes built by [`hexapod/scene.py`](./hexapod/scene.py). Left-drag orbits, the wheel zooms and right-drag pans; with the Feet tool the feet can also be picked up. The bundled three.js in `assets/vendor/` is rebuilt (with Node) by [`tools/build_three_bundle.sh`](./tools/build_three_bundle.sh).
+4. Start it:
 
-### Light and dark themes
+   ```bash
+   python hexapod_link.py
+   ```
 
-The ☾ / ☀ button at the right end of the top bar switches between the light and dark themes. The choice is saved to
-`~/.hexapod-link/preferences.json` (set `HEXAPOD_LINK_PREFERENCES` to move it)
-and applied before the first paint on the next launch, so the app opens in
-whichever theme you left it in. Light is the default.
+The window opens showing a Nougat, standing by. From then on, step 4 is all it
+takes. (If your system says it cannot find `python` or `pip`, try `python3`
+and `pip3`.)
 
-## Desktop app
+<details>
+<summary>Would rather use it in your web browser, or the window will not open?</summary>
 
-The same app can run as a native window instead of in a browser: a waitress
-server bound to loopback, wrapped in a [pywebview](https://pywebview.flowrl.com/)
-window. No browser chrome, no dev-server warnings, and it works offline.
+The app can run in a browser tab instead of its own window. That needs less
+installed, and works on any system Python does:
 
 ```bash
-$ pip install -r requirements-desktop.txt
-$ python hexapod_link.py
+pip install -r requirements.txt
+python hexapod_link.py --no-window --port 8050
 ```
 
-Useful flags: `--port` to pin the port, `--debug` for the webview developer
-tools, and `--no-window` to start the server only.
+Then open <http://127.0.0.1:8050> in your browser. Leave the terminal open
+while you use it, and press Ctrl+C in it to quit.
 
-### Building a standalone executable
-
-Build from a **minimal environment**. PyInstaller follows optional-import
-branches inside dependencies and bundles whatever it finds installed; built
-from a rich development environment this comes out around 1 GB instead of
-130 MB, mostly polars, pyarrow and Intel MKL that the app never touches.
+On Linux, the app's own window needs a few system packages before step 3:
 
 ```bash
-$ python -m venv .venv-build
-$ .venv-build/Scripts/pip install -r requirements-desktop.txt
-$ .venv-build/Scripts/pyinstaller hexapod.spec
+sudo apt install libgirepository1.0-dev libcairo2-dev pkg-config gir1.2-webkit2-4.1 libwebkit2gtk-4.1-0
 ```
 
-The result is `dist/HexapodLink/HexapodLink.exe`, about 130 MB in total. Set
-`ONEFILE = True` in [`hexapod.spec`](./hexapod.spec) for a single
-self-extracting executable instead; it is tidier to hand out but adds several
-seconds to every launch.
+On Windows, the window uses Microsoft's WebView2, which Windows 10 and 11
+already have. If the window stays blank, install it from
+[Microsoft](https://developer.microsoft.com/microsoft-edge/webview2/).
 
-On Windows the window renders through the Edge WebView2 runtime, which is
-present on stock Windows 10/11 installs. A machine that lacks it needs the
-[Evergreen Bootstrapper](https://developer.microsoft.com/microsoft-edge/webview2/).
+</details>
 
-The `build-desktop` GitHub Actions workflow builds and smoke-tests this
-bundle for Windows and Linux on every push; grab the artifacts from a run if
-you just want a prebuilt binary instead of building locally.
+### 2. Connect your robot
 
-## Controlling a real hexapod
+Skip this if you just want to try the app: everything on screen works without
+a robot.
 
-The simulator can drive a physical [rookidroid hexapod](https://rookidroid.com/)
-over WiFi in real time, from a single joint up to a full gait.
+1. Switch the robot on.
+2. On your computer, **join the robot's WiFi network**. The robot makes its
+   own network, so there is no internet on it; that is expected. The robot
+   stands up when your computer joins.
+3. In the app, press **Connect**. The address beside it is already the
+   robot's (`192.168.4.1`).
 
-### Setup
+The light in the top bar turns green and shows the robot's name, and the model
+on screen changes to match your robot.
 
-1. Flash the ESP32 firmware from the `hexapod` repo (`software/hexapod_esp32`).
-   The app needs a firmware that serves its own config at `GET /robot_config`
-   (protocol 1); the protocol is documented in that firmware's README.
-2. Power on the robot and **join its WiFi access point** from the machine
-   running this app — the ESP32 is the access point, so there is no other route
-   to it. The robot performs its stand-up sequence when a client connects.
-3. Start the app and press **Connect** in the top bar; the address field
-   beside it starts on the robot's (`192.168.4.1`). The status pill next to it
-   turns green and names the robot once it answers; hover it for the link's
-   detail and the robot's firmware.
+> [!NOTE]
+> The robot needs a recent firmware, from
+> [rookidroid/hexapod](https://github.com/rookidroid/hexapod)
+> (`software/hexapod_esp32`). If **Connect** ends in **Fault** even though you
+> are on the robot's WiFi, update the robot's firmware.
 
-### Leg and joint numbering
+### 3. Stay safe
 
-Legs and joints are named the way the robot's firmware names them, so a leg
-picked out in the 3D view is the leg the robot's own calibration page calls by
-that name.
-Legs are numbered per side, front to back; joints are numbered outward from the
-body.
+> [!WARNING]
+> **Put the robot on a stand before you send it anything.** A pose that looks
+> stable on screen is not necessarily stable on the floor, and a leg can move
+> faster than you expect.
 
-| Leg index | 0 | 1 | 2 | 3 | 4 | 5 |
-|---|---|---|---|---|---|---|
-| Shown as | Right Leg 1 | Right Leg 2 | Right Leg 3 | Left Leg 1 | Left Leg 2 | Left Leg 3 |
-| In code | `right-front` | `right-middle` | `right-back` | `left-front` | `left-middle` | `left-back` |
+- The app never sends a joint further than the limits the robot reports.
+- If the connection drops, the robot goes back to standing on its own after
+  about a second.
+- A sequence starts from its first pose wherever the robot is at the time, so
+  the first move can be quick. Make the first pose close to standing, or press
+  **Standby** before **Run on robot**.
 
-| Joint | 1 | 2 | 3 |
-|---|---|---|---|
-| In code | `coxia` / `alpha` | `femur` / `beta` | `tibia` / `gamma` |
+## Pose the robot
 
-Code keeps the descriptive identifiers — they say which leg is meant without a
-diagram, and the pose dicts, widget ids and point names key off them. Anything a
-person reads is built from the label tables in
-[`hexapod/naming.py`](./hexapod/naming.py), which is the only place the two
-vocabularies meet. The joint *angles* still follow the simulator's own sign
-convention; `hexapod/robot_link.py` converts them to servo angles when streaming.
+<p align="center">
+  <img src="docs/images/pose.gif" alt="Picking the body up to move and turn it, then lifting a foot">
+</p>
 
-### The robot's config comes from the robot
+1. **Pick something up.** Click the body or a foot in the 3D view, or its
+   button in the **Pose** panel: **Body**, or **L1** to **R3** for the left
+   and right legs, front to back. Click empty space, or the button again, to
+   let go.
+2. **Move the body.** With the body picked, drag its arrows to shift it. To
+   tilt and turn it instead, switch **Drag body to** from **Move** to
+   **Rotate** at the top of the view, and drag the rings. The feet stay
+   planted and the legs follow. The sliders in the **Pose** panel do the same
+   thing.
+3. **Move a foot.** With a foot picked, drag its arrows, or type where it
+   should go: **X**, **Y** and **Up** (its height off the floor), in
+   millimetres. **Put feet back** returns every foot to where it started.
+4. **Start over** with **Reset pose** at the top right. **Reset view** puts
+   the camera back.
 
-The app keeps no list of robots. Connecting first asks the robot for its config
-(`GET http://<robot>/robot_config`): its name and access point, leg geometry
-(mount positions and angles, link lengths, which servos are mirrored), gait
-radii, joint limits, servo range, LUT frame delay, speed range and the motion
-commands it knows. The simulator's body and leg dimensions switch to match, so
-the on-screen hexapod agrees with the hardware. Any robot in the family --
-Nougat, Mochi, Macaroon, or a new one -- works without changing this app; the
-geometry lives in the firmware repo's `software/path_tool/robots/<name>.json`.
+The body and the feet do not undo each other: tilt the body, lift a foot, and
+both stay. If you drag something further than a leg can reach, it stops at the
+edge. You can also type a joint angle straight into the table.
 
-The last config received is saved to `~/.hexapod-link/robot_config.json` (set
-`HEXAPOD_LINK_CONFIG_CACHE` to move it), so starting the app without a robot
-still shows the last one. Before any robot has connected it shows Nougat, the
-default model. See [`hexapod/robot_config.py`](./hexapod/robot_config.py).
+To have the real robot follow along as you pose, turn on **Stream to robot**
+at the top left. **Max speed** beside it limits how fast the servos may move.
 
-To try the app without hardware, run the stand-in robot and connect to
-`127.0.0.1:8080` (the port is for HTTP; UDP always goes to 1234):
+## Build a sequence
 
-```bash
-$ python tools/fake_robot.py nougat
-```
+<p align="center">
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/sequence-dark.gif"><img src="docs/images/sequence.gif" alt="Adding three gaits to the sequence, then playing it"></picture>
+</p>
 
-### Using it
+A sequence is a row of **keyframes**: poses the robot moves through, one after
+another, each with the time it takes to get there.
 
-The window is one screen: the top bar, the 3D view, and the dock along the
-bottom. The pose is set on the view itself: in its bottom-left corner,
-**Pose** has the joint angles, and under them the controls of whatever is
-picked. Click the body or a foot in the view to pick it, or its button over
-the angles —
-**Body**, or a leg's (**L1** to **R3**); click it again, or empty space in the
-view, to let go.
+1. **Add a gait.** In **Gaits**, press **+** beside one to add a cycle of it
+   to the sequence. Press **+** again for another cycle; they join up
+   seamlessly. **⇄** replaces the whole sequence with that gait instead.
+2. **Add your own poses.** Pose the robot, then press **+ Add pose**.
+3. **Edit a keyframe.** Click it in the row. The bar underneath sets its
+   **Transition** (how long the move into it takes) and **Ease in** (start and
+   stop gently, rather than at a steady speed). **Save pose** overwrites it
+   with the pose on screen, **◀ ▶** move it earlier or later, and **Delete**
+   removes it.
+4. **Watch it.** Press **Play**, or drag the slider beside it. **Speed** plays
+   it all slower or faster, and **Loop** repeats it.
+5. **Run it on the robot** with **Run on robot**. **Standby** stops it and
+   stands the robot up.
 
-There is one pose: the robot's standby posture with two layers on top that
-add up:
+Good to know:
 
-- **The body** — translate and rotate it over wherever the feet are planted;
-  the joints are solved to keep them there. Use its sliders, or drag it in
-  the view by its handles: over the view's top edge, **Move** gives it
-  arrows, **Rotate** rings. A dragged body goes as far as its sliders do, and either way the body stops
-  where its legs can no longer follow.
-- **A foot** — drag its arrows in the view to move it, or type its **X**,
-  **Y** and **Up** (height above the floor) in millimetres. A foot dragged
-  past what its leg can reach (or where a joint would pass its limit) is
-  held as near as the leg gets, following along the edge of its reach; one
-  typed there stays where it was. **Put feet back** undoes the moves of
-  them all.
+- Wherever playback stops, that moment becomes the pose on screen. Adjust it
+  and press **+ Add pose** to slip a new keyframe in right there.
+- A foot travels in a straight line between two keyframes. To step *over*
+  something rather than drag the foot along the floor, add a keyframe in
+  between with the foot lifted.
+- **Save…** and **Load…** keep a sequence as a file. A sequence only loads for
+  the robot model it was made on.
+- To keep a sequence as a gait of your own, switch **Gaits** to **Mine**, give
+  it a name and press **Save sequence**. It stays in the list from then on,
+  with the same **+** and **⇄** buttons as a built-in one.
 
-The joint angles can be typed too, picked or not: the leg's foot goes where
-they put it.
+## Drive it with the controller
 
-The robot's **Dimensions** fold out from the view's top-left corner, under the
-stream controls, with the name of the robot they belong to. They follow the
-connected robot and can be edited to try another body; foot moves are from
-standby, so they keep their meaning on the resized body, and what is
-streamed is solved on it too.
+<img src="docs/images/controller.png" align="right" width="300" alt="The controller: a pad of body moves and a circle of walking directions">
 
-Neither layer undoes the other: tilt the body, lift a foot, and both stay,
-and the body's sliders always show the pose as it is. **Reset pose**, over the
-view, clears both; **Reset view** frames the robot again. **Pose**,
-**Dimensions** and the **Controller** start folded away, to leave the view
-clear: click a heading to open or fold one, and it is remembered for the next
-time the app starts. Picking or dragging the body or a foot in the view opens
-**Pose** by itself. With **Stream to
-robot** on, in the view's top-left corner, every reachable pose is sent to the
-servos as it changes. The pose and the sequence are remembered across a
-reload. Drag the top edge of the dock to make it taller or shorter, and the
-lines between its columns to share its width between them (or focus an edge
-and use the arrow keys); double-click an edge to put it back. The sizes are
-kept from one launch to the next.
+Open **Controller** at the bottom right of the view. It is laid out like the
+control screen of the
+[Android app](https://play.google.com/store/apps/details?id=com.rookiedev.hexapod).
 
-The dock has three columns. On the left, **Gaits** is the library of gaits to
-put into the sequence: **Built-in**, the robot's own, and **Mine**, sequences
-you have saved as gaits. In the middle, **Sequence** is what is played: a
-track of keyframes, made of poses of your own and of gaits. On the right,
-**Playback** previews it in the view and **Robot** runs it on the
-hardware. **Play**, or dragging the frame slider beside it, plays the
-sequence in the view. Wherever it comes to rest -- paused, run to the end, or
-the slider let go -- that frame becomes the pose, ready to edit: on a
-keyframe, that keyframe is selected; between two, the bar reads **New keyframe
-at** that time, and **+ Add pose at** puts the pose in there, splitting the
-move it was on so that everything after it is still reached when it was.
-**Speed** plays the whole sequence faster or slower (25-200 %), in the view
-and on the robot, and **Loop** repeats it.
+- **The circle** walks: eight directions around the middle, with fast
+  forward, fast backward and the two turns around the outside. The middle
+  stands the robot still.
+- **The six pads** move the robot on the spot: roll, pitch, wobble and twist,
+  and climbing forward and back.
+- **Speed** sets how fast it goes.
 
-**+ Add pose** records the pose as a keyframe. The
-keyframes run along a track, each with the time it is reached; the arrow into
-each one shows how long the move there takes, and with **Loop** on a last
-arrow shows the move back to the start. Click a keyframe to load it back into
-the pose and select it. The bar under the track edits the selected keyframe:
-its **Transition** time is changed as soon as it is typed, **Ease in** makes
-the move into it start and stop gently (off, it runs at a steady speed),
-**Save pose to #n** overwrites it with the pose, **◀** / **▶** move it, and
-**Delete** removes it. With a keyframe selected, **+ Insert after #n** puts
-the next one straight after it; with none, the time and easing in the bar are
-the next one's. **Run on robot** streams the keyframes to the hardware in
-real time, smoothed to the robot's own frame rate. Between keyframes each layer moves on its own, so a body tilting
-from one keyframe to the next tilts over planted feet, while a moved foot
-travels in a straight line: add a keyframe in between to lift a foot over
-rather than dragging it along the floor. Sequences save to and load from
-JSON files, which only load on the robot they were made for.
+Hold a pad and the robot moves; slide onto another to change; let go and it
+stands. These are the robot's own built-in moves, so they stay smooth even on
+a weak WiFi signal.
 
-A gait is worked out into keyframes. In **Gaits**, **Built-in**, **+** puts
-one cycle of any of the gaits the path tool generates into the track, where a
-pose would go, as
-the few keyframes that trace its path to within a millimetre (15 to 24 for a
-walk, depending on the robot) at the robot's own timing. From then on they
-are keyframes like any other, with nothing to mark where they came from:
-retime them, overwrite one with a pose of your own, delete some, or put the
-gait in again for another cycle, which follows on without a seam, as does a
-gait looped on its own. Its **⇄** instead replaces the whole sequence with
-the gait, selecting its last keyframe so that the next gait added follows on
-after it. They come with **Ease in** off, so the robot walks
-through them rather than stopping at each, and the swaying gaits (Rotate,
-Twist) are written as the body tilting over planted feet. The first
-keyframe's time is the gait's own move into it from the end of its cycle;
-after a pose of your own, give it longer to ease the feet in. Some robots'
-own gaits ask a joint for a little more than its limit (Mochi's walk does);
-worked out as keyframes they are held just inside it, as the robot holds them
-when it plays the gait itself, all the way between keyframes too.
+The controller needs a connected robot, and is greyed out until there is one.
 
-To make a gait of your own, build a sequence, then under **Gaits**, **Mine**,
-give it a name and **Save sequence**. It is listed there from then on, with
-its keyframes and length; like a built-in gait, its **+** adds the whole of it
-to the sequence and its **⇄** replaces the sequence with it. Saving under a name already there
-replaces that gait, and **×** deletes one. Your gaits are kept, one keyframe
-file each, in `~/.hexapod-link/gaits` (so a file saved with **Save…** can be
-dropped in there too), and like a sequence, each belongs to the robot it was
-made on: only that robot's are listed.
+## Tips
 
-To drive the robot with its own built-in gaits, which the ESP32 plays from
-flash so their smoothness does not depend on WiFi, use the **Controller** in
-the view's bottom-right corner. It is laid out like the control screen of the
-[Android app](https://play.google.com/store/apps/details?id=com.rookiedev.hexapod): on the left, a
-pad of moves on the spot (roll, pitch, wobble, twist, and climbing forward and
-back); on the right, a circle with standby in the middle, a ring of eight
-walking directions round it, and fast forward, fast backward and the two
-turns round that. Hold a pad and the robot plays that gait; slide onto
-another to change it; let go and it stands. While a pad is held the page
-renews it several times a second, and if that stops -- the window closed, the
-connection lost -- the robot stands on its own within a second. The
-controller's **Speed** (20-100 % of the robot's tuned rate) is sent to the
-robot as soon as it changes.
+- The app remembers your theme, the size of the panels, which ones are folded
+  and the last robot you connected, so it opens the way you left it.
+- Drag the top edge of the bottom panel to make it taller or shorter, and the
+  lines between its columns to resize them. Double-click an edge to put it
+  back.
+- Under **Dimensions** you can change the body and leg measurements to try out
+  a different build. They go back to your robot's when it connects.
+- Servo offsets are trimmed on the robot's own calibration page, not here.
 
-Until a robot is connected the stream, run and controller controls are greyed
-out, since none has anything to act on. Once connected, the controls in the view's
-top-left corner start the sending: turn on **Stream to robot**, and **Max
-speed** limits how fast any servo may slew (in servo ticks per cycle). The
-switch follows the robot's actual state, so it is right after a reload.
+## If something is not working
 
-Servo offsets are trimmed on the robot's own calibration page, served by its
-firmware.
+| What you see | What to try |
+|---|---|
+| **Connect** ends in **Fault** | Check that your computer is on the robot's WiFi network, not your home one, and that the robot is on. Hover the status light for the reason. |
+| Controls are greyed out | They need a robot: **Stream to robot**, **Run on robot** and the **Controller** switch on once one is connected. |
+| A leg will not go where you drag it | It has reached as far as it can, or a joint is at its limit. The **Pose** panel says which leg. |
+| A sequence file will not load | It was made on a different robot model. |
+| The robot's legs are a little off from the screen | Trim the servos on the robot's own calibration page. |
+| The window is blank or does not open | Use the app in your browser instead: see the note under [Install and start the app](#1-install-and-start-the-app). |
 
-### Safety
+## For developers
 
-- **Put the robot on a stand before streaming.** A pose that is stable in the
-  simulator is not necessarily stable on the floor.
-- Joint angles are clamped to the robot's mechanical limits before being sent
-  (`jointLimits` in the robot's config), because the simulator allows far more
-  travel than the hardware has. Widen these only after checking clearances.
-- If the stream stops, the robot eases back to standby on its own after 1 s.
-- A keyframe sequence starts from its first keyframe wherever the robot is,
-  so the first move is as fast as the servos' slew limit allows. Make the first
-  keyframe close to standby, or press **Standby** before **Run**.
+How to run from a checkout, change the look, build a standalone executable,
+run the tests and regenerate the images on this page is in
+[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md), along with how the app talks to
+the robot.
 
-## Testing
+## Credits
 
-```bash
-$ pip install -r requirements-dev.txt
-$ pytest
-```
+Hexapod Link is a fork of
+[mithi/hexapod-robot-simulator](https://github.com/mithi/hexapod-robot-simulator),
+whose [Wiki](https://github.com/mithi/hexapod-robot-simulator/wiki/Notes)
+explains the maths behind it.
 
-The suite in [`tests/`](./tests) covers the kinematics (feet to joints and
-back, the body and foot layers of a pose), gait path generation, keyframe
-sequences and gaits worked out as keyframes, leg-naming conversions, the
-robot-link streaming protocol, reading each robot's config (against
-`tools/fake_robot.py`), and the saved preferences and gait library — all
-without needing a display, a browser, or a physical robot.
-
-## CI/CD
-
-- [`tests.yml`](./.github/workflows/tests.yml) — runs `pytest` on Ubuntu and
-  Windows across Python 3.13/3.14, and byte-compiles + imports every module to
-  catch dead code the tests don't reach.
-- [`build-desktop.yml`](./.github/workflows/build-desktop.yml) — builds the
-  PyInstaller desktop bundle for Windows and Linux, smoke-tests that the built
-  binary actually serves a page, and (Windows) verifies the Mark of the Web is
-  cleared from bundled DLLs.
-- [Dependabot](./.github/dependabot.yml) — weekly update checks for both pip
-  dependencies and GitHub Actions versions.
-
-## More Information
-The original project's [Wiki](https://github.com/mithi/hexapod-robot-simulator/wiki/Notes)
-has additional background on the kinematics math this simulator is built on.
-
-## 🤗 Contributors
-
-Original project ([mithi/hexapod-robot-simulator](https://github.com/mithi/hexapod-robot-simulator)):
-- [@mithi](https://github.com/mithi/)
-- [@philippeitis](https://github.com/philippeitis/)
-- [@mikong](https://github.com/mikong/)
-- [@guilyx](https://github.com/guilyx)
-- [@markkulube](https://github.com/markkulube)
+Original project: [@mithi](https://github.com/mithi/),
+[@philippeitis](https://github.com/philippeitis/),
+[@mikong](https://github.com/mikong/), [@guilyx](https://github.com/guilyx),
+[@markkulube](https://github.com/markkulube)
 
 This fork ([rookidroid/hexapod-link](https://github.com/rookidroid/hexapod-link)):
-- [@rookidroid](https://github.com/rookidroid/)
+[@rookidroid](https://github.com/rookidroid/)
 
 ## License
 
