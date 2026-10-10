@@ -1,28 +1,14 @@
-# Building blocks of the tool panels, so every tool lays out its controls the
-# same way. Sizing is left to the CSS (see CONTROLS in assets/industrial.css): each block adapts to whatever width the panel has
-# rather than to Bootstrap column counts.
+# Building blocks of the panels over the view and of the dock, so they all lay
+# their controls out the same way. Sizing is left to the CSS (see CONTROLS in
+# assets/industrial.css) rather than to Bootstrap column counts.
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
-from hexapod.naming import JOINT_NAMES, joint_short_label, leg_label
+from hexapod.naming import leg_label
 
 
 def field_label(text):
     return html.Label(text, className="ind-field-label")
-
-
-def panel_section(header, children, blurb=None, **div_props):
-    """One titled block of a tool panel.
-
-    Flat on the panel rather than a card inside it: sections are told apart by
-    the rule under each one (see TOOL PANEL in assets/industrial.css), so
-    the panel is one plate instead of a stack of nested ones.
-    """
-    body = [html.H6(header, className="mb-2" if blurb else "mb-3")]
-    if blurb:
-        body.append(html.P(blurb, className="text-muted small mb-3"))
-    body.extend(children if isinstance(children, list) else [children])
-    return html.Section(body, className="ind-section", **div_props)
 
 
 def group_header(text):
@@ -31,26 +17,13 @@ def group_header(text):
 
 
 def make_slider_field(
-    slider_id,
-    label,
-    min_value,
-    max_value,
-    step,
-    value,
-    marks=None,
-    disabled=False,
-    updatemode="mouseup",
+    slider_id, label, min_value, max_value, step, value, disabled=False, updatemode="mouseup"
 ):
-    """A label on its own line, then the slider with its value box.
+    """A slider on one line: its label, the track, and its value box.
 
-    The same two rows whatever the label or the width of the panel. The box at
-    the right end is Dash's own direct input, so a value can be typed as well
-    as dragged to. Marks default to the two ends of the range, so every slider
-    shows its limits the same way.
+    The box at the right end is Dash's own direct input, so a value can be
+    typed as well as dragged to.
     """
-    if marks is None:
-        marks = {min_value: _mark(min_value), max_value: _mark(max_value)}
-
     return html.Div(
         [
             field_label(label),
@@ -60,18 +33,15 @@ def make_slider_field(
                 max=max_value,
                 step=step,
                 value=value,
-                marks=marks,
+                marks=None,
                 disabled=disabled,
                 updatemode=updatemode,
                 allow_direct_input=True,
             ),
         ],
-        className="ind-slider-field",
+        className="ind-inline-slider",
+        title=f"{min_value:g} to {max_value:g}",
     )
-
-
-def _mark(number):
-    return f"{number:g}"
 
 
 def make_number_field(input_id, label, **input_props):
@@ -92,15 +62,15 @@ def make_field_grid(fields, one_row=False):
     return html.Div(fields, className=class_name)
 
 
-def make_joint_grid(rows, column_labels, make_cell, class_name=""):
-    """A table of one input per (row, joint): rows of legs, columns of joints.
+def make_joint_grid(rows, column_labels, make_cell, class_name="", corner=""):
+    """A table of one input per leg and joint.
 
     `rows` is a list of (key, label) pairs and `make_cell(key, column_index)`
-    builds the input for one cell. The joint names are printed once, in the
-    header, instead of under every input.
+    builds the input for one cell. The columns are named once, in the header,
+    instead of under every input; `corner` goes over the rows' labels.
     """
     header = html.Tr(
-        [html.Th("")]
+        [html.Th(corner)]
         + [html.Th(label, className="text-center") for label in column_labels]
     )
     body = [
@@ -118,54 +88,27 @@ def make_joint_grid(rows, column_labels, make_cell, class_name=""):
     )
 
 
-# One block per side, front to back, left beside right as on the robot.
+# The legs a side at a time, front to back: the left ones, then the right.
 LEG_SIDES = (
     ("Left", ("left-front", "left-middle", "left-back")),
     ("Right", ("right-front", "right-middle", "right-back")),
 )
 
 
-def short_leg_label(leg_name):
-    # "Right Leg 1" -> "R1". The block it sits in already says which side;
-    # the full name is kept as a tooltip.
-    full = leg_label(leg_name)
-    side, _, number = full.split()
-    return html.Span(f"{side[0]}{number}", title=full)
+def short_leg_name(leg_name):
+    """ "Right Leg 1" -> "R1", for where there is no room for the name."""
+    side, _, number = leg_label(leg_name).split()
+    return f"{side[0]}{number}"
 
 
-def make_leg_sides(make_cell):
-    """A Left and a Right joint grid, side by side when the panel has room.
-
-    `make_cell(leg_name, joint_index)` builds one cell. Left above right when
-    they do not fit together -- never interleaved. See CONTROLS in
-    assets/industrial.css.
-    """
-    blocks = [
-        html.Div(
-            [
-                group_header(side),
-                make_joint_grid(
-                    [(name, short_leg_label(name)) for name in legs],
-                    [joint_short_label(joint) for joint in JOINT_NAMES],
-                    make_cell,
-                    class_name="mb-0",
-                ),
-            ],
-            className="ind-joint-side",
-        )
-        for side, legs in LEG_SIDES
-    ]
-    return html.Div(blocks, className="ind-joint-sides")
-
-
-# The splitters that resize the workspace's parts -- the tool panel, the dock,
-# the dock's columns -- by dragging or with the arrow keys, done in the page by
+# The splitters that resize the workspace's parts -- the dock, and the dock's
+# columns -- by dragging or with the arrow keys, done in the page by
 # assets/workspace_resize.js, which knows each by its kind (a class).
 SPLITTER_CLASS = "ws-splitter"
 
 
 def make_splitter(kind, orientation, label):
-    """A splitter of `kind` ("panel", "dock", "lib", "run"), "vertical" for one
+    """A splitter of `kind` ("dock", "lib", "run"), "vertical" for one
     dragged sideways; `label` says what it does, as "resize the dock"."""
     return html.Div(
         className=f"{SPLITTER_CLASS} {SPLITTER_CLASS}-{kind}",

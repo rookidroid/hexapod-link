@@ -1,46 +1,47 @@
 # Controls of the workspace (pages/workspace.py, pages/page_pose.py).
 #
-# The rail down the left picks one tool and shows its panel:
+# The pose is set on the view itself. In its corner, the joint angles are read
+# out and can be typed, and under them are the controls of whatever is picked
+# -- by clicking it in the view, or its button here:
 #
-#   Body   inverse kinematics: move and tilt the body over planted feet
-#   Feet   move each foot, by dragging it in the 3D view or typing where
+#   the body  inverse kinematics: move and tilt it over the planted feet, with
+#             its sliders or by dragging its handles in the view
+#   a foot    move it, by dragging it in the view or typing where it goes
 #
-# Over the view, the joint angles are read out and the pose and the camera
-# can be reset; streaming to the robot and the robot's dimensions are there
-# too (widgets/robot_link_ui.py, widgets/dimensions_ui.py). Along the bottom,
-# the dock builds a sequence of keyframes -- poses collected here, and gaits
-# from its library: the robot's, and sequences saved as gaits of one's own --
-# and plays it: previewing it in the view, and running it on the robot.
+# Over the view too, the pose and the camera can be reset; streaming to the
+# robot and the robot's dimensions are there as well (widgets/robot_link_ui.py,
+# widgets/dimensions_ui.py). Along the bottom, the dock builds a sequence of
+# keyframes -- poses collected here, and gaits from its library: the robot's,
+# and sequences saved as gaits of one's own -- and plays it: previewing it in
+# the view, and running it on the robot.
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
 from hexapod.const import NAMES_JOINT, NAMES_LEG
 from hexapod.keyframes import DEFAULT_DURATION_MS, MAX_DURATION_MS, MIN_DURATION_MS
-from hexapod.naming import leg_label
-from widgets.ik_ui import IK_WIDGETS
+from hexapod.naming import joint_label, joint_number, leg_label
+from widgets.ik_ui import ROTATE_WIDGETS, TRANSLATE_WIDGETS
 from widgets.robot_link_ui import SECTION_CONTROLS_OFFLINE_CLASS
 from widgets.section_maker import (
     LEG_SIDES,
     field_label,
     make_field_grid,
-    make_leg_sides,
+    make_joint_grid,
     make_number_field,
     make_splitter,
-    panel_section,
+    short_leg_name,
 )
 
 # --- Element IDs ---
 # Written by assets/hexapod_view.js through set_props; keep the two in step.
+# Where a foot, or the body, has been dragged to; and what is picked: a leg's
+# id, SELECT_BODY, or nothing.
 POSE_FOOT_TARGET_ID = "pose-foot-target"
-POSE_SELECTED_LEG_ID = "pose-selected-leg"
+POSE_BODY_TARGET_ID = "pose-body-target"
+POSE_SELECTION_ID = "pose-selection"
+SELECT_BODY = "body"
 
 POSE_VIEW_ID = "view-pose"
-
-POSE_TOOL_ID = "pose-tool"
-TOOL_BODY = "body"
-TOOL_FEET = "feet"
-TOOLS = (TOOL_BODY, TOOL_FEET)
-POSE_TOOL_PANEL_IDS = {tool: f"pose-panel-{tool}" for tool in TOOLS}
 
 POSE_STATE_STORE_ID = "pose-state"
 POSE_KEYFRAMES_STORE_ID = "pose-keyframes"
@@ -49,15 +50,33 @@ POSE_PREVIEW_STORE_ID = "pose-preview"
 POSE_PLAY_STATE_STORE_ID = "pose-play-state"
 POSE_INTERVAL_ID = "pose-interval"
 
-# The Feet tool's picker and fields: which foot, and where it is.
-POSE_FOOT_LEG_ID = "pose-foot-leg"
+# The buttons that pick what to adjust, as clicking it in the view does: the
+# body's, and each leg's, in id order (NAMES_LEG).
+POSE_PICK_BODY_ID = "pose-pick-body"
+POSE_PICK_LEG_IDS = [f"pose-pick-{leg_name}" for leg_name in NAMES_LEG]
+PICK_BTN_CLASS = "hud-pick"
+
+# What is shown under the angles: a hint with nothing picked, or the controls
+# of the body or of the foot picked.
+POSE_ADJUST_HINT_ID = "pose-adjust-hint"
+POSE_ADJUST_BODY_ID = "pose-adjust-body"
+POSE_ADJUST_FOOT_ID = "pose-adjust-foot"
+
+# Which handles the body picked has in the view, to drag it by: arrows that
+# move it, or rings that turn it. The values are the view's names for them.
+POSE_BODY_MODE_ID = "pose-body-mode"
+BODY_MODE_MOVE = "translate"
+BODY_MODE_ROTATE = "rotate"
+
+# Where the foot picked is, and which one it is.
+POSE_FOOT_TITLE_ID = "pose-foot-title"
 POSE_FOOT_X_ID = "pose-foot-x"
 POSE_FOOT_Y_ID = "pose-foot-y"
 POSE_FOOT_UP_ID = "pose-foot-up"
 POSE_FOOT_FIELD_IDS = (POSE_FOOT_X_ID, POSE_FOOT_Y_ID, POSE_FOOT_UP_ID)
 
 
-# The Feet tool's joint grid: one field per leg and joint, e.g.
+# The joint angles: one field per leg and joint, e.g.
 # "pose-joint-left-front-coxia".
 def pose_joint_id(leg_name, joint_name):
     return f"pose-joint-{leg_name}-{joint_name}"
@@ -70,11 +89,12 @@ POSE_JOINT_FIELDS = [
     for joint_name in NAMES_JOINT
 ]
 POSE_JOINT_FIELD_IDS = [field_id for _, _, field_id in POSE_JOINT_FIELDS]
+# Says which legs are out of reach, under the angles.
 POSE_ANGLES_ID = "pose-angles"
 ANGLES_HUD_ID = "pose-angles-hud"
 # The update_pose callback (pages/page_pose.py) adds "is-bad" to it while a
 # leg is out of reach.
-ANGLES_HUD_CLASS = "angles-hud"
+ANGLES_HUD_CLASS = "hud-panel angles-hud"
 POSE_MESSAGE_ID = "pose-message"
 POSE_RESET_BTN_ID = "pose-reset-btn"
 POSE_CLEAR_FEET_BTN_ID = "pose-clear-feet-btn"
@@ -212,120 +232,6 @@ def _button(label, button_id=None, color="secondary", outline=False, class_name=
 
 
 # ................................
-# RAIL
-# ................................
-
-# Remembered for the session, so a reload opens on the tool last picked. The
-# glyph over each label is drawn by the CSS (RAIL in assets/industrial.css).
-TOOL_RAIL = dbc.RadioItems(
-    id=POSE_TOOL_ID,
-    options=[
-        {"label": "Body", "value": TOOL_BODY},
-        {"label": "Feet", "value": TOOL_FEET},
-    ],
-    value=TOOL_BODY,
-    className="tool-rail",
-    inputClassName="btn-check",
-    labelClassName="rail-item",
-    labelCheckedClassName="active",
-    # Named rather than True, so a session that remembered the Robot tool,
-    # which is gone, starts on Body instead of on no tool at all.
-    persistence="body-feet",
-    persistence_type="session",
-)
-
-
-# ................................
-# TOOL PANELS
-#
-# All of them stay mounted, so their sliders keep their values and their
-# callbacks keep firing; the ones not in use are only hidden.
-# ................................
-
-BODY_PANEL = html.Div(
-    panel_section(
-        "Body",
-        IK_WIDGETS,
-        blurb="Move and tilt the body; the joints are solved to keep the feet planted.",
-    ),
-    id=POSE_TOOL_PANEL_IDS[TOOL_BODY],
-)
-
-
-def _joint_field(leg_name, joint_index):
-    # Applied when the field is left or Enter is pressed, not per digit.
-    return dbc.Input(
-        id=pose_joint_id(leg_name, NAMES_JOINT[joint_index]),
-        type="number",
-        step=0.1,
-        debounce=True,
-        size="sm",
-    )
-
-
-FEET_PANEL = html.Div(
-    [
-        panel_section(
-            "Feet",
-            [
-                html.Div(
-                    [
-                        field_label("Foot"),
-                        dbc.Select(
-                            id=POSE_FOOT_LEG_ID,
-                            # Left legs then right, front to back, as in the
-                            # angle table.
-                            options=[
-                                {"label": leg_label(name), "value": name}
-                                for _, legs in LEG_SIDES
-                                for name in legs
-                            ],
-                            value="",
-                            placeholder="Pick a foot",
-                            size="sm",
-                        ),
-                    ],
-                    className="mb-2",
-                ),
-                # In the view's coordinates: x right, y forward, up from the
-                # floor. Applied when the field is left or Enter is pressed,
-                # not per digit.
-                make_field_grid(
-                    [
-                        make_number_field(field_id, label, step=1, debounce=True, disabled=True)
-                        for field_id, label in zip(
-                            POSE_FOOT_FIELD_IDS, ("X (mm)", "Y (mm)", "Up (mm)")
-                        )
-                    ],
-                    one_row=True,
-                ),
-                _button(
-                    "Put feet back",
-                    POSE_CLEAR_FEET_BTN_ID,
-                    outline=True,
-                    title="Put every foot back where standby has it, keeping the body move",
-                ),
-            ],
-            blurb=(
-                "Click a foot in the view and drag its arrows, or pick it here "
-                "and type where it goes. A moved foot stays put while the body "
-                "moves over it."
-            ),
-        ),
-        panel_section(
-            "Joints (°)",
-            make_leg_sides(_joint_field),
-            blurb="Or set a leg's joints: its foot goes where they put it.",
-        ),
-    ],
-    id=POSE_TOOL_PANEL_IDS[TOOL_FEET],
-    style={"display": "none"},
-)
-
-POSE_MESSAGE = html.Div(id=POSE_MESSAGE_ID, className="panel-message")
-
-
-# ................................
 # OVER THE VIEW
 # ................................
 
@@ -335,7 +241,7 @@ VIEW_OVERLAY = [
         POSE_RESET_BTN_ID,
         outline=True,
         class_name="view-btn",
-        title="Back to the robot's standby posture: undoes both Body and Feet",
+        title="Back to the robot's standby posture: undoes every move of the body and the feet",
     ),
     _button(
         "Reset view",
@@ -346,11 +252,139 @@ VIEW_OVERLAY = [
     ),
 ]
 
+
+# ................................
+# THE POSE
+#
+# In the view's corner: the joint angles, under the buttons that pick what to
+# adjust, then the controls of what is picked. All of them stay mounted, so
+# their fields keep their values and their callbacks keep firing; those of
+# what is not picked are only hidden.
+# ................................
+
+# Left legs then right, front to back.
+ANGLE_COLUMNS = [name for _, legs in LEG_SIDES for name in legs]
+
+
+def _joint_field(joint_index, column):
+    # Applied when the field is left or Enter is pressed, not per digit. Left
+    # empty for a leg that cannot reach its foot, whose angles mean nothing.
+    return dbc.Input(
+        id=pose_joint_id(ANGLE_COLUMNS[column], NAMES_JOINT[joint_index]),
+        type="number",
+        step=0.1,
+        debounce=True,
+        size="sm",
+        placeholder="—",
+    )
+
+
+def _pick_button(label, button_id, title):
+    return html.Button(label, id=button_id, className=PICK_BTN_CLASS, title=title)
+
+
+# Legs and joints are named the way the robot firmware names them, so a value
+# can be read straight onto the robot's calibration page: a column per leg
+# under the button that picks its foot, a row per joint. Typing an angle puts
+# the leg's foot where it leads.
+angle_table = make_joint_grid(
+    [
+        (index, html.Span(f"J{joint_number(joint)}", title=joint_label(joint)))
+        for index, joint in enumerate(NAMES_JOINT)
+    ],
+    [
+        _pick_button(
+            short_leg_name(name),
+            POSE_PICK_LEG_IDS[list(NAMES_LEG).index(name)],
+            f"{leg_label(name)}: pick its foot, to move it",
+        )
+        for name in ANGLE_COLUMNS
+    ],
+    _joint_field,
+    class_name="ind-angle-strip mb-0",
+    corner=_pick_button("Body", POSE_PICK_BODY_ID, "Pick the body, to move and tilt it"),
+)
+
+ADJUST_HINT = html.Div(
+    "Click the body or a foot, in the view or above, to adjust it.",
+    id=POSE_ADJUST_HINT_ID,
+    className="hud-hint",
+)
+
+body_mode_toggle = dbc.RadioItems(
+    id=POSE_BODY_MODE_ID,
+    options=[
+        {"label": "Move", "value": BODY_MODE_MOVE},
+        {"label": "Rotate", "value": BODY_MODE_ROTATE},
+    ],
+    value=BODY_MODE_MOVE,
+    className="dock-seg",
+    inputClassName="btn-check",
+    labelClassName="dock-seg-item",
+    labelCheckedClassName="active",
+)
+
+ADJUST_BODY = html.Div(
+    [
+        html.Div(
+            [
+                html.Span("Body", className="hud-adjust-title"),
+                html.Div(
+                    [field_label("Drag to"), body_mode_toggle],
+                    className="hud-adjust-mode",
+                    title="What dragging the body in the view does: its arrows move it, its rings turn it",
+                ),
+            ],
+            className="hud-adjust-head",
+        ),
+        # The joints are solved to keep the feet planted.
+        html.Div(
+            [html.Div(TRANSLATE_WIDGETS), html.Div(ROTATE_WIDGETS)],
+            className="hud-body-sliders",
+        ),
+    ],
+    id=POSE_ADJUST_BODY_ID,
+    style={"display": "none"},
+)
+
+ADJUST_FOOT = html.Div(
+    [
+        html.Div(
+            [
+                html.Span("Foot", id=POSE_FOOT_TITLE_ID, className="hud-adjust-title"),
+                _button(
+                    "Put feet back",
+                    POSE_CLEAR_FEET_BTN_ID,
+                    outline=True,
+                    class_name="view-btn",
+                    title="Put every foot back where standby has it, keeping the body move",
+                ),
+            ],
+            className="hud-adjust-head",
+        ),
+        # In the view's coordinates: x right, y forward, up from the floor.
+        # Applied when the field is left or Enter is pressed, not per digit.
+        # A moved foot stays put while the body moves over it.
+        make_field_grid(
+            [
+                make_number_field(field_id, label, step=1, debounce=True)
+                for field_id, label in zip(POSE_FOOT_FIELD_IDS, ("X (mm)", "Y (mm)", "Up (mm)"))
+            ],
+            one_row=True,
+        ),
+    ],
+    id=POSE_ADJUST_FOOT_ID,
+    style={"display": "none"},
+)
+
 # A native <details>, so it folds away without a callback.
 ANGLES_HUD = html.Details(
     [
         html.Summary("Joint angles (°)"),
-        html.Div(id=POSE_ANGLES_ID),
+        angle_table,
+        html.Div(id=POSE_ANGLES_ID, className="hud-message"),
+        html.Div(id=POSE_MESSAGE_ID, className="hud-message"),
+        html.Div([ADJUST_HINT, ADJUST_BODY, ADJUST_FOOT], className="hud-adjust"),
     ],
     id=ANGLES_HUD_ID,
     open=True,
@@ -756,7 +790,8 @@ robot_section = _section(
 hidden_components = html.Div(
     [
         dcc.Store(id=POSE_FOOT_TARGET_ID),
-        dcc.Store(id=POSE_SELECTED_LEG_ID),
+        dcc.Store(id=POSE_BODY_TARGET_ID),
+        dcc.Store(id=POSE_SELECTION_ID),
         dcc.Store(id=POSE_STATE_STORE_ID, storage_type="session"),
         dcc.Store(id=POSE_KEYFRAMES_STORE_ID, storage_type="session"),
         dcc.Store(id=POSE_SELECTED_KF_STORE_ID, storage_type="session"),

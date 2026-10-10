@@ -40,9 +40,9 @@ theme, dark shows the dark one.
 
 <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/app-dark.png"><img src="docs/images/app.png" alt="The Hexapod Link workspace"></picture>
 
-The whole app is one screen: pick a tool on the rail down the left — **Body**
-or **Feet** — and use it on the 3D view, with the joint angles, streaming to
-the robot, the robot's dimensions and a controller to drive it over the view.
+The whole app is one screen: click the body or a foot in the 3D view to pick
+it up and pose the robot with it, with the joint angles, streaming to the
+robot, the robot's dimensions and a controller to drive it over the view.
 Along the bottom, string poses, the robot's gaits and gaits of your own into a
 keyframe sequence, preview it and run it on the robot.
 
@@ -188,20 +188,27 @@ $ python tools/fake_robot.py nougat
 
 ### Using it
 
-The window is one screen: the top bar, the tool rail down the left, the
-panel of the tool picked on it, the 3D view, and the dock along the bottom.
+The window is one screen: the top bar, the 3D view, and the dock along the
+bottom. The pose is set on the view itself: in its bottom-left corner are the
+**joint angles**, and under them the controls of whatever is picked. Click the
+body or a foot in the view to pick it, or its button over the angles —
+**Body**, or a leg's (**L1** to **R3**); click it again, or empty space in the
+view, to let go.
 
 There is one pose: the robot's standby posture with two layers on top that
-add up, each with its own tool on the rail:
+add up:
 
-- **Body** — translate and rotate the body over wherever the feet are
-  planted; the joints are solved to keep them there.
-- **Feet** — click a foot in the 3D view to pick it up, then drag the arrows
-  to move it, or pick it from the list and type its **X**, **Y** and **Up**
-  (height above the floor) in millimetres, or type a leg's joint angles in
-  the **Joints** grid and the foot goes where they put it. A foot that
+- **The body** — translate and rotate it over wherever the feet are planted;
+  the joints are solved to keep them there. Use its sliders, or drag it in
+  the view by its handles: **Move** gives it arrows, **Rotate** rings. A
+  dragged body goes as far as its sliders do.
+- **A foot** — drag its arrows in the view to move it, or type its **X**,
+  **Y** and **Up** (height above the floor) in millimetres. A foot that
   cannot reach a spot (or would take a joint past its limit) stays where it
-  was. **Put feet back** undoes the moves.
+  was. **Put feet back** undoes the moves of them all.
+
+The joint angles can be typed too, picked or not: the leg's foot goes where
+they put it.
 
 The robot's **Dimensions** fold out from the view's top-left corner, under the
 stream controls, with the name of the robot they belong to. They follow the
@@ -209,17 +216,16 @@ connected robot and can be edited to try another body; foot moves are from
 standby, so they keep their meaning on the resized body, and what is
 streamed is solved on it too.
 
-Neither pose tool undoes the other: tilt the body, lift a foot, and both stay,
-and the Body sliders always show the pose as it is. **Reset pose**, over the
-view, clears both; **Reset view** frames the robot again. The joint angles
-are read out in the corner of the view (click the heading to fold them away),
-and with **Stream to robot** on, in the view's top-left corner, every
-reachable pose is sent to the servos as it changes. The tool, the pose and the
-sequence are remembered across a reload. Drag the right edge of the tool panel
-to make it wider or narrower, the top edge of the dock to make it taller or
-shorter, and the lines between the dock's columns to share its width between
-them (or focus an edge and use the arrow keys); double-click an edge to put
-it back. The sizes are kept from one launch to the next.
+Neither layer undoes the other: tilt the body, lift a foot, and both stay,
+and the body's sliders always show the pose as it is. **Reset pose**, over the
+view, clears both; **Reset view** frames the robot again. Click the heading of
+the joint angles to fold them, and what is under them, away. With **Stream to
+robot** on, in the view's top-left corner, every reachable pose is sent to the
+servos as it changes. The pose and the sequence are remembered across a
+reload. Drag the top edge of the dock to make it taller or shorter, and the
+lines between its columns to share its width between them (or focus an edge
+and use the arrow keys); double-click an edge to put it back. The sizes are
+kept from one launch to the next.
 
 The dock has three columns. On the left, **Gaits** is the library of gaits to
 put into the sequence: **Built-in**, the robot's own, and **Mine**, sequences

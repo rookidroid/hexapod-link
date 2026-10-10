@@ -53,7 +53,6 @@ mimetypes.add_type("font/woff2", ".woff2")
 # The saved workspace sizes, by preference key, and the CSS variable each sets
 # (WORKSPACE in assets/industrial.css).
 LAYOUT_VARIABLES = {
-    "panel_w": "--panel-w",
     "dock_h": "--dock-h",
     "lib_w": "--lib-w",
     "run_w": "--run-w",
@@ -66,7 +65,7 @@ class HexapodDash(Dash):
 
     Both live on the <html> element, which Dash's layout cannot reach; setting
     them from a callback would only happen after the first paint, so a dark
-    start would flash light and a resized panel would jump. Putting them into
+    start would flash light and a resized dock would jump. Putting them into
     the index page itself avoids that. See the theme and workspace sections of
     pages/shared.py.
     """

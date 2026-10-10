@@ -3,7 +3,7 @@
 The page places feet in the path tool's body frame and draws them with the
 simulator's linkage model, so the first thing checked is that those two agree:
 a foot solved by one lands where the other draws it, and a pose set by joint
-angles (the Body and Legs tools) turns into feet that solve back to it. The
+angles (the body's sliders, a leg's fields) turns into feet that solve back to it. The
 rest covers what a sequence turns into on its way to the robot.
 """
 
@@ -84,7 +84,7 @@ def test_feet_round_trip_through_their_pose(robot):
 
 @pytest.mark.parametrize("robot", ROBOTS, ids=ROBOT_IDS)
 def test_body_pose_survives_the_trip_through_feet(robot):
-    # What the Body tool does: solve a tilted, shifted body, keep it as feet,
+    # What moving the body does: solve a tilted, shifted body, keep it as feet,
     # and solve the joints back from those for the readout and the robot.
     parameters = {
         "hip_stance": 0,

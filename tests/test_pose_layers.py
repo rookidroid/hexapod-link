@@ -113,6 +113,20 @@ def test_setting_a_legs_joints_moves_only_that_foot(robot):
     assert drawn_feet(moved, robot)[4][2] > 1.0
 
 
+@pytest.mark.parametrize("robot", ROBOTS, ids=ROBOT_IDS)
+def test_the_body_put_where_its_frame_is_is_the_same_body(robot):
+    state = tilted()
+    frame = pl.body_frame(state, robot)
+    body = pl.body_at(frame["origin"], frame["rot"], robot)
+    assert pl.make_state(body, state["offsets"])["body"] == pytest.approx(state["body"], abs=1e-3)
+
+    # The view's handle on the body is at its centre, as drawn.
+    _, pose, _ = pl.solve(state, robot)
+    drawn = pl.scene(state, pose, robot)
+    assert drawn["frame"] == frame
+    np.testing.assert_allclose(drawn["frame"]["origin"], drawn["cog"], atol=1e-2)
+
+
 def test_keyframe_feet_become_moves_from_standby():
     robot = ROBOT_CONFIGS["nougat"]
     feet = np.array(kf.standby_feet(robot))

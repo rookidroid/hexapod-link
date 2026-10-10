@@ -2,8 +2,7 @@
 #
 # Split by where they sit in the workspace (pages/workspace.py):
 #
-# * TOPBAR_CONNECTION is the address and the connect button, in the top bar,
-#   so the link can be brought up from whatever tool is showing.
+# * TOPBAR_CONNECTION is the address and the connect button, in the top bar.
 # * STREAM_OVERLAY switches streaming on and limits its speed, over the view.
 # * DRIVE_HUD is the controller over the view: hold a pad and the robot plays
 #   that one of its own gaits.
@@ -87,9 +86,8 @@ TOPBAR_CONNECTION = html.Div(
 # OVER THE 3D VIEW
 #
 # Streaming sends the pose that is on screen, so its switch and speed limit
-# sit on the view itself (pages/workspace.py), where they can be reached from
-# either tool. Only the inner block is dimmed while offline, so the card
-# itself stays legible over the view.
+# sit on the view itself (pages/workspace.py). Only the inner block is dimmed
+# while offline, so the card itself stays legible over the view.
 # ................................
 
 STREAM_HUD_ID = "robot-stream-hud"

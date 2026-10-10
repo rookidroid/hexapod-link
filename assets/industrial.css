@@ -1,9 +1,9 @@
 /* =============================================
    HEXAPOD LINK — WORKSTATION THEME (LIGHT / DARK)
 
-   One screen built around the 3D view: a top bar, a tool rail, the panel of
-   the tool picked on it, the view, and a dock along the bottom
-   (pages/shared.py make_workspace, pages/workspace.py).
+   One screen built around the 3D view: a top bar, the view with the pose's
+   controls laid over it, and a dock along the bottom (pages/shared.py
+   make_workspace, pages/workspace.py).
 
    Styled after the RX-78-2 Gundam: white armour plates framed in navy,
    Federation blue as the accent, red and V-fin yellow as trim. Light is the
@@ -151,24 +151,25 @@
     --hud-border: rgba(var(--hud-cyan-rgb), 0.28);
     --hud-text: #e4eeff;
     --hud-muted: #8aa2c8;
+    /* What is picked, as the view marks it (HEAD_COLOR in style_settings.py). */
+    --hud-picked: #f7c600;
 
     --font-ui: 'Chakra Petch', system-ui, sans-serif;
     --font-display: 'Michroma', 'Chakra Petch', sans-serif;
     --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
 
     --topbar-h: 52px;
-    --rail-w: 68px;
-    /* The tool panel's width, the dock's height and the widths of the dock's
-       side columns (a percentage there is of the dock); dragging the
-       workspace's splitters sets them on <html> instead
-       (assets/workspace_resize.js). */
-    --panel-w: clamp(300px, 24vw, 380px);
+    /* The red block that starts the top bar's trim. */
+    --trim-w: 68px;
+    /* The dock's height and the widths of its side columns (a percentage
+       there is of the dock); dragging the workspace's splitters sets them on
+       <html> instead (assets/workspace_resize.js). */
     --dock-h: 15rem;
     --lib-w: clamp(14rem, 18%, 18rem);
     --run-w: clamp(22rem, 28%, 28rem);
-    /* How much of the workspace the view always keeps, whatever they are set
-       to: a window made smaller narrows them, and they come back with it. */
-    --view-min-w: 360px;
+    /* How much of the workspace's height the view always keeps, however tall
+       the dock is set: a window made shorter shortens it, and it comes back
+       with the window. */
     --view-min-h: 180px;
 }
 
@@ -267,9 +268,9 @@ body {
     height: 4px;
     pointer-events: none;
     background:
-        linear-gradient(90deg, var(--ind-red) 0 var(--rail-w), transparent var(--rail-w)),
+        linear-gradient(90deg, var(--ind-red) 0 var(--trim-w), transparent var(--trim-w)),
         repeating-linear-gradient(90deg, var(--ind-accent-alt) 0 10px, transparent 10px 16px)
-            calc(var(--rail-w) + 6px) 0 / 76px 100% no-repeat,
+            calc(var(--trim-w) + 6px) 0 / 76px 100% no-repeat,
         var(--ind-accent);
 }
 
@@ -383,42 +384,20 @@ body {
 
 /* ===========================================
    WORKSPACE
-   The rail runs the full height down the left; the dock spans everything
-   else along the bottom. Above `lg` it is one screenful: the tool panel is
-   --panel-w wide and the dock --dock-h tall, each scrolling what does not fit,
-   and the view takes the room that is left. Splitters on their edges resize
-   them.
+   The view, over the dock along the bottom. Above `lg` it is one screenful:
+   the dock is --dock-h tall, scrolling what does not fit, and the view takes
+   the room that is left. A splitter on the dock's top edge resizes it.
    =========================================== */
 
 .workspace {
     flex: 1 1 auto;
     min-height: 0;
     display: grid;
-    grid-template-columns:
-        var(--rail-w)
-        min(var(--panel-w), calc(100% - var(--rail-w) - var(--view-min-w)))
-        minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr) min(var(--dock-h), calc(100% - var(--view-min-h)));
     grid-template-areas:
-        "rail panel view"
-        "rail dock  dock";
-}
-
-.ws-rail {
-    grid-area: rail;
-    background: var(--ind-surface);
-    border-right: 1px solid var(--ind-border);
-    padding: 0.5rem 0.4rem;
-}
-
-/* The navy frame runs round the view: down the panel's edge and along the
-   dock's top. */
-.ws-panel {
-    grid-area: panel;
-    min-height: 0;
-    overflow-y: auto;
-    background: var(--ind-surface);
-    border-right: 2px solid var(--ind-frame);
+        "view"
+        "dock";
 }
 
 .ws-view {
@@ -430,7 +409,8 @@ body {
 }
 
 /* As tall as --dock-h, scrolling what does not fit; its columns fill it, and
-   the Gaits library scrolls within its own. */
+   the Gaits library scrolls within its own. The navy frame runs along its
+   top, under the view. */
 .ws-dock {
     grid-area: dock;
     min-height: 0;
@@ -442,9 +422,9 @@ body {
 }
 
 /* ---- Splitters ----
-   A strip over the panel's right edge and one over the dock's top edge,
-   showing the accent while hovered, focused or dragged. They overlap the
-   areas they resize, so take no room. */
+   A strip over the dock's top edge, and one on each line between its
+   columns, showing the accent while hovered, focused or dragged. They
+   overlap the areas they resize, so take no room. */
 
 .ws-splitter {
     position: relative;
@@ -477,12 +457,6 @@ body {
     bottom: 0;
     left: 2px;
     width: 3px;
-}
-
-.ws-splitter-panel {
-    grid-area: panel;
-    justify-self: end;
-    margin-right: -5px;
 }
 
 /* The dock's: on the line after the Gaits library, and on the line before
@@ -524,8 +498,8 @@ body {
     user-select: none !important;
 }
 
-/* Below `lg` there is no height to share: the rail turns into a row of tabs
-   and everything stacks, with the page scrolling as a whole. */
+/* Below `lg` there is no height to share: the view and the dock stack, with
+   the page scrolling as a whole. */
 @media (max-width: 991.98px) {
     body {
         overflow: auto;
@@ -544,20 +518,7 @@ body {
     }
 
     .workspace {
-        grid-template-columns: minmax(0, 1fr);
-        grid-template-rows: auto auto 60vh auto;
-        grid-template-areas: "rail" "panel" "view" "dock";
-    }
-
-    .ws-rail {
-        border-right: none;
-        border-bottom: 1px solid var(--ind-border);
-    }
-
-    .ws-panel {
-        overflow: visible;
-        border-right: none;
-        border-bottom: 2px solid var(--ind-frame);
+        grid-template-rows: 70vh auto;
     }
 
     .ws-view {
@@ -602,159 +563,6 @@ body {
         margin-left: auto;
         max-width: 11rem;
     }
-}
-
-/* ===========================================
-   RAIL
-   The tool switch (dbc.RadioItems): a column of icon buttons, the picked
-   one marked in the accent. The icons are masks filled with the text colour,
-   so they follow the state and the theme.
-   =========================================== */
-
-.tool-rail {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-}
-
-.tool-rail .form-check {
-    padding: 0;
-    margin: 0;
-    min-height: 0;
-}
-
-.rail-item {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.3rem;
-    width: 100%;
-    padding: 0.6rem 0 0.5rem;
-    font-size: 0.72rem;
-    font-weight: 600;
-    letter-spacing: 0.3px;
-    color: var(--ind-text-muted);
-    border-radius: var(--radius);
-    cursor: pointer;
-    user-select: none;
-    transition: color 0.15s ease, background-color 0.15s ease;
-}
-
-.rail-item::before {
-    content: '';
-    width: 22px;
-    height: 22px;
-    background: currentColor;
-    -webkit-mask: var(--rail-icon) center / contain no-repeat;
-    mask: var(--rail-icon) center / contain no-repeat;
-}
-
-.rail-item:hover {
-    color: var(--ind-text);
-    background: var(--ind-hover);
-}
-
-.rail-item.active {
-    color: var(--ind-accent);
-    background: rgba(var(--ind-accent-rgb), 0.1);
-}
-
-.rail-item.active::after {
-    content: '';
-    position: absolute;
-    left: -0.4rem;
-    top: 20%;
-    bottom: 20%;
-    width: 3px;
-    border-radius: 0 2px 2px 0;
-    background: var(--ind-accent);
-}
-
-.btn-check:focus-visible + .rail-item {
-    box-shadow: var(--ind-glow);
-}
-
-/* Body: the hexagonal body over its centre. */
-.tool-rail .form-check:nth-child(1) .rail-item {
-    --rail-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linejoin='round'%3E%3Cpath d='M12 3l7.8 4.5v9L12 21l-7.8-4.5v-9z'/%3E%3Ccircle cx='12' cy='12' r='2.4' fill='black'/%3E%3C/svg%3E");
-}
-
-/* Feet: a leg down to its foot, and the move handle. */
-.tool-rail .form-check:nth-child(2) .rail-item {
-    --rail-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 8.5l7-2.5 4.5 9.5'/%3E%3Ccircle cx='14.5' cy='18.5' r='2.5' fill='black'/%3E%3Cpath d='M18.5 3v7M15 6.5h7'/%3E%3C/svg%3E");
-}
-
-@media (max-width: 991.98px) {
-    .tool-rail {
-        flex-direction: row;
-    }
-
-    .tool-rail .form-check {
-        flex: 1 1 0;
-    }
-
-    .rail-item {
-        flex-direction: row;
-        justify-content: center;
-        gap: 0.5rem;
-        padding: 0.45rem 0;
-        font-size: 0.85rem;
-    }
-
-    .rail-item::before {
-        width: 18px;
-        height: 18px;
-    }
-
-    .rail-item.active::after {
-        left: 20%;
-        right: 20%;
-        top: auto;
-        bottom: -0.5rem;
-        width: auto;
-        height: 3px;
-        border-radius: 2px 2px 0 0;
-    }
-}
-
-/* ===========================================
-   TOOL PANEL
-   Sections (panel_section() in widgets/section_maker.py) sit flat on the
-   panel, one under another, divided by a hairline.
-   =========================================== */
-
-.ws-panel .ind-section {
-    padding: 1rem 1.1rem 1.1rem;
-    border-bottom: 1px solid var(--ind-border);
-}
-
-/* Section titles in the display face, underlined in V-fin yellow. Michroma
-   has one weight, so it stays at 400 rather than be faux-bolded. */
-.ind-section > h6 {
-    display: inline-block;
-    padding-bottom: 0.25rem;
-    font-family: var(--font-display);
-    font-size: 0.74rem;
-    font-weight: 400;
-    font-synthesis: none;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--ind-text);
-    border-bottom: 2px solid var(--ind-accent-alt);
-}
-
-.ind-section > p {
-    font-size: 0.82rem;
-    line-height: 1.4;
-}
-
-.panel-message {
-    padding: 0.75rem 1.1rem 0;
-}
-
-.panel-message:empty {
-    display: none;
 }
 
 /* ===========================================
@@ -940,21 +748,10 @@ body {
     border-bottom: 1px dashed var(--ind-border);
 }
 
-/* Label, then the slider with its value box: always the same two rows. */
-.ind-slider-field {
-    margin-bottom: 0.8rem;
-}
-
-.ind-slider-field .dash-slider-container {
-    width: 100%;
-    gap: 0.75rem;
-}
-
-/* The direct-input box. Dash hides it once the slider is under 300px wide,
-   which in this panel is most of the time; the value is half of what the
-   field shows, so it stays. A fixed width -- room for "-178.5" -- keeps the
-   track from changing length as the value changes. */
-.ind-slider-field .dash-slider-container .dash-range-slider-input,
+/* A slider's direct-input box. Dash hides it once the slider is under 300px
+   wide, which over the view is most of the time; the value is half of what
+   the field shows, so it stays. A fixed width -- room for "-178.5" -- keeps
+   the track from changing length as the value changes. */
 .ind-inline-slider .dash-slider-container .dash-range-slider-input {
     display: block;
     box-sizing: border-box;
@@ -968,12 +765,6 @@ body {
     font-size: 0.8rem;
     padding: 0.15rem 0.35rem;
     border-radius: var(--radius);
-}
-
-.ind-slider-field .dash-slider-mark {
-    font-family: var(--font-mono);
-    font-size: 0.68rem;
-    color: var(--ind-text-muted);
 }
 
 /* Label-above number inputs, as many to a row as fit. */
@@ -1026,8 +817,7 @@ body {
 }
 
 /* ---- Joint grids ----
-   One input (or readout) per leg and joint; the joint names once, in the
-   header. */
+   One input per leg and joint; the columns named once, in the header. */
 
 .ind-joint-grid {
     --bs-table-bg: transparent;
@@ -1068,37 +858,6 @@ body {
     text-align: right;
 }
 
-/* The Feet tool's grids: Left and Right side by side when both fit with a
-   full value in every input -- "L1" plus three inputs of "-178.5" -- and
-   left above right when they do not. */
-.ind-joint-sides {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0 0.75rem;
-}
-
-.ind-joint-sides > .ind-joint-side {
-    flex: 1 1 12rem;
-    min-width: 0;
-}
-
-/* A read-only value (the solved angles). */
-.ind-readout {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-    text-align: right;
-    padding: 0.1rem 0.3rem;
-    white-space: nowrap;
-}
-
-.ind-readout.is-bad {
-    text-align: center;
-    color: var(--ind-alert-text);
-    background: var(--ind-alert-bg);
-}
-
 .ind-alert {
     font-family: var(--font-mono);
     font-size: 0.78rem;
@@ -1131,8 +890,9 @@ body {
 /* ===========================================
    VIEW
    The three.js view (assets/hexapod_view.js) fills its area; buttons sit in
-   the top-right corner and the angle readout in the bottom-left, both drawn
-   for the dark monitor in either theme.
+   the top-right corner and the pose -- its joint angles, and the controls of
+   what is picked -- in the bottom-left, all drawn for the dark monitor in
+   either theme.
    =========================================== */
 
 .hexapod-view-frame,
@@ -1167,10 +927,9 @@ body {
 }
 
 /* A card over the dark view, in either theme: the stream controls, the
-   dimensions and the joint angles. Dash's sliders and the inputs inside one
-   are redrawn for it. */
-.hud-panel,
-.angles-hud {
+   dimensions and the pose. Dash's sliders and the inputs inside one are
+   redrawn for it. */
+.hud-panel {
     --Dash-Fill-Disabled: rgba(var(--hud-cyan-rgb), 0.2);
     --Dash-Fill-Inverse-Strong: var(--view-bg);
     --Dash-Text-Primary: var(--hud-text);
@@ -1281,8 +1040,15 @@ body {
     bottom: 12px;
     z-index: 3;
     max-width: calc(100% - 24px);
-    overflow-x: auto;
+    /* Up to the robot's controls in the corner above: taller than the room
+       under them, it scrolls. */
+    max-height: calc(100% - 7.5rem);
+    overflow: auto;
 }
+
+/* ---- The pose ----
+   The joint angles, a column per leg under the button that picks its foot,
+   then the controls of what is picked: the body's, or that foot's. */
 
 .angles-hud {
     padding: 0.35rem 0.6rem;
@@ -1305,7 +1071,7 @@ body {
 }
 
 /* Folded away while a leg is out of reach: the warning inside it cannot be
-   seen, so the folded readout turns red instead. */
+   seen, so the folded overlay turns red instead. */
 .angles-hud.is-bad:not([open]) {
     background: rgba(140, 24, 24, 0.88);
     border-color: rgba(255, 92, 92, 0.85);
@@ -1334,20 +1100,154 @@ body {
     color: var(--hud-muted);
 }
 
-.angles-hud .ind-readout {
-    min-width: 3.6rem;
-    background: rgba(var(--hud-cyan-rgb), 0.06);
+.angles-hud .ind-joint-grid input {
+    width: 4.1rem;
+    padding-block: 0.1rem;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
 }
 
-.angles-hud .ind-readout.is-bad {
+/* A leg out of reach has no angles: a dash in their place. */
+.angles-hud .ind-joint-grid input::placeholder {
     color: #ffb4b4;
-    background: rgba(255, 92, 92, 0.16);
+    opacity: 1;
+    text-align: center;
+}
+
+/* Picks the body, or a leg's foot; lit in the yellow the view marks what is
+   picked with. */
+.hud-pick {
+    display: block;
+    width: 100%;
+    padding: 0.1rem 0.4rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--hud-muted);
+    background: rgba(var(--hud-cyan-rgb), 0.06);
+    border: 1px solid var(--hud-border);
+    cursor: pointer;
+    transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.hud-pick:hover {
+    color: var(--hud-text);
+    border-color: rgba(var(--hud-cyan-rgb), 0.6);
+}
+
+.hud-pick:focus-visible {
+    outline: none;
+    box-shadow: 0 0 10px rgba(var(--hud-cyan-rgb), 0.3);
+}
+
+.hud-pick.is-picked {
+    color: var(--view-bg);
+    background: var(--hud-picked);
+    border-color: var(--hud-picked);
+}
+
+/* Messages and the controls under the angles are only as wide as the angles
+   are: zero width of their own, so what they say never resizes the overlay. */
+.hud-message,
+.hud-adjust {
+    width: 0;
+    min-width: 100%;
+}
+
+.hud-message:empty {
+    display: none;
 }
 
 .angles-hud .ind-alert {
     color: #ffb4b4;
     background: rgba(255, 92, 92, 0.12);
     margin-top: 0.4rem;
+}
+
+.hud-adjust {
+    margin-top: 0.5rem;
+    padding-top: 0.45rem;
+    border-top: 1px dashed var(--hud-border);
+}
+
+.hud-hint {
+    font-size: 0.74rem;
+    line-height: 1.35;
+    color: var(--hud-muted);
+}
+
+.hud-adjust-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-height: 1.7rem;
+    margin-bottom: 0.3rem;
+}
+
+.hud-adjust-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--hud-picked);
+}
+
+.hud-adjust-mode {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.hud-adjust-mode .ind-field-label {
+    margin: 0;
+}
+
+.hud-panel .dock-seg-item {
+    color: var(--hud-muted);
+    border-color: var(--hud-border);
+}
+
+.hud-panel .dock-seg-item:hover {
+    color: var(--hud-text);
+    background: rgba(var(--hud-cyan-rgb), 0.12);
+}
+
+.hud-panel .dock-seg-item.active {
+    color: #fff;
+    background: var(--ind-accent);
+    border-color: var(--ind-accent);
+}
+
+/* The body's sliders: moving it beside turning it. */
+.hud-body-sliders {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 1rem;
+}
+
+.hud-body-sliders .ind-group-header {
+    margin: 0.1rem 0 0.35rem;
+}
+
+.hud-body-sliders .ind-inline-slider {
+    min-width: 0;
+    margin-bottom: 0.2rem;
+}
+
+.hud-adjust .ind-field-grid {
+    margin-bottom: 0;
+}
+
+.hud-adjust .view-btn.btn {
+    --bs-btn-padding-y: 0.1rem;
+}
+
+@media (max-width: 575.98px) {
+    .hud-body-sliders {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
 
 /* ---- Controller ----
@@ -1595,7 +1495,7 @@ body {
     min-height: 2rem;
 }
 
-/* As the tool panel's section titles, a size down. */
+/* A section's title, in the display face, underlined in V-fin yellow. */
 .dock-section-title {
     flex: 0 0 auto;
     margin: 0;

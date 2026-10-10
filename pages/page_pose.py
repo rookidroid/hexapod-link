@@ -3,22 +3,25 @@
 # (hexapod/gait_keyframes.py) -- preview the sequence and run it on the robot.
 #
 # There is one pose: the robot's standby posture with two layers on top
-# (hexapod/pose_layers.py), and a tool on the rail for each:
+# (hexapod/pose_layers.py):
 #
-#   Feet  moving single feet away from where standby plants them, by dragging
-#         them in the 3D view or typing where they go
-#   Body  moving and tilting the body over wherever the feet are planted
+#   feet  single feet moved away from where standby plants them, by dragging
+#         them in the 3D view or typing where they go, or their leg's angles
+#   body  the body moved and tilted over wherever the feet are planted, with
+#         its sliders or by dragging it in the 3D view
 #
-# The layers add up, so neither tool undoes the other: tilt the body, move a
-# foot, and both stay. The Body sliders always show the pose as it is, and
-# both tools draw it the same way, in the world, so switching tools changes
-# nothing but which controls are showing and whether the feet can be
-# dragged. Out of the layers come the joint angles, what is
-# streamed to the robot and what a keyframe keeps.
+# The layers add up, so neither undoes the other: tilt the body, move a foot,
+# and both stay. Which one is being adjusted is whatever is picked -- the
+# body, or a foot -- by clicking it in the view or its button in the overlay
+# on the view, which then shows its controls; picking changes nothing else.
+# Out of the layers come the joint angles, what is streamed to the robot and
+# what a keyframe keeps.
 #
-# The 3D view (assets/hexapod_view.js) reports a dragged foot through the POSE_FOOT_TARGET_ID store and draws
-# whatever lands in the view's scene store, or a frame of the sequence while
-# previewing; the kinematics all happen here.
+# The 3D view (assets/hexapod_view.js) reports what is picked through the
+# POSE_SELECTION_ID store, and a dragged foot or body through the
+# POSE_FOOT_TARGET_ID and POSE_BODY_TARGET_ID stores; it draws whatever lands
+# in the view's scene store, or a frame of the sequence while previewing. The
+# kinematics all happen here.
 #
 # What is being edited lives in session stores, so it survives a reload:
 #
@@ -50,29 +53,34 @@ from hexapod import gait_library
 from hexapod import keyframes as kf
 from hexapod.gait_keyframes import gait_keyframes
 from hexapod import pose_layers as pl
-from hexapod.const import NAMES_LEG
-from hexapod.naming import leg_index, leg_label
+from hexapod.naming import LEG_LABELS, leg_label
 from hexapod.robot_config import get_sequence_fps, with_dimensions
 from hexapod.robot_link import ROBOT_LINK
 from pages import helpers, shared
-from widgets.ik_ui import IK_WIDGETS_IDS
+from widgets.ik_ui import BODY_RANGES, IK_WIDGETS_IDS
 from widgets.pose_ui import (
     MODE_EDIT,
     MODE_PREVIEW,
     ANGLES_HUD_CLASS,
     ANGLES_HUD_ID,
     GAIT_SOURCES,
+    PICK_BTN_CLASS,
     POSE_ADD_BTN_ID,
+    POSE_ADJUST_BODY_ID,
+    POSE_ADJUST_FOOT_ID,
+    POSE_ADJUST_HINT_ID,
     POSE_ANGLES_ID,
+    POSE_BODY_MODE_ID,
+    POSE_BODY_TARGET_ID,
     POSE_CLEAR_FEET_BTN_ID,
     POSE_DELETE_BTN_ID,
     POSE_DOWNLOAD_ID,
     POSE_DURATION_ID,
     POSE_EARLIER_BTN_ID,
     POSE_FOOT_FIELD_IDS,
+    POSE_FOOT_TITLE_ID,
     POSE_JOINT_FIELDS,
     POSE_JOINT_FIELD_IDS,
-    POSE_FOOT_LEG_ID,
     POSE_FOOT_TARGET_ID,
     POSE_FRAME_DISPLAY_ID,
     POSE_FRAME_SLIDER_ID,
@@ -93,6 +101,8 @@ from widgets.pose_ui import (
     POSE_PLAY_BTN_ID,
     POSE_PLAY_STATE_STORE_ID,
     POSE_PLAYHEAD_ID,
+    POSE_PICK_BODY_ID,
+    POSE_PICK_LEG_IDS,
     POSE_PREVIEW_MESSAGE_ID,
     POSE_PREVIEW_STORE_ID,
     POSE_RESET_BTN_ID,
@@ -102,12 +112,10 @@ from widgets.pose_ui import (
     POSE_RUN_BTN_ID,
     POSE_SAVE_BTN_ID,
     POSE_SELECTED_KF_STORE_ID,
-    POSE_SELECTED_LEG_ID,
+    POSE_SELECTION_ID,
     POSE_STATE_STORE_ID,
     POSE_SPEED_ID,
     POSE_STOP_BTN_ID,
-    POSE_TOOL_ID,
-    POSE_TOOL_PANEL_IDS,
     POSE_UPDATE_BTN_ID,
     POSE_UPLOAD_ID,
     POSE_USER_GAIT_DELETE_TYPE,
@@ -121,10 +129,9 @@ from widgets.pose_ui import (
     POSE_VIEW_ID,
     POSE_VIEW_MODE_ID,
     PREVIEW_FPS,
+    SELECT_BODY,
     SPEED_MAX_PCT,
     SPEED_MIN_PCT,
-    TOOL_FEET,
-    TOOLS,
     USER_GAITS_EMPTY,
     user_gait_row,
 )
@@ -139,25 +146,83 @@ from widgets.robot_link_ui import (
 )
 
 # ......................
-# The view and the tools
+# The view and what is picked
 # ......................
 
 POSE_SCENE_STORE_ID = shared.view_store_id(POSE_VIEW_ID)
 POSE_RENDER_ACK_ID = f"{POSE_VIEW_ID}-ack"
 
+# The buttons that pick: the body's, then each leg's by id.
+PICK_IDS = [POSE_PICK_BODY_ID, *POSE_PICK_LEG_IDS]
 
-# Show the tool's panel. The others are only hidden, so their sliders keep
-# their values.
+
+# Show the controls of what is picked, the body's or a foot's, and light its
+# button. The others are only hidden, so their sliders keep their values.
 clientside_callback(
     """
-    function(tool) {
+    function(picked) {
+        var labels = %s;
         var show = {}, hide = {display: "none"};
-        return [%s];
+        var body = picked === "%s";
+        var foot = typeof picked === "number";
+        var lit = [body];
+        for (var leg = 0; leg < labels.length; leg++) {
+            lit.push(picked === leg);
+        }
+        return [
+            body || foot ? hide : show,
+            body ? show : hide,
+            foot ? show : hide,
+            foot ? labels[picked] + " foot" : window.dash_clientside.no_update,
+        ].concat(lit.map(function (on) { return on ? "%s is-picked" : "%s"; }));
     }
     """
-    % ", ".join(f'tool === "{tool}" ? show : hide' for tool in TOOLS),
-    *[Output(POSE_TOOL_PANEL_IDS[tool], "style") for tool in TOOLS],
-    Input(POSE_TOOL_ID, "value"),
+    % (json.dumps(list(LEG_LABELS)), SELECT_BODY, PICK_BTN_CLASS, PICK_BTN_CLASS),
+    Output(POSE_ADJUST_HINT_ID, "style"),
+    Output(POSE_ADJUST_BODY_ID, "style"),
+    Output(POSE_ADJUST_FOOT_ID, "style"),
+    Output(POSE_FOOT_TITLE_ID, "children"),
+    *[Output(button_id, "className") for button_id in PICK_IDS],
+    Input(POSE_SELECTION_ID, "data"),
+)
+
+# A button picks in the view, as clicking the body or the foot there does;
+# the view reports it back, which is what lights the button. Clicked again,
+# it lets go.
+clientside_callback(
+    """
+    function() {
+        var ids = %s;
+        var picked = arguments[ids.length];
+        var index = ids.indexOf(window.dash_clientside.callback_context.triggered_id);
+        if (index >= 0 && window.hexapodView) {
+            var what = index === 0 ? "%s" : index - 1;
+            window.hexapodView.select("%s", what === picked ? null : what);
+        }
+        return window.dash_clientside.no_update;
+    }
+    """
+    % (json.dumps(PICK_IDS), SELECT_BODY, POSE_VIEW_ID),
+    Output(POSE_RENDER_ACK_ID, "data", allow_duplicate=True),
+    *[Input(button_id, "n_clicks") for button_id in PICK_IDS],
+    State(POSE_SELECTION_ID, "data"),
+    prevent_initial_call=True,
+)
+
+# Which handles the body picked is dragged by in the view.
+clientside_callback(
+    """
+    function(mode) {
+        if (window.hexapodView) {
+            window.hexapodView.setBodyMode("%s", mode);
+        }
+        return window.dash_clientside.no_update;
+    }
+    """
+    % POSE_VIEW_ID,
+    Output(POSE_RENDER_ACK_ID, "data", allow_duplicate=True),
+    Input(POSE_BODY_MODE_ID, "value"),
+    prevent_initial_call=True,
 )
 
 
@@ -165,8 +230,9 @@ clientside_callback(
 # Editor state
 # ......................
 
-# Which layer each slider sets.
+# Which layer each slider sets, and how far each goes either way.
 BODY_WIDGET_KEYS = dict(zip(IK_WIDGETS_IDS, pl.BODY_KEYS))
+BODY_KEY_RANGES = dict(zip(pl.BODY_KEYS, BODY_RANGES))
 # The leg and joint each joint field sets.
 JOINT_FIELD_KEYS = {field_id: (leg, joint) for leg, joint, field_id in POSE_JOINT_FIELDS}
 
@@ -227,6 +293,40 @@ def _field_value(mm):
     return round(mm, 1) + 0.0
 
 
+def _pose_alert(alert):
+    """An alert about the pose, for the overlay on the view."""
+    return helpers.make_alert_message(alert, class_name="")
+
+
+def _picked_leg(selection):
+    """The id of the leg whose foot is picked, or None: the view's selection
+    is a leg's id, SELECT_BODY, or nothing."""
+    if isinstance(selection, int) and not isinstance(selection, bool) and 0 <= selection < 6:
+        return selection
+    return None
+
+
+def _triple(values):
+    """Three finite numbers out of what the view sent, or None."""
+    try:
+        numbers = [float(value) for value in values]
+    except (TypeError, ValueError):
+        return None
+    return numbers if len(numbers) == 3 and np.isfinite(numbers).all() else None
+
+
+def _dragged_body(origin, rot, robot_config):
+    """The body layer for a body dragged in the view to `origin`, turned by
+    `rot`: held to what its sliders can say, in steps fine enough to follow
+    the pointer."""
+    body = pl.body_at(origin, rot, robot_config)
+    held = {}
+    for index, key in enumerate(pl.BODY_KEYS):
+        most = BODY_KEY_RANGES[key]
+        held[key] = round(min(max(body[key], -most), most), 2 if index < 3 else 1)
+    return held
+
+
 def _keyframe_state(keyframe, robot_config):
     """The layers a keyframe was made from, or, for one that did not keep them
     (saved before keyframes did), its feet as moves from standby."""
@@ -246,11 +346,11 @@ def _keyframe_state(keyframe, robot_config):
         mode=Output(POSE_VIEW_MODE_ID, "data", allow_duplicate=True),
         body_sliders=[Output(widget_id, "value") for widget_id in IK_WIDGETS_IDS],
         foot_fields=[Output(field_id, "value") for field_id in POSE_FOOT_FIELD_IDS],
-        foot_fields_off=[Output(field_id, "disabled") for field_id in POSE_FOOT_FIELD_IDS],
         joint_fields=[Output(field_id, "value") for field_id in POSE_JOINT_FIELD_IDS],
     ),
     inputs=dict(
         foot_target=Input(POSE_FOOT_TARGET_ID, "data"),
+        body_target=Input(POSE_BODY_TARGET_ID, "data"),
         _reset=Input(POSE_RESET_BTN_ID, "n_clicks"),
         _clear_feet=Input(POSE_CLEAR_FEET_BTN_ID, "n_clicks"),
         _add=Input(POSE_ADD_BTN_ID, "n_clicks"),
@@ -268,7 +368,8 @@ def _keyframe_state(keyframe, robot_config):
         upload=Input(POSE_UPLOAD_ID, "contents"),
         _config_store=Input(ROBOT_CONFIG_STORE_ID, "data"),
         body_values=[Input(widget_id, "value") for widget_id in IK_WIDGETS_IDS],
-        foot_leg=Input(POSE_FOOT_LEG_ID, "value"),
+        # Picking a foot shows where it is.
+        selection=Input(POSE_SELECTION_ID, "data"),
         foot_values=[Input(field_id, "value") for field_id in POSE_FOOT_FIELD_IDS],
         joint_values=[Input(field_id, "value") for field_id in POSE_JOINT_FIELD_IDS],
         duration=Input(POSE_DURATION_ID, "value"),
@@ -287,6 +388,7 @@ def _keyframe_state(keyframe, robot_config):
 )
 def edit(
     foot_target,
+    body_target,
     _reset,
     _clear_feet,
     _add,
@@ -302,7 +404,7 @@ def edit(
     upload,
     _config_store,
     body_values,
-    foot_leg,
+    selection,
     foot_values,
     joint_values,
     duration,
@@ -320,15 +422,17 @@ def edit(
     stores and each needs to see what the others last left there. It also
     writes the sliders and the foot and joint fields, which it reads: whenever
     the pose comes from somewhere other than a slider -- a keyframe, a reset,
-    the page being opened -- the sliders are set to show it, and the fields
-    always show where the picked foot is and what every joint is at. Written anywhere else, they would set the
-    pose off again.
+    the body dragged in the view, the page being opened -- the sliders are set
+    to show it, and the fields always show where the picked foot is and what
+    every joint is at. Written anywhere else, they would set the pose off
+    again.
     """
     robot_config = _robot(dimensions_json)
     trigger = ctx.triggered_id
     # A keyframe in the list reports in with a dict id, which cannot be looked
     # up among the sliders'.
     slider = trigger if isinstance(trigger, str) else None
+    foot_leg = _picked_leg(selection)
 
     out_pose = out_keyframes = out_selected = no_update
     message = no_update
@@ -378,7 +482,7 @@ def edit(
         moved = pl.with_foot_at(state, leg, target, robot_config)
         _, _, bad_legs = pl.solve(moved, robot_config)
         if leg in bad_legs:
-            message = helpers.make_alert_message(
+            message = _pose_alert(
                 f"{leg_label(leg)} cannot reach there, or a joint would pass its limit."
             )
             # While dragging the foot is left where the cursor has it; once
@@ -388,10 +492,26 @@ def edit(
             out_pose = bump(moved)
             message = ""
 
-    elif slider in POSE_FOOT_FIELD_IDS:
-        if not foot_leg:
+    elif trigger == POSE_SELECTION_ID:
+        # Something else picked: what was said of the last move is stale.
+        message = ""
+
+    elif trigger == POSE_BODY_TARGET_ID and body_target:
+        # The body dragged in the view. Like its sliders, it goes where it is
+        # put, within their range: a leg it leaves out of reach is flagged,
+        # not refused.
+        origin = _triple(body_target.get("origin"))
+        rot = _triple(body_target.get("rot"))
+        if origin is None or rot is None:
             raise PreventUpdate
-        leg = leg_index(foot_leg)
+        out_pose = bump(pl.make_state(_dragged_body(origin, rot, robot_config), state["offsets"]))
+        out_mode = MODE_EDIT
+        message = ""
+
+    elif slider in POSE_FOOT_FIELD_IDS:
+        if foot_leg is None:
+            raise PreventUpdate
+        leg = foot_leg
         # A field left empty, or still showing the rounded value it was given,
         # keeps that coordinate exactly, so typing one does not nudge the
         # others by their rounding.
@@ -403,7 +523,7 @@ def edit(
         moved = pl.with_foot_at(state, leg, target, robot_config)
         _, _, bad_legs = pl.solve(moved, robot_config)
         if leg in bad_legs:
-            message = helpers.make_alert_message(
+            message = _pose_alert(
                 f"{leg_label(leg)} cannot reach there, or a joint would pass its limit."
             )
             # The fields go back to where the foot still is.
@@ -420,7 +540,7 @@ def edit(
         moved = pl.with_leg_angles(state, leg, {joint: float(value)}, robot_config)
         _, _, bad_legs = pl.solve(moved, robot_config)
         if leg in bad_legs:
-            message = helpers.make_alert_message(
+            message = _pose_alert(
                 f"{leg_label(leg)}: {joint} {float(value):+.1f}° is past the joint's limit."
             )
             # The fields go back to the angles the leg still has.
@@ -519,7 +639,7 @@ def edit(
                 inserted = gait_library.load_gait(trigger["index"], robot_config)
         except kf.KeyframeFileError as error:
             inserted = []
-            message = helpers.make_alert_message(error)
+            message = _pose_alert(error)
         if inserted and trigger["type"] in (POSE_GAIT_REPLACE_TYPE, POSE_USER_GAIT_REPLACE_TYPE):
             frames = list(inserted)
             out_keyframes = set_frames(frames)
@@ -538,7 +658,7 @@ def edit(
 
     elif trigger == POSE_UPDATE_BTN_ID:
         if selected is None:
-            message = helpers.make_alert_message("Pick a keyframe to update.")
+            message = _pose_alert("Pick a keyframe to update.")
         else:
             # It keeps its time and easing.
             feet = pl.body_feet(state, robot_config)
@@ -548,7 +668,7 @@ def edit(
 
     elif trigger == POSE_DELETE_BTN_ID:
         if selected is None:
-            message = helpers.make_alert_message("Pick a keyframe to delete.")
+            message = _pose_alert("Pick a keyframe to delete.")
         else:
             del frames[selected]
             out_keyframes = set_frames(frames)
@@ -611,7 +731,7 @@ def edit(
         try:
             loaded = kf.load(_decode_upload(upload), robot_config)
         except (kf.KeyframeFileError, ValueError) as error:
-            message = helpers.make_alert_message(error)
+            message = _pose_alert(error)
         else:
             out_keyframes = set_frames(loaded)
             out_selected = 0 if loaded else None
@@ -629,13 +749,11 @@ def edit(
     else:
         body_sliders = [shown_pose["state"]["body"][key] for key in pl.BODY_KEYS]
 
-    if foot_leg:
-        foot = pl.view_feet(shown_pose["state"], robot_config)[leg_index(foot_leg)]
+    if foot_leg is not None:
+        foot = pl.view_feet(shown_pose["state"], robot_config)[foot_leg]
         foot_fields = [_field_value(value) for value in foot]
-        foot_fields_off = [False] * 3
     else:
         foot_fields = [None] * 3
-        foot_fields_off = [True] * 3
 
     # What every joint is at; nothing for a leg that cannot reach its foot,
     # whose angles mean nothing.
@@ -681,7 +799,6 @@ def edit(
         mode=out_mode,
         body_sliders=body_sliders,
         foot_fields=foot_fields,
-        foot_fields_off=foot_fields_off,
         joint_fields=joint_fields,
     )
 
@@ -718,50 +835,17 @@ def update_pose(pose_store, dimensions_json):
 
     scene = pl.scene(state, pose, robot_config)
     scene["seq"] = pose_store.get("seq", 0)
-    # Marked when a leg is out of reach, so the readout says so even folded
+    # Marked when a leg is out of reach, so the overlay says so even folded
     # away, when the warning inside it cannot be seen.
     hud_class = f"{ANGLES_HUD_CLASS} is-bad" if bad_legs else ANGLES_HUD_CLASS
-    return scene, helpers.make_angle_strip(pose, bad_legs), hud_class
+    return scene, helpers.make_reach_warning(bad_legs), hud_class
 
 
-# The foot picker and the view follow each other: clicking a foot picks it in
-# the picker, and picking one there picks it up in the view, ready to drag.
+# Hands the scene to the view: the pose, whose body and feet can be picked
+# and dragged, or a frame of the sequence while previewing, which cannot.
 clientside_callback(
     """
-    function(leg) {
-        var names = %s;
-        return leg === null || leg === undefined ? "" : names[leg];
-    }
-    """
-    % json.dumps(list(NAMES_LEG)),
-    Output(POSE_FOOT_LEG_ID, "value"),
-    Input(POSE_SELECTED_LEG_ID, "data"),
-    prevent_initial_call=True,
-)
-
-clientside_callback(
-    """
-    function(name) {
-        var names = %s;
-        var leg = names.indexOf(name);
-        if (window.hexapodView) {
-            window.hexapodView.selectFoot("%s", leg < 0 ? null : leg);
-        }
-        return window.dash_clientside.no_update;
-    }
-    """
-    % (json.dumps(list(NAMES_LEG)), POSE_VIEW_ID),
-    Output(POSE_RENDER_ACK_ID, "data", allow_duplicate=True),
-    Input(POSE_FOOT_LEG_ID, "value"),
-    prevent_initial_call=True,
-)
-
-
-# Hands the scene to the view: the pose, which can be dragged with the Feet
-# tool, or a frame of the sequence while previewing, which cannot.
-clientside_callback(
-    """
-    function(scene, frame, mode, preview, tool) {
+    function(scene, frame, mode, preview) {
         if (!window.hexapodView) {
             return window.dash_clientside.no_update;
         }
@@ -770,18 +854,17 @@ clientside_callback(
             var index = Math.min(Math.max(frame || 0, 0), preview.scenes.length - 1);
             window.hexapodView.render("%s", preview.scenes[index], {editable: false});
         } else if (scene) {
-            window.hexapodView.render("%s", scene, {editable: tool === "%s"});
+            window.hexapodView.render("%s", scene, {editable: true});
         }
         return window.dash_clientside.no_update;
     }
     """
-    % (MODE_PREVIEW, POSE_VIEW_ID, POSE_VIEW_ID, TOOL_FEET),
+    % (MODE_PREVIEW, POSE_VIEW_ID, POSE_VIEW_ID),
     Output(POSE_RENDER_ACK_ID, "data"),
     Input(POSE_SCENE_STORE_ID, "data"),
     Input(POSE_FRAME_SLIDER_ID, "value"),
     Input(POSE_VIEW_MODE_ID, "data"),
     Input(POSE_PREVIEW_STORE_ID, "data"),
-    Input(POSE_TOOL_ID, "value"),
 )
 
 clientside_callback(
@@ -874,7 +957,7 @@ def list_keyframes(keyframes_store, selected, loop_values):
         summary = f"{len(frames)} keyframe{'s' if len(frames) != 1 else ''} · {total:.2f} s"
     else:
         items = html.Div(
-            "No keyframes yet: pose the robot with Body or Feet, then + Add pose.",
+            "No keyframes yet: pose the robot in the view, then + Add pose.",
             className="dock-empty",
         )
         summary = ""

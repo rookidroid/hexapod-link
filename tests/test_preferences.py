@@ -60,7 +60,7 @@ def test_unknown_theme_is_rejected(preferences_file):
     assert not preferences_file.exists()
 
 
-NO_LAYOUT = {"panel_w": None, "dock_h": None, "lib_w": None, "run_w": None}
+NO_LAYOUT = {"dock_h": None, "lib_w": None, "run_w": None}
 
 
 def test_layout_defaults_to_the_stylesheets(preferences_file):
@@ -69,14 +69,14 @@ def test_layout_defaults_to_the_stylesheets(preferences_file):
 
 def test_layout_sizes_are_saved_one_at_a_time(preferences_file):
     assert save_theme("dark")
-    assert save_layout({"panel_w": 412.4, "n": 123})
+    assert save_layout({"lib_w": 412.4, "n": 123})
     assert save_layout({"dock_h": 260, "run_w": 380})
-    assert load_layout() == {**NO_LAYOUT, "panel_w": 412, "dock_h": 260, "run_w": 380}
+    assert load_layout() == {"lib_w": 412, "dock_h": 260, "run_w": 380}
     assert load_theme() == "dark"
 
     # Set back with a double-click.
-    assert save_layout({"panel_w": None, "lib_w": 250})
-    assert load_layout() == {**NO_LAYOUT, "dock_h": 260, "lib_w": 250, "run_w": 380}
+    assert save_layout({"lib_w": None, "run_w": 250})
+    assert load_layout() == {**NO_LAYOUT, "dock_h": 260, "run_w": 250}
 
 
 @pytest.mark.parametrize("value", [None, "300", True, -5, 50, 10_000, float("nan")])
@@ -87,7 +87,13 @@ def test_a_size_out_of_range_is_not_kept(preferences_file, value):
 
 
 @pytest.mark.parametrize(
-    "contents", ['{"layout": [1]}', '{"layout": {"panel_w": "wide", "dock_h": {}}}']
+    "contents",
+    [
+        '{"layout": [1]}',
+        '{"layout": {"lib_w": "wide", "dock_h": {}}}',
+        # A size of the tool panel's, which the workspace no longer has.
+        '{"layout": {"panel_w": 400}}',
+    ],
 )
 def test_an_unusable_layout_is_ignored(preferences_file, contents):
     preferences_file.write_text(contents, encoding="utf-8")

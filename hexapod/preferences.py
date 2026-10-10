@@ -55,11 +55,10 @@ def save_theme(theme):
 
 
 # The workspace's sizes, set by dragging its splitters (assets/workspace_resize.js):
-# the width of the tool panel, the height of the dock and the widths of the
-# dock's side columns (the Gaits library, and Playback and Robot), in CSS
-# pixels. None for one never dragged, or set back with a double-click, which
-# leaves it to the stylesheet.
-LAYOUT_SIZES = ("panel_w", "dock_h", "lib_w", "run_w")
+# the height of the dock and the widths of its side columns (the Gaits
+# library, and Playback and Robot), in CSS pixels. None for one never dragged,
+# or set back with a double-click, which leaves it to the stylesheet.
+LAYOUT_SIZES = ("dock_h", "lib_w", "run_w")
 # Far wider than any sensible value either way: only junk is refused here;
 # the page keeps them within the window.
 LAYOUT_MIN_PX = 100

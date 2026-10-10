@@ -1,7 +1,7 @@
 // The workspace's splitters (make_splitter in widgets/section_maker.py): one
-// on the tool panel's right edge sets its width, one on the dock's top edge
-// its height, and one either side of the dock's middle column the width of
-// the column beside it, the middle one taking what is left. Drag one, or focus it and use the arrow keys (Shift for bigger
+// on the dock's top edge sets its height, and one either side of the dock's
+// middle column the width of the column beside it, the middle one taking what
+// is left. Drag one, or focus it and use the arrow keys (Shift for bigger
 // steps); double-click it to put the size back to the stylesheet's.
 //
 // A size is a CSS variable on <html> (WORKSPACE in assets/industrial.css),
@@ -17,12 +17,9 @@
 
     var STORE_ID = "layout-sizes";
     var WIDE = window.matchMedia("(min-width: 992px)");
-    // How much of the window the view always keeps (px; --view-min-w and
-    // --view-min-h in the stylesheet), and the smallest a panel may be made.
-    var VIEW_MIN_W = 360;
+    // How much of the window's height the view always keeps (px; --view-min-h
+    // in the stylesheet), and the shortest the dock may be made.
     var VIEW_MIN_H = 180;
-    var PANEL_MIN_W = 220;
-    var PANEL_MAX_W = 720;
     var DOCK_MIN_H = 140;
     // The dock's columns: the side ones' least, and most as a share of the
     // dock (as capped in the stylesheet), and what the sequence always keeps.
@@ -35,28 +32,13 @@
     var KEY_STEP_BIG = 64;
 
     var SIZES = {
-        panel: {
-            variable: "--panel-w",
-            key: "panel_w",
-            selector: ".ws-panel",
-            cursor: "col-resize",
-            // How big the panel is, and how big it is made with the pointer
-            // at (x, y).
-            current: function (box) { return box.width; },
-            fromPointer: function (x, y, box) { return x - box.left; },
-            range: function () {
-                var ws = document.querySelector(".workspace");
-                var rail = ws.querySelector(".ws-rail");
-                var room = ws.clientWidth - (rail ? rail.offsetWidth : 0) - VIEW_MIN_W;
-                return [PANEL_MIN_W, Math.max(PANEL_MIN_W, Math.min(PANEL_MAX_W, room))];
-            },
-            keys: {ArrowLeft: -1, ArrowRight: 1},
-        },
         dock: {
             variable: "--dock-h",
             key: "dock_h",
             selector: ".ws-dock",
             cursor: "row-resize",
+            // How big the dock is, and how big it is made with the pointer
+            // at (x, y).
             current: function (box) { return box.height; },
             fromPointer: function (x, y, box) { return box.bottom - y; },
             range: function () {
@@ -139,7 +121,7 @@
         root.style.setProperty(size.variable, clamp(size, px) + "px");
     }
 
-    // Both sizes as set, each in pixels or null for one left to the
+    // Every size as set, each in pixels or null for one left to the
     // stylesheet; so two saves close together cannot undo one another.
     function save() {
         var data = {n: Date.now()};

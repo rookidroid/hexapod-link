@@ -7,9 +7,9 @@
 #            as a fraction of the body's size, and rotations in degrees, as
 #            the inverse kinematics sliders have always meant them.
 #
-# The layers add up rather than replace each other, so each tool's controls
-# keep meaning what they say whichever tool was used last: tilting the body
-# keeps the feet where they were put, and moving a foot keeps the tilt.
+# The layers add up rather than replace each other, so the body's controls and
+# a foot's keep meaning what they say whichever was used last: tilting the
+# body keeps the feet where they were put, and moving a foot keeps the tilt.
 #
 # Out of the layers come the feet in the body frame (hexapod/keyframes.py) --
 # what the joints are solved from, what is streamed to the robot -- and the
@@ -118,6 +118,27 @@ def with_leg_angles(state, leg, angles, robot_config):
     return make_state(state["body"], offsets)
 
 
+def body_frame(state, robot_config):
+    """Where the body is, as the view's handle on it has it: {"origin"} in the
+    view's coordinates and {"rot"}, its rotations about x, y and z in degrees."""
+    _, _, origin = _placement(state, robot_config)
+    lifted = origin - [0.0, 0.0, kf.ground_height(robot_config)]
+    return {
+        "origin": [round(float(c), 3) + 0.0 for c in lifted],
+        "rot": [state["body"][key] for key in BODY_KEYS[3:]],
+    }
+
+
+def body_at(origin, rot, robot_config):
+    """The body layer that puts the body at `origin`, turned by `rot`: what
+    body_frame() gives back. Not held to any range; that is the caller's."""
+    dimensions = get_simulator_dimensions(robot_config)
+    world = np.asarray(origin, dtype=float) + [0.0, 0.0, kf.ground_height(robot_config)]
+    sizes = [dimensions["middle"], dimensions["side"], dimensions["tibia"]]
+    shift = [float(c) / size if size else 0.0 for c, size in zip(world, sizes)]
+    return dict(zip(BODY_KEYS, [*shift, *(float(angle) for angle in rot)]))
+
+
 def from_feet(feet, robot_config):
     """A state for feet given only in the body frame (a keyframe saved before
     keyframes kept their layers): the body unmoved, the feet as moves from
@@ -130,7 +151,8 @@ def scene(state, pose, robot_config):
 
     The support polygon goes through the feet standing on the floor. Nothing
     settles the body: as on the robot, it is where the layers put it, whether
-    or not it would balance there.
+    or not it would balance there. With the body's frame, for the view's
+    handle on it.
     """
     _, rotation, origin = _placement(state, robot_config)
     lift = [0.0, 0.0, -kf.ground_height(robot_config)]
@@ -138,6 +160,7 @@ def scene(state, pose, robot_config):
     standing = [foot for foot in drawn["feet"] if foot[2] <= kf.GROUND_TOLERANCE]
     drawn["support"] = [[x, y, 0.0] for x, y, _ in order_around_centre(standing)]
     drawn["ground"] = 0.0
+    drawn["frame"] = body_frame(state, robot_config)
     return drawn
 
 

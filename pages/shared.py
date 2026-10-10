@@ -98,35 +98,31 @@ def make_view(view_id, scene=None, overlay=None, hud=None, controls=None, drive=
 # ......................
 # The app shell
 #
-# One screen: the top bar, then the workspace -- the tool rail, the panel of
-# the tool picked on it, the view, and the dock along the bottom. The grid is
-# laid out in the WORKSPACE block of assets/industrial.css, which also
-# decides who scrolls: above `lg` the tool panel and the dock do, and the view
-# takes whatever room is left; below it everything stacks and the page
-# scrolls as a whole.
+# One screen: the top bar, then the workspace -- the view, and the dock along
+# the bottom. The grid is laid out in the WORKSPACE block of
+# assets/industrial.css, which also decides who scrolls: above `lg` the dock
+# does, and the view takes whatever room is left; below it the two stack and
+# the page scrolls as a whole.
 #
-# Above `lg` the tool panel's width and the dock's height can be dragged, by
-# a splitter on the panel's edge and one on the dock's (or, focused, with the
-# arrow keys), and double-clicking one puts it back; so can the widths of the
-# dock's side columns (POSE_DOCK in widgets/pose_ui.py). That is done in the
-# page (assets/workspace_resize.js); the sizes let go of come back through the
-# sizes store, to be kept with the preferences and served with the page the
-# next time (hexapod_link.py).
+# Above `lg` the dock's height can be dragged, by a splitter on its top edge
+# (or, focused, with the arrow keys), and double-clicking it puts it back; so
+# can the widths of the dock's side columns (POSE_DOCK in widgets/pose_ui.py).
+# That is done in the page (assets/workspace_resize.js); the sizes let go of
+# come back through the sizes store, to be kept with the preferences and
+# served with the page the next time (hexapod_link.py).
 # ......................
 
 LAYOUT_SIZES_STORE_ID = "layout-sizes"
 
 
-def make_workspace(rail, panels, view, dock):
+def make_workspace(view, dock):
     return html.Main(
         [
-            html.Nav(rail, className="ws-rail", **{"aria-label": "Tools"}),
-            html.Aside(panels, className="ws-panel"),
             html.Div(view, className="ws-view"),
             html.Div(dock, className="ws-dock"),
-            make_splitter("panel", "vertical", "resize the tool panel"),
             make_splitter("dock", "horizontal", "resize the dock"),
             dcc.Store(id=LAYOUT_SIZES_STORE_ID),
+            DIMENSIONS_HIDDEN_SECTION,
         ],
         className="workspace",
     )

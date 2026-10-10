@@ -5,15 +5,17 @@
 // clientside callback hands it to hexapodView.render() -- see
 // pages/page_pose.py.
 //
-// With the Feet tool (pages/page_pose.py) the view is also editable:
-// a foot can be clicked to pick it up and dragged with the arrows. A drag
-// becomes a foot target in the "pose-foot-target" store; the server solves the leg's
-// joints and, if the foot can get there, sends back the new scene. A foot that
-// cannot get there springs back to where the server last put it.
+// While it shows the pose (pages/page_pose.py) the view is also editable: a
+// foot, or the body, can be clicked to pick it up -- which the page hears of
+// through the "pose-selection" store, and shows its controls -- and then
+// dragged by its handles: a foot by arrows, the body by arrows that move it
+// or rings that turn it. A drag becomes a target in the "pose-foot-target" or
+// "pose-body-target" store; the server solves the joints and sends back the
+// new scene. A foot that cannot get there springs back to where the server
+// last put it, and the body is held to the range of its sliders.
 //
-// Coordinates are millimetres, z up, in whatever frame the page uses: the
-// settled robot standing on the floor at z = 0 on most pages, the robot's own
-// body frame (raised to stand at z = 0) while dragging feet.
+// Coordinates are millimetres, z up: the robot's body frame at standby,
+// raised to stand on the floor at z = 0.
 //
 // Dash loads every .js file in assets/ on its own, so this is a plain script.
 // three.js comes from assets/vendor/three.bundle.min.js (window.HexapodThree);
@@ -25,14 +27,21 @@
 
     // The pose page's stores, written while editing.
     var FOOT_TARGET_ID = "pose-foot-target";
-    var SELECTED_LEG_ID = "pose-selected-leg";
+    var BODY_TARGET_ID = "pose-body-target";
+    var SELECTION_ID = "pose-selection";
 
-    // How often a foot target is sent while dragging, in ms. The final position
+    // What is picked is a leg's id, for its foot, or this, or null.
+    var BODY = "body";
+
+    // How often a target is sent while dragging, in ms. The final position
     // is always sent when the drag ends.
     var SEND_INTERVAL_MS = 80;
 
     // A press that moves further than this (px) is an orbit, not a click.
     var CLICK_SLOP = 5;
+
+    // A degree, in radians.
+    var DEGREE = Math.PI / 180;
 
     // Fallbacks only; every scene carries style_settings.py's colours.
     var DEFAULT_COLORS = {
@@ -58,6 +67,9 @@
     // is kept here by id, so coming back to a page finds the same view.
     var views = {};
     var cameras = {};
+    // Which handles the body is dragged by, "translate" or "rotate", by view
+    // id too: it can be set before the view is first drawn.
+    var bodyModes = {};
 
     function three() {
         return window.HexapodThree;
@@ -128,6 +140,13 @@
         gizmo.setSize(0.9);
         scene.add(gizmo.getHelper());
 
+        // What the gizmo holds the body by: nothing to see, placed on the
+        // body's frame. Its Euler angles are turned in the order the pose's
+        // rotations are (hexapod/pose_layers.py), so they are those angles.
+        var bodyHandle = new T.Group();
+        bodyHandle.rotation.order = "XYZ";
+        scene.add(bodyHandle);
+
         var v = {
             id: id,
             container: container,
@@ -136,6 +155,7 @@
             camera: camera,
             orbit: orbit,
             gizmo: gizmo,
+            bodyHandle: bodyHandle,
             raycaster: new T.Raycaster(),
             root: new T.Group(),
             parts: null,
@@ -357,6 +377,8 @@
         parts.cog = new T.Mesh(sphere, mat(c.cog));
         parts.cog.scale.setScalar(jointRadius * 1.2);
         v.root.add(parts.head, parts.cog);
+        // What a click picks the body by.
+        parts.bodyParts = [parts.body, parts.head, parts.cog].concat(parts.bodyEdges);
 
         // Up to six axis arrows: the body's own three and the world's three.
         // Drawn on top of everything, as a HUD overlay.
@@ -461,6 +483,19 @@
         }
         parts.head.position.copy(vec(T, data.head));
         parts.cog.position.copy(vec(T, data.cog || [0, 0, 0]));
+        var bodyPicked = v.editable && v.selected === BODY;
+        parts.bodyEdges.forEach(function (edge) {
+            edge.material.color.set(bodyPicked ? v.colors.footSelected : v.colors.bodyOutline);
+        });
+        // The body being dragged stays under the cursor, as a foot does.
+        if (data.frame && !(v.dragging && v.selected === BODY)) {
+            v.bodyHandle.position.copy(vec(T, data.frame.origin));
+            v.bodyHandle.rotation.set(
+                data.frame.rot[0] * DEGREE,
+                data.frame.rot[1] * DEGREE,
+                data.frame.rot[2] * DEGREE
+            );
+        }
 
         var axes = data.axes || [];
         for (var a = 0; a < parts.axes.length; a++) {
@@ -514,20 +549,34 @@
 
     // ------------------------------------------------------------- editing
 
-    function select(v, leg) {
-        if (!v.editable) {
-            leg = null;
+    // The body is moved along the world's axes, as its sliders move it, and
+    // turned about its own.
+    function holdBody(v) {
+        var mode = bodyModes[v.id] === "rotate" ? "rotate" : "translate";
+        v.gizmo.setMode(mode);
+        v.gizmo.setSpace(mode === "rotate" ? "local" : "world");
+        v.gizmo.attach(v.bodyHandle);
+    }
+
+    // Picks `what` up: a leg's id for its foot, BODY, or null to let go.
+    function select(v, what) {
+        if (!v.editable || (what === BODY && !(v.data && v.data.frame))) {
+            what = null;
         }
-        if (v.selected === leg) {
+        if (v.selected === what) {
             return;
         }
-        v.selected = leg;
-        if (leg === null) {
+        v.selected = what;
+        if (what === null) {
             v.gizmo.detach();
+        } else if (what === BODY) {
+            holdBody(v);
         } else {
-            v.gizmo.attach(v.parts.feet[leg]);
+            v.gizmo.setMode("translate");
+            v.gizmo.setSpace("world");
+            v.gizmo.attach(v.parts.feet[what]);
         }
-        setProps(SELECTED_LEG_ID, { data: leg });
+        setProps(SELECTION_ID, { data: what });
         if (v.data) {
             draw(v, v.data);
         }
@@ -546,29 +595,58 @@
         return hits.length ? hits[0].object : null;
     }
 
+    // What a click on `object` picks: its foot's leg, or the body.
+    function pickable(v, object) {
+        if (v.parts.feet.indexOf(object) >= 0) {
+            return object.userData.leg;
+        }
+        return v.parts.bodyParts.indexOf(object) >= 0 ? BODY : null;
+    }
+
     function pick(v, event) {
         if (!v.editable || !v.parts) {
             return;
         }
-        var foot = hit(v, event, v.parts.feet);
-        select(v, foot ? foot.userData.leg : null);
+        var over = hit(v, event, v.parts.feet.concat(v.parts.bodyParts));
+        select(v, over ? pickable(v, over) : null);
     }
 
     function hover(v, event) {
         var labels = v.data && v.data.labels;
-        var over = v.parts && labels && !v.dragging ? hit(v, event, v.parts.legParts) : null;
+        var over = null;
+        if (v.parts && labels && !v.dragging) {
+            over = hit(v, event, v.parts.legParts.concat(v.parts.bodyParts));
+        }
         if (!over) {
             v.label.style.display = "none";
             v.renderer.domElement.style.cursor = "";
             return;
         }
+        var onBody = v.parts.bodyParts.indexOf(over) >= 0;
         var rect = v.container.getBoundingClientRect();
-        v.label.textContent = labels[over.userData.leg];
+        v.label.textContent = onBody ? "Body" : labels[over.userData.leg];
         v.label.style.left = event.clientX - rect.left + 14 + "px";
         v.label.style.top = event.clientY - rect.top + 10 + "px";
         v.label.style.display = "block";
-        var onFoot = v.editable && v.parts.feet.indexOf(over) >= 0;
-        v.renderer.domElement.style.cursor = onFoot ? "pointer" : "";
+        var canPick = v.editable && pickable(v, over) !== null;
+        v.renderer.domElement.style.cursor = canPick ? "pointer" : "";
+    }
+
+    // Where what is held has been dragged to: a foot's position, or the
+    // body's and its rotations in degrees.
+    function target(v) {
+        var data = { seq: v.seq, final: !v.dragging };
+        if (v.selected === BODY) {
+            var p = v.bodyHandle.position;
+            var r = v.bodyHandle.rotation;
+            data.origin = [p.x, p.y, p.z];
+            data.rot = [r.x / DEGREE, r.y / DEGREE, r.z / DEGREE];
+            return { id: BODY_TARGET_ID, data: data };
+        }
+        var foot = v.parts.feet[v.selected].position;
+        data.leg = v.selected;
+        data.foot = [foot.x, foot.y, foot.z];
+        return { id: FOOT_TARGET_ID, data: data };
     }
 
     function sendTarget(v, now) {
@@ -587,25 +665,18 @@
             }, SEND_INTERVAL_MS - elapsed);
             return;
         }
-        var p = v.parts.feet[v.selected].position;
         v.lastSent = Date.now();
         v.seq += 1;
-        setProps(FOOT_TARGET_ID, {
-            data: {
-                leg: v.selected,
-                foot: [p.x, p.y, p.z],
-                seq: v.seq,
-                final: !v.dragging,
-            },
-        });
+        var sent = target(v);
+        setProps(sent.id, { data: sent.data });
     }
 
     // ------------------------------------------------------------- public
 
     // Draws `data` (hexapod/scene.py) into the element with id `containerId`.
     //
-    // options.editable  feet can be picked up and dragged (the pose page only;
-    //                   false while it previews a sequence)
+    // options.editable  the body and the feet can be picked up and dragged
+    //                   (false while a sequence is previewed)
     // options.zoom      false leaves the mouse wheel to the page, for a view
     //                   that sits in a scrolling page
     function render(containerId, data, options) {
@@ -626,12 +697,12 @@
             v.colors = Object.assign({}, DEFAULT_COLORS, data.colors);
         }
         if (fresh || !v.parts || Math.abs(v.size - data.size) > 1e-6) {
-            // The feet are about to be rebuilt, so let go of the one being
+            // The feet are about to be rebuilt, so let go of what is being
             // held rather than leave the gizmo on a dead mesh.
             if (v.selected !== null) {
                 v.gizmo.detach();
                 v.selected = null;
-                setProps(SELECTED_LEG_ID, { data: null });
+                setProps(SELECTION_ID, { data: null });
             }
             v.renderer.setClearColor(v.colors.background);
             buildParts(v, data);
@@ -662,13 +733,23 @@
         }
     }
 
-    // Picks a foot up (or puts it down, for null), as clicking it would: for
-    // the pose page's foot picker. Picking the foot already held does
-    // nothing, so the picker and the click can follow each other.
-    function selectFoot(containerId, leg) {
+    // Picks up a foot, by its leg's id, or the body ("body"), or lets go
+    // (null), as clicking in the view would: for the pose page's buttons.
+    function selectIn(containerId, what) {
         var v = views[containerId];
         if (v && v.parts) {
-            select(v, leg === undefined ? null : leg);
+            select(v, what === undefined ? null : what);
+        }
+    }
+
+    // Which handles the body is dragged by: "translate" for arrows that move
+    // it, "rotate" for rings that turn it.
+    function setBodyMode(containerId, mode) {
+        bodyModes[containerId] = mode;
+        var v = views[containerId];
+        if (v && v.selected === BODY) {
+            holdBody(v);
+            requestFrame(v);
         }
     }
 
@@ -690,7 +771,8 @@
     window.hexapodView = {
         render: render,
         resetCamera: resetCamera,
-        selectFoot: selectFoot,
+        select: selectIn,
+        setBodyMode: setBodyMode,
         footScreenPosition: footScreenPosition,
     };
 })();
