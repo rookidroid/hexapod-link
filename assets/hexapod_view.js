@@ -11,8 +11,10 @@
 // dragged by its handles: a foot by arrows, the body by arrows that move it
 // or rings that turn it. A drag becomes a target in the "pose-foot-target" or
 // "pose-body-target" store; the server solves the joints and sends back the
-// new scene. A foot that cannot get there springs back to where the server
-// last put it, and the body is held to the range of its sliders.
+// new scene. A foot dragged past what its leg can reach is held there as near
+// as the leg gets, and goes to where the leg ends when it is dropped; the
+// body is held to the range of its sliders and to where its legs can follow,
+// its handle going back to it when dropped.
 //
 // Coordinates are millimetres, z up: the robot's body frame at standby,
 // raised to stand on the floor at z = 0.

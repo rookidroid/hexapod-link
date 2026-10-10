@@ -235,6 +235,9 @@ BODY_WIDGET_KEYS = dict(zip(IK_WIDGETS_IDS, pl.BODY_KEYS))
 BODY_KEY_RANGES = dict(zip(pl.BODY_KEYS, BODY_RANGES))
 # The leg and joint each joint field sets.
 JOINT_FIELD_KEYS = {field_id: (leg, joint) for leg, joint, field_id in POSE_JOINT_FIELDS}
+# A dragged foot put this far (mm) short of the cursor was held at its leg's
+# limit; nearer is only rounding.
+FOOT_HELD_MM = 0.01
 
 
 # The Robot panel's dimensions, as JSON (pages/shared.py).
@@ -325,6 +328,17 @@ def _dragged_body(origin, rot, robot_config):
         most = BODY_KEY_RANGES[key]
         held[key] = round(min(max(body[key], -most), most), 2 if index < 3 else 1)
     return held
+
+
+BODY_HELD_ALERT = "The body is as far as its legs can reach."
+
+
+def _moved_body(state, body, robot_config):
+    """(state, held) for the body moved to `body`, or as far that way as its
+    legs can follow (pl.with_body_near): the state, and whether it was held
+    short of what was asked."""
+    moved = pl.with_body_near(state, body, robot_config)
+    return moved, moved != pl.make_state(body, state["offsets"])
 
 
 def _keyframe_state(keyframe, robot_config):
@@ -436,6 +450,8 @@ def edit(
 
     out_pose = out_keyframes = out_selected = no_update
     message = no_update
+    # Whether the slider moved asked for more than the body could do.
+    slider_held = False
     out_duration = no_update
     out_mode = no_update
 
@@ -466,9 +482,9 @@ def edit(
 
     def bump(new_state, at=pose_store.get("at")):
         # The sequence number makes the pose differ from the one before even
-        # when the feet do not, so a refused drag is still redrawn and the
-        # foot springs back to where it was. A pose edited stays where in the
-        # sequence it was taken from.
+        # when the feet do not, so a foot dropped past its leg's reach is
+        # still redrawn, and goes to where its leg ends. A pose edited stays
+        # where in the sequence it was taken from.
         return _pose_store(robot_config, new_state, pose_store.get("seq", 0) + 1, at)
 
     def set_frames(new_frames):
@@ -479,18 +495,26 @@ def edit(
         target = foot_target.get("foot")
         if not isinstance(leg, int) or not 0 <= leg < 6 or not target or len(target) != 3:
             raise PreventUpdate
-        moved = pl.with_foot_at(state, leg, target, robot_config)
-        _, _, bad_legs = pl.solve(moved, robot_config)
-        if leg in bad_legs:
+        # A foot dragged past what its leg can reach is held as near as the
+        # leg gets, so the leg follows the cursor along the edge of its reach
+        # rather than stopping until the cursor comes back.
+        moved = pl.with_foot_near(state, leg, target, robot_config)
+        final = bool(foot_target.get("final"))
+        if moved is None or leg in pl.solve(moved, robot_config)[2]:
             message = _pose_alert(
                 f"{leg_label(leg)} cannot reach there, or a joint would pass its limit."
             )
             # While dragging the foot is left where the cursor has it; once
             # dropped it goes back to the last place it could reach.
-            out_pose = bump(state) if foot_target.get("final") else no_update
+            out_pose = bump(state) if final else no_update
         else:
-            out_pose = bump(moved)
-            message = ""
+            short = np.subtract(pl.view_feet(moved, robot_config)[leg], target)
+            held = np.linalg.norm(short) > FOOT_HELD_MM
+            message = _pose_alert(f"{leg_label(leg)} is at its limit.") if held else ""
+            # Held where it already is, there is nothing new to draw, or to
+            # send the robot, until it is dropped: then the foot, left under
+            # the cursor while dragging, goes to where its leg ends.
+            out_pose = bump(moved) if final or moved != state else no_update
 
     elif trigger == POSE_SELECTION_ID:
         # Something else picked: what was said of the last move is stale.
@@ -498,15 +522,18 @@ def edit(
 
     elif trigger == POSE_BODY_TARGET_ID and body_target:
         # The body dragged in the view. Like its sliders, it goes where it is
-        # put, within their range: a leg it leaves out of reach is flagged,
-        # not refused.
+        # put, within their range and as far as its legs can follow.
         origin = _triple(body_target.get("origin"))
         rot = _triple(body_target.get("rot"))
         if origin is None or rot is None:
             raise PreventUpdate
-        out_pose = bump(pl.make_state(_dragged_body(origin, rot, robot_config), state["offsets"]))
+        moved, held = _moved_body(state, _dragged_body(origin, rot, robot_config), robot_config)
+        message = _pose_alert(BODY_HELD_ALERT) if held else ""
+        # Held where it already is, there is nothing new to draw until it is
+        # dropped: then its handle, left under the cursor while dragging,
+        # goes back to it.
+        out_pose = bump(moved) if body_target.get("final") or moved != state else no_update
         out_mode = MODE_EDIT
-        message = ""
 
     elif slider in POSE_FOOT_FIELD_IDS:
         if foot_leg is None:
@@ -550,10 +577,14 @@ def edit(
         out_mode = MODE_EDIT
 
     elif slider in BODY_WIDGET_KEYS:
-        body = dict(zip(pl.BODY_KEYS, body_values))
-        out_pose = bump(pl.make_state(body, state["offsets"]))
+        # Only the slider moved is read: the others show the pose already.
+        value = body_values[IK_WIDGETS_IDS.index(slider)]
+        body = {**state["body"], BODY_WIDGET_KEYS[slider]: value}
+        moved, slider_held = _moved_body(state, body, robot_config)
+        message = _pose_alert(BODY_HELD_ALERT) if slider_held else ""
+        if moved != state:
+            out_pose = bump(moved)
         out_mode = MODE_EDIT
-        message = ""
 
     elif trigger == POSE_RESET_BTN_ID:
         out_pose = bump(pl.standby_state())
@@ -742,12 +773,16 @@ def edit(
             message = ""
 
     # The sliders always show the pose -- except while one is being moved,
-    # when writing its own value back would fight the drag.
+    # when writing its own value back would fight the drag. Unless it was
+    # pushed further than the body could go: then it is put back where the
+    # body is.
     shown_pose = pose_store if out_pose is no_update else out_pose
+    body_sliders = [shown_pose["state"]["body"][key] for key in pl.BODY_KEYS]
     if slider in BODY_WIDGET_KEYS:
-        body_sliders = [no_update] * len(IK_WIDGETS_IDS)
-    else:
-        body_sliders = [shown_pose["state"]["body"][key] for key in pl.BODY_KEYS]
+        body_sliders = [
+            value if slider_held and widget_id == slider else no_update
+            for widget_id, value in zip(IK_WIDGETS_IDS, body_sliders)
+        ]
 
     if foot_leg is not None:
         foot = pl.view_feet(shown_pose["state"], robot_config)[foot_leg]

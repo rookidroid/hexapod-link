@@ -27,6 +27,14 @@ from hexapod.robot_config import get_simulator_dimensions
 from hexapod.scene import order_around_centre, transform_scene
 
 BODY_KEYS = ("percent_x", "percent_y", "percent_z", "rot_x", "rot_y", "rot_z")
+# The steps a body held within its legs' reach is moved back by, for each of
+# those: a hundredth of the body's size, a tenth of a degree.
+BODY_STEPS = (0.01, 0.01, 0.01, 0.1, 0.1, 0.1)
+# How far inside its limit (degrees) every joint is kept by a body held within
+# reach. Half what a dragged foot keeps (kf.LIMIT_MARGIN_DEG), so a pose with
+# a foot held at its own margin, give or take its rounding, is one the body
+# can still be moved from.
+BODY_LIMIT_MARGIN_DEG = kf.LIMIT_MARGIN_DEG / 2
 
 
 def _number(value):
@@ -105,6 +113,20 @@ def with_foot_at(state, leg, target, robot_config):
     return make_state(state["body"], offsets)
 
 
+def with_foot_near(state, leg, target, robot_config):
+    """with_foot_at() for a foot being dragged: at `target` if its leg can
+    reach it, else as near as the leg gets (kf.nearest_reachable_foot), so
+    the leg follows along the edge of its reach. None if it gets nowhere."""
+    _, rotation, origin = _placement(state, robot_config)
+    world = np.asarray(target, dtype=float) + [0.0, 0.0, kf.ground_height(robot_config)]
+    foot = kf.nearest_reachable_foot((world - origin) @ rotation, leg, robot_config)
+    if foot is None:
+        return None
+    offsets = np.array(state["offsets"], dtype=float)
+    offsets[leg] = rotation @ foot + origin - kf.standby_feet(robot_config)[leg]
+    return make_state(state["body"], offsets)
+
+
 def with_leg_angles(state, leg, angles, robot_config):
     """The state with one leg's joints set, as {"coxia": ...} for those that
     change: its foot goes wherever those angles put it, the body staying."""
@@ -137,6 +159,58 @@ def body_at(origin, rot, robot_config):
     sizes = [dimensions["middle"], dimensions["side"], dimensions["tibia"]]
     shift = [float(c) / size if size else 0.0 for c, size in zip(world, sizes)]
     return dict(zip(BODY_KEYS, [*shift, *(float(angle) for angle in rot)]))
+
+
+def _reaches(state, robot_config, margin):
+    """Whether every leg reaches its foot, each joint `margin` degrees inside
+    its limit."""
+    return not kf.feet_to_pose(body_feet(state, robot_config), robot_config, margin)[1]
+
+
+def with_body_near(state, body, robot_config):
+    """The state with the body moved to `body`, or as far that way as its
+    legs can follow: how a body dragged, or slid, past what they reach stops
+    there instead of leaving them behind.
+
+    Each of the body's moves and turns goes as far towards `body` as the
+    legs reach, one after the other in BODY_STEPS, so a body pushed two ways
+    at once still goes the way it can. A body whose legs are out of reach
+    already goes where it is put: there is nothing to hold it to.
+    """
+    target = make_state(body, state["offsets"])
+    margins = [
+        margin
+        for margin in (BODY_LIMIT_MARGIN_DEG, 0.0)
+        if _reaches(state, robot_config, margin)
+    ]
+    if not margins or _reaches(target, robot_config, margins[0]):
+        return target
+
+    held = dict(state["body"])
+
+    def reaches(key, value):
+        moved = make_state({**held, key: value}, state["offsets"])
+        return _reaches(moved, robot_config, margins[0])
+
+    for key, step in zip(BODY_KEYS, BODY_STEPS):
+        start, goal = held[key], target["body"][key]
+        # Back from where it was asked to go, a step at a time, to where it
+        # is: the fewest steps back that the legs reach, found by halving.
+        steps = int(np.ceil(abs(goal - start) / step))
+        back = step if start > goal else -step
+
+        def stepped(count):
+            return start if count >= steps else goal + count * back
+
+        fewest, most = 0, steps
+        while fewest < most:
+            middle = (fewest + most) // 2
+            if reaches(key, stepped(middle)):
+                most = middle
+            else:
+                fewest = middle + 1
+        held[key] = stepped(fewest)
+    return make_state(held, state["offsets"])
 
 
 def from_feet(feet, robot_config):

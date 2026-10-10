@@ -201,11 +201,14 @@ add up:
 - **The body** — translate and rotate it over wherever the feet are planted;
   the joints are solved to keep them there. Use its sliders, or drag it in
   the view by its handles: **Move** gives it arrows, **Rotate** rings. A
-  dragged body goes as far as its sliders do.
+  dragged body goes as far as its sliders do, and either way the body stops
+  where its legs can no longer follow.
 - **A foot** — drag its arrows in the view to move it, or type its **X**,
-  **Y** and **Up** (height above the floor) in millimetres. A foot that
-  cannot reach a spot (or would take a joint past its limit) stays where it
-  was. **Put feet back** undoes the moves of them all.
+  **Y** and **Up** (height above the floor) in millimetres. A foot dragged
+  past what its leg can reach (or where a joint would pass its limit) is
+  held as near as the leg gets, following along the edge of its reach; one
+  typed there stays where it was. **Put feet back** undoes the moves of
+  them all.
 
 The joint angles can be typed too, picked or not: the leg's foot goes where
 they put it.
