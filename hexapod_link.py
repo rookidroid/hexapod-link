@@ -18,7 +18,7 @@ import time
 import waitress
 from dash import Dash, html
 
-from hexapod.preferences import load_theme
+from hexapod.preferences import load_layout, load_theme
 from hexapod.robot_link import ROBOT_LINK
 from pages.drive import register_drive_route
 from pages.shared import make_topbar
@@ -50,20 +50,31 @@ ASSETS_PATH = os.path.join(resource_root(), "assets")
 mimetypes.add_type("font/woff2", ".woff2")
 
 
-class HexapodDash(Dash):
-    """Dash, with the saved colour theme written into the served page.
+# The saved workspace sizes, by preference key, and the CSS variable each sets
+# (WORKSPACE in assets/industrial.css).
+LAYOUT_VARIABLES = {"panel_w": "--panel-w", "dock_h": "--dock-h"}
 
-    The theme lives on the <html> element, which Dash's layout cannot reach;
-    setting it from a callback would only happen after the first paint, so a
-    dark start would flash light. Putting it into the index page itself avoids
-    that. See the theme section of pages/shared.py.
+
+class HexapodDash(Dash):
+    """Dash, with the saved colour theme and workspace sizes written into the
+    served page.
+
+    Both live on the <html> element, which Dash's layout cannot reach; setting
+    them from a callback would only happen after the first paint, so a dark
+    start would flash light and a resized panel would jump. Putting them into
+    the index page itself avoids that. See the theme and workspace sections of
+    pages/shared.py.
     """
 
     def interpolate_index(self, **kwargs):
         index = super().interpolate_index(**kwargs)
         theme = load_theme()
+        sizes = "; ".join(
+            f"{LAYOUT_VARIABLES[key]}: {px}px" for key, px in load_layout().items() if px
+        )
+        style = f' style="{sizes}"' if sizes else ""
         return index.replace(
-            "<html>", f'<html data-theme="{theme}" data-bs-theme="{theme}">', 1
+            "<html>", f'<html data-theme="{theme}" data-bs-theme="{theme}"{style}>', 1
         )
 
 

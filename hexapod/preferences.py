@@ -52,3 +52,39 @@ def save_theme(theme):
     if theme not in THEMES:
         raise ValueError(f"unknown theme: {theme!r}")
     return save_preference("theme", theme)
+
+
+# The workspace's sizes, set by dragging its splitters (assets/workspace_resize.js):
+# the width of the tool panel and the height of the dock, in CSS pixels. None
+# for one never dragged, or set back with a double-click, which leaves it to
+# the stylesheet.
+LAYOUT_SIZES = ("panel_w", "dock_h")
+# Far wider than any sensible value either way: only junk is refused here;
+# the page keeps them within the window.
+LAYOUT_MIN_PX = 100
+LAYOUT_MAX_PX = 4000
+
+
+def _layout_size(value):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    if not LAYOUT_MIN_PX <= value <= LAYOUT_MAX_PX:
+        return None
+    return int(round(value))
+
+
+def load_layout():
+    """{"panel_w", "dock_h"}, each in pixels or None."""
+    saved = load_preferences().get("layout")
+    saved = saved if isinstance(saved, dict) else {}
+    return {key: _layout_size(saved.get(key)) for key in LAYOUT_SIZES}
+
+
+def save_layout(sizes):
+    """Store the sizes given, keeping a saved one not among them; one that is
+    not a size in range clears it."""
+    layout = load_layout()
+    for key in LAYOUT_SIZES:
+        if key in sizes:
+            layout[key] = _layout_size(sizes[key])
+    return save_preference("layout", layout)

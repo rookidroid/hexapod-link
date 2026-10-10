@@ -158,7 +158,14 @@
 
     --topbar-h: 52px;
     --rail-w: 68px;
+    /* The tool panel's width and the dock's height; dragging the workspace's
+       splitters sets them on <html> instead (assets/workspace_resize.js). */
     --panel-w: clamp(300px, 24vw, 380px);
+    --dock-h: 15rem;
+    /* How much of the workspace the view always keeps, whatever they are set
+       to: a window made smaller narrows them, and they come back with it. */
+    --view-min-w: 360px;
+    --view-min-h: 180px;
 }
 
 :root[data-theme="dark"] {
@@ -373,17 +380,21 @@ body {
 /* ===========================================
    WORKSPACE
    The rail runs the full height down the left; the dock spans everything
-   else along the bottom. Above `lg` it is one screenful: only the tool panel
-   scrolls, the dock is as tall as it needs, and the view takes the height
-   that is left.
+   else along the bottom. Above `lg` it is one screenful: the tool panel is
+   --panel-w wide and the dock --dock-h tall, each scrolling what does not fit,
+   and the view takes the room that is left. Splitters on their edges resize
+   them.
    =========================================== */
 
 .workspace {
     flex: 1 1 auto;
     min-height: 0;
     display: grid;
-    grid-template-columns: var(--rail-w) var(--panel-w) minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-columns:
+        var(--rail-w)
+        min(var(--panel-w), calc(100% - var(--rail-w) - var(--view-min-w)))
+        minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) min(var(--dock-h), calc(100% - var(--view-min-h)));
     grid-template-areas:
         "rail panel view"
         "rail dock  dock";
@@ -414,12 +425,80 @@ body {
     background: var(--view-bg);
 }
 
-/* Only as tall as what is in it: the sequence and playback columns set its
-   height, and the Gaits library scrolls within it. */
+/* As tall as --dock-h, scrolling what does not fit; its columns fill it, and
+   the Gaits library scrolls within its own. */
 .ws-dock {
     grid-area: dock;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
     background: var(--ind-surface);
     border-top: 2px solid var(--ind-frame);
+}
+
+/* ---- Splitters ----
+   A strip over the panel's right edge and one over the dock's top edge,
+   showing the accent while hovered, focused or dragged. They overlap the
+   areas they resize, so take no room. */
+
+.ws-splitter {
+    position: relative;
+    z-index: 6;
+    touch-action: none;
+    outline: none;
+}
+
+.ws-splitter::after {
+    content: '';
+    position: absolute;
+    background: var(--ind-accent);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.ws-splitter:hover::after,
+.ws-splitter:focus-visible::after,
+.is-resizing .ws-splitter::after {
+    opacity: 1;
+}
+
+.ws-splitter-panel {
+    grid-area: panel;
+    justify-self: end;
+    width: 8px;
+    margin-right: -5px;
+    cursor: col-resize;
+}
+
+.ws-splitter-panel::after {
+    top: 0;
+    bottom: 0;
+    left: 2px;
+    width: 3px;
+}
+
+.ws-splitter-dock {
+    grid-area: dock;
+    align-self: start;
+    height: 8px;
+    margin-top: -5px;
+    cursor: row-resize;
+}
+
+.ws-splitter-dock::after {
+    left: 0;
+    right: 0;
+    top: 2px;
+    height: 3px;
+}
+
+/* While dragging: the splitter's cursor everywhere, and no text selected on
+   the way. */
+.is-resizing,
+.is-resizing * {
+    cursor: var(--resize-cursor) !important;
+    user-select: none !important;
 }
 
 /* Below `lg` there is no height to share: the rail turns into a row of tabs
@@ -460,6 +539,14 @@ body {
 
     .ws-view {
         min-height: 320px;
+    }
+
+    .ws-dock {
+        overflow: visible;
+    }
+
+    .ws-splitter {
+        display: none;
     }
 }
 
@@ -1432,9 +1519,8 @@ body {
 
 .dock {
     display: grid;
+    flex: 1 0 auto;
     grid-template-columns: clamp(14rem, 18%, 18rem) minmax(0, 1fr) clamp(22rem, 28%, 28rem);
-    /* Room for the library to list a few gaits, and the sequence to breathe. */
-    min-height: 13.5rem;
 }
 
 .dock-col {

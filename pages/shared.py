@@ -19,7 +19,7 @@ from widgets.robot_link_ui import (
     STREAM_SWITCH_ID,
 )
 from hexapod.robot_link import ROBOT_LINK
-from hexapod.preferences import save_theme
+from hexapod.preferences import save_layout, save_theme
 from hexapod.robot_config import describe, describe_firmware, get_simulator_dimensions
 from texts import APP_TITLE, APP_VERSION
 
@@ -100,10 +100,33 @@ def make_view(view_id, scene=None, overlay=None, hud=None, controls=None, drive=
 # One screen: the top bar, then the workspace -- the tool rail, the panel of
 # the tool picked on it, the view, and the dock along the bottom. The grid is
 # laid out in the WORKSPACE block of assets/industrial.css, which also
-# decides who scrolls: above `lg` only the tool panel does, the dock is as
-# tall as it needs, and the view takes whatever height is left; below it
-# everything stacks and the page scrolls as a whole.
+# decides who scrolls: above `lg` the tool panel and the dock do, and the view
+# takes whatever room is left; below it everything stacks and the page
+# scrolls as a whole.
+#
+# Above `lg` the tool panel's width and the dock's height can be dragged, by
+# a splitter on the panel's edge and one on the dock's (or, focused, with the
+# arrow keys), and double-clicking one puts it back. That is done in the page
+# (assets/workspace_resize.js); a size let go of comes back through the
+# sizes store, to be kept with the preferences and served with the page the
+# next time (hexapod_link.py).
 # ......................
+
+LAYOUT_SIZES_STORE_ID = "layout-sizes"
+# The splitters' classes, which assets/workspace_resize.js looks for.
+SPLITTER_CLASS = "ws-splitter"
+PANEL_SPLITTER_CLASS = "ws-splitter-panel"
+DOCK_SPLITTER_CLASS = "ws-splitter-dock"
+
+
+def _splitter(class_name, orientation, label):
+    return html.Div(
+        className=f"{SPLITTER_CLASS} {class_name}",
+        role="separator",
+        tabIndex="0",
+        title=f"Drag to {label}; double-click to reset",
+        **{"aria-orientation": orientation, "aria-label": label.capitalize()},
+    )
 
 
 def make_workspace(rail, panels, view, dock):
@@ -113,9 +136,20 @@ def make_workspace(rail, panels, view, dock):
             html.Aside(panels, className="ws-panel"),
             html.Div(view, className="ws-view"),
             html.Div(dock, className="ws-dock"),
+            _splitter(PANEL_SPLITTER_CLASS, "vertical", "resize the tool panel"),
+            _splitter(DOCK_SPLITTER_CLASS, "horizontal", "resize the dock"),
+            dcc.Store(id=LAYOUT_SIZES_STORE_ID),
         ],
         className="workspace",
     )
+
+
+@callback(Input(LAYOUT_SIZES_STORE_ID, "data"), prevent_initial_call=True)
+def keep_layout_sizes(sizes):
+    """Keep the sizes as a splitter was let go, {"panel_w", "dock_h"} in
+    pixels, None for one left to the stylesheet."""
+    if isinstance(sizes, dict):
+        save_layout(sizes)
 
 
 # The status pill is the app's link readout: whether the robot is reachable,

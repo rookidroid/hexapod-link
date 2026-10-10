@@ -4,8 +4,10 @@ import pytest
 
 from hexapod.preferences import (
     DEFAULT_THEME,
+    load_layout,
     load_theme,
     preferences_path,
+    save_layout,
     save_preference,
     save_theme,
 )
@@ -56,3 +58,34 @@ def test_unknown_theme_is_rejected(preferences_file):
     with pytest.raises(ValueError):
         save_theme("purple")
     assert not preferences_file.exists()
+
+
+def test_layout_defaults_to_the_stylesheets(preferences_file):
+    assert load_layout() == {"panel_w": None, "dock_h": None}
+
+
+def test_layout_sizes_are_saved_one_at_a_time(preferences_file):
+    assert save_theme("dark")
+    assert save_layout({"panel_w": 412.4, "n": 123})
+    assert save_layout({"dock_h": 260})
+    assert load_layout() == {"panel_w": 412, "dock_h": 260}
+    assert load_theme() == "dark"
+
+    # Set back with a double-click.
+    assert save_layout({"panel_w": None})
+    assert load_layout() == {"panel_w": None, "dock_h": 260}
+
+
+@pytest.mark.parametrize("value", [None, "300", True, -5, 50, 10_000, float("nan")])
+def test_a_size_out_of_range_is_not_kept(preferences_file, value):
+    save_layout({"dock_h": 300})
+    save_layout({"dock_h": value})
+    assert load_layout()["dock_h"] is None
+
+
+@pytest.mark.parametrize(
+    "contents", ['{"layout": [1]}', '{"layout": {"panel_w": "wide", "dock_h": {}}}']
+)
+def test_an_unusable_layout_is_ignored(preferences_file, contents):
+    preferences_file.write_text(contents, encoding="utf-8")
+    assert load_layout() == {"panel_w": None, "dock_h": None}
