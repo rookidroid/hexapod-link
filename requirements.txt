@@ -8,7 +8,7 @@ dash>=4.4.1
 dash-bootstrap-components>=2.0.4
 
 # Scientific computing
-numpy>=2.5.3
+numpy>=2.5.4
 
 # The 3D view is three.js, bundled in assets/vendor/. Plotly is no longer used
 # by the app; it still gets installed, because Dash itself requires it.
