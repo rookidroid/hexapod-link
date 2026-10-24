@@ -9,3 +9,14 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+
+  # three.js and esbuild for tools/build_three_bundle.sh. A bump needs the
+  # bundle rebuilt and committed on its PR; the "three.js bundle" check fails
+  # until it is.
+  - package-ecosystem: "npm"
+    directory: "/tools/three-bundle"
+    schedule:
+      interval: "monthly"
+    groups:
+      three-bundle:
+        patterns: ["*"]

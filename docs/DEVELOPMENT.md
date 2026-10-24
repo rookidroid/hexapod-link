@@ -62,7 +62,15 @@ server only.
   [`assets/hexapod_view.js`](../assets/hexapod_view.js), fed scenes built by
   [`hexapod/scene.py`](../hexapod/scene.py). The bundled three.js in
   `assets/vendor/` is rebuilt (with Node) by
-  [`tools/build_three_bundle.sh`](../tools/build_three_bundle.sh).
+  [`tools/build_three_bundle.sh`](../tools/build_three_bundle.sh), from the
+  versions pinned in
+  [`tools/three-bundle/package.json`](../tools/three-bundle/package.json) and
+  the exports listed in
+  [`tools/three-bundle/entry.js`](../tools/three-bundle/entry.js). Dependabot
+  opens a monthly PR when three.js or esbuild has a new release; on that
+  branch, run the script, check the 3D view still works, and commit the new
+  bundle. The "three.js bundle" CI check fails until the checked-in bundle
+  matches what the script builds.
 
 ### What is kept between launches
 
