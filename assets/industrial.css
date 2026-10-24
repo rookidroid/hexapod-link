@@ -2224,10 +2224,6 @@ body {
     --ease-curve: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 12'%3E%3Cpath d='M1 1v10h14' fill='none' stroke='%23000' stroke-opacity='.35' stroke-width='1'/%3E%3Cpath d='M1.5 10.5L14.5 1.5' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E");
 }
 
-.dock-seg-item .ind-ease-icon {
-    margin-right: 0.3rem;
-    vertical-align: -0.1rem;
-}
 
 /* ---- Gaits library ----
    A list of gaits, each with + to put it into the sequence, in groups for
@@ -2339,7 +2335,9 @@ body {
 }
 
 .dock-seg-item {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
     padding: 0.12rem 0.6rem;
     font-size: 0.74rem;
     font-weight: 600;
