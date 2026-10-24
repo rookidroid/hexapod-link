@@ -142,6 +142,22 @@
         var(--chamfer) 100%,
         0 calc(100% - var(--chamfer))
     );
+    /* One corner of the two, for the ends of a field and its unit, which are
+       one plate between them. */
+    --chamfer-clip-bl: polygon(
+        0 0,
+        100% 0,
+        100% 100%,
+        var(--chamfer) 100%,
+        0 calc(100% - var(--chamfer))
+    );
+    --chamfer-clip-tr: polygon(
+        0 0,
+        calc(100% - var(--chamfer)) 0,
+        100% var(--chamfer),
+        100% 100%,
+        0 100%
+    );
 
     /* The 3D view is the cockpit's panoramic monitor in both themes, and so
        is what is laid over it: navy plates edged in HUD cyan. */
@@ -407,7 +423,7 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
     color: var(--ind-text);
-    background: var(--ind-surface-alt);
+    background-color: var(--ind-surface-alt);
     border: 2px solid var(--ind-frame);
     clip-path: var(--chamfer-clip);
     cursor: default;
@@ -933,7 +949,7 @@ body {
     color: var(--ind-text);
     background-color: var(--ind-input-bg);
     border-color: var(--ind-accent);
-    box-shadow: var(--ind-glow);
+    box-shadow: var(--ind-glow-inset);
 }
 
 .form-control:disabled {
@@ -1046,6 +1062,7 @@ body {
 .ind-joint-grid input::-webkit-outer-spin-button,
 .ind-joint-grid input::-webkit-inner-spin-button {
     -webkit-appearance: none;
+    display: none;
     margin: 0;
 }
 
@@ -1116,8 +1133,41 @@ body {
     white-space: nowrap;
 }
 
+/* A square plate, ticked in white on the accent when on. */
 .dock-check .dash-options-list-option-checkbox {
-    accent-color: var(--ind-accent);
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 0 0 auto;
+    width: 15px;
+    height: 15px;
+    margin: 0;
+    background-color: var(--ind-input-bg);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 11px 11px;
+    border: 1.5px solid var(--ind-border-strong);
+    cursor: pointer;
+    transition: background-color 0.1s ease, border-color 0.1s ease;
+}
+
+.dock-check .dash-options-list-option-checkbox:hover {
+    border-color: var(--ind-accent);
+}
+
+.dock-check .dash-options-list-option-checkbox:checked {
+    background-color: var(--ind-accent);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 6.3l2.6 2.6L10 3.4' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='square'/%3E%3C/svg%3E");
+    border-color: var(--ind-accent);
+}
+
+.dock-check .dash-options-list-option-checkbox:focus-visible {
+    outline: none;
+    box-shadow: var(--ind-glow);
+}
+
+.hud-panel .dock-check .dash-options-list-option-checkbox:not(:checked) {
+    background-color: rgba(var(--hud-cyan-rgb), 0.06);
+    border-color: rgba(var(--hud-cyan-rgb), 0.45);
 }
 
 /* ===========================================
@@ -1171,7 +1221,7 @@ body {
     --Dash-Stroke-Weak: var(--hud-border);
     --chamfer: 9px;
     color: var(--hud-text);
-    background: var(--hud-bg);
+    background-color: var(--hud-bg);
     border: 1px solid var(--hud-border);
     clip-path: var(--chamfer-clip);
     backdrop-filter: blur(6px);
@@ -1189,13 +1239,13 @@ body {
 .hud-panel .form-control,
 .hud-panel .dash-range-slider-input {
     color: var(--hud-text) !important;
-    background: rgba(var(--hud-cyan-rgb), 0.06) !important;
+    background-color: rgba(var(--hud-cyan-rgb), 0.06) !important;
     border: 1px solid var(--hud-border) !important;
 }
 
 .hud-panel .form-control:focus {
     border-color: rgba(var(--hud-cyan-rgb), 0.75) !important;
-    box-shadow: 0 0 10px rgba(var(--hud-cyan-rgb), 0.3);
+    box-shadow: inset 0 0 8px rgba(var(--hud-cyan-rgb), 0.3);
 }
 
 .stream-hud > div {
@@ -1614,7 +1664,7 @@ body {
 
 .playback-hud .ind-duration-input .input-group-text {
     color: var(--hud-muted);
-    background: rgba(var(--hud-cyan-rgb), 0.1);
+    background-color: rgba(var(--hud-cyan-rgb), 0.1);
     border-color: var(--hud-border);
 }
 
@@ -1935,7 +1985,7 @@ body {
     font-family: var(--font-mono);
     font-size: 0.72rem;
     color: var(--ind-text-muted);
-    background: var(--ind-surface);
+    background-color: var(--ind-surface);
     border: 1px solid var(--ind-border-strong);
 }
 
@@ -2054,7 +2104,7 @@ body {
     padding: 0.3rem 0.7rem 0.34rem;
     line-height: 1.25;
     text-align: left;
-    background: var(--ind-surface-alt);
+    background-color: var(--ind-surface-alt);
     border: 1px solid var(--ind-frame);
     --chamfer: 6px;
     clip-path: var(--chamfer-clip);
@@ -2063,12 +2113,12 @@ body {
 
 .ind-kf-item:hover .ind-kf-card {
     border-color: var(--ind-accent);
-    background: var(--ind-hover);
+    background-color: var(--ind-hover);
 }
 
 .ind-kf-item.active .ind-kf-card {
     color: #fff;
-    background: var(--ind-accent);
+    background-color: var(--ind-accent);
     border-color: var(--ind-accent);
 }
 
@@ -2421,6 +2471,176 @@ body {
         flex: 1 1 0;
         height: auto;
     }
+}
+
+/* ===========================================
+   CHAMFERS
+   The cut corners are a clip-path, which cuts the border off along the cut
+   too. These draw it back: a stroke along each cut, as wide as the border,
+   in --edge -- the border's colour, kept in step with it below. Each is a
+   gradient across the corner's square, solid up to just inside the
+   diagonal; the clip takes the rest. Laid as background images, so the
+   plates set background-color, never the background shorthand.
+   =========================================== */
+
+.btn,
+.status-pill,
+.hud-panel,
+.ind-kf-card,
+.form-control,
+.input-group-text,
+.dash-range-slider-input {
+    background-image:
+        linear-gradient(
+            to bottom left,
+            var(--edge, transparent) calc(50% + var(--edge-w, 1px) - 0.4px),
+            transparent calc(50% + var(--edge-w, 1px) + 0.4px)
+        ),
+        linear-gradient(
+            to top right,
+            var(--edge, transparent) calc(50% + var(--edge-w, 1px) - 0.4px),
+            transparent calc(50% + var(--edge-w, 1px) + 0.4px)
+        );
+    background-size: var(--chamfer) var(--chamfer);
+    background-position: top right, bottom left;
+    background-repeat: no-repeat;
+    background-origin: border-box;
+}
+
+.btn {
+    --edge: var(--bs-btn-border-color);
+    --edge-w: var(--bs-btn-border-width);
+}
+
+.btn:hover {
+    --edge: var(--bs-btn-hover-border-color);
+}
+
+.btn:active,
+.btn.active,
+.btn.show,
+.btn-check:checked + .btn {
+    --edge: var(--bs-btn-active-border-color);
+}
+
+.btn:disabled,
+.btn.disabled {
+    --edge: var(--bs-btn-disabled-border-color);
+}
+
+.status-pill {
+    --edge: var(--ind-frame);
+    --edge-w: 2px;
+}
+
+.status-pill.is-fault {
+    --edge: var(--ind-red);
+}
+
+/* Over the view, the cuts are lit: panel lines catching the HUD's light. */
+.hud-panel {
+    --edge: rgba(var(--hud-cyan-rgb), 0.85);
+}
+
+.ind-kf-card {
+    --edge: var(--ind-frame);
+}
+
+.ind-kf-item:hover .ind-kf-card,
+.ind-kf-item.active .ind-kf-card {
+    --edge: var(--ind-accent);
+}
+
+.ind-kf-item[data-playing="at"] .ind-kf-card {
+    --edge: var(--ind-accent-alt);
+    --edge-w: 2px;
+}
+
+/* Fields are plates too, with smaller cuts. A field with its unit after it
+   is one plate: the field takes the bottom-left cut, the unit the top-right. */
+.form-control,
+.input-group-text,
+.dash-range-slider-input {
+    --chamfer: 5px;
+    --edge: var(--ind-border-strong);
+    clip-path: var(--chamfer-clip);
+}
+
+.form-control:focus {
+    --edge: var(--ind-accent);
+}
+
+.hud-panel .form-control,
+.hud-panel .input-group-text,
+.hud-panel .dash-range-slider-input {
+    --edge: var(--hud-border);
+}
+
+.hud-panel .form-control:focus,
+.hud-panel .dash-range-slider-input:focus {
+    --edge: rgba(var(--hud-cyan-rgb), 0.75);
+}
+
+/* Each draws only the stroke of the corner it cuts. */
+.input-group > .form-control:not(:last-child) {
+    clip-path: var(--chamfer-clip-bl);
+    background-size: 0 0, var(--chamfer) var(--chamfer);
+}
+
+.input-group > .input-group-text:last-child {
+    clip-path: var(--chamfer-clip-tr);
+    background-size: var(--chamfer) var(--chamfer), 0 0;
+}
+
+/* The units in a field's own small type, as a stamped label on the plate. */
+.input-group-text {
+    padding-inline: 0.45rem 0.55rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+}
+
+/* ---- Number fields' step arrows ----
+   The browser's own are a grey OS widget. These are two small chevrons in
+   the field's colour, at its right edge, shown only while the field is
+   pointed at or being typed in; they step the value as the browser's did.
+   Fields too narrow for them hide them (Fields, above). */
+
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 0.8rem;
+    height: 1.35rem;
+    margin: 0 -0.2rem 0 0.3rem;
+    align-self: center;
+    background-color: var(--ind-text-muted);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 18'%3E%3Cpath d='M2 7l3-3 3 3M2 11l3 3 3-3' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='square'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 18'%3E%3Cpath d='M2 7l3-3 3 3M2 11l3 3 3-3' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='square'/%3E%3C/svg%3E") center / contain no-repeat;
+    opacity: 0;
+    cursor: pointer;
+    transition: opacity 0.1s ease;
+}
+
+input[type="number"]:hover::-webkit-inner-spin-button,
+input[type="number"]:focus::-webkit-inner-spin-button {
+    opacity: 1;
+}
+
+input[type="number"]::-webkit-inner-spin-button:hover {
+    background-color: var(--ind-accent);
+}
+
+.hud-panel input[type="number"]::-webkit-inner-spin-button {
+    background-color: var(--hud-muted);
+}
+
+.hud-panel input[type="number"]::-webkit-inner-spin-button:hover {
+    background-color: rgb(var(--hud-cyan-rgb));
+}
+
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
 
 /* ===========================================
