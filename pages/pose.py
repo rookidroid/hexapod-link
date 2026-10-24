@@ -56,7 +56,7 @@ from hexapod import keyframes as kf
 from hexapod import pose_layers as pl
 from hexapod.gait_keyframes import gait_keyframes
 from hexapod.naming import JOINT_NAMES, LEG_LABELS, joint_label, leg_label
-from hexapod.robot_config import get_joint_limits, get_sequence_fps, with_dimensions
+from hexapod.robot_config import get_sequence_fps, with_dimensions
 from hexapod.robot_link import ROBOT_LINK
 from pages.shell import view_ack_id, view_store_id
 from widgets.body_ui import BODY_RANGES, BODY_SLIDER_IDS
@@ -610,7 +610,7 @@ def edit(
             raise PreventUpdate
         if angle is None:
             raise PreventUpdate
-        most = max(get_joint_limits(robot_config)[joint] - kf.LIMIT_MARGIN_DEG, 0.0)
+        most = pl.joint_most(joint, robot_config)
         held = abs(angle) > most
         angle = round(min(max(angle, -most), most), 1)
         moved = pl.with_leg_angles(state, leg, {joint: angle}, robot_config)

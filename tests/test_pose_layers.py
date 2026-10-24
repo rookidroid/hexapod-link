@@ -264,6 +264,12 @@ def test_scene_joints_survive_json():
     joints = pl.scene(state, pose, robot)["joints"]
     assert json.loads(json.dumps(joints)) == joints
     assert [len(leg) for leg in joints] == [3] * 6
+    # The view holds the ring to the same range the server holds the joint to.
+    for leg in joints:
+        for name, joint in zip(("coxia", "femur", "tibia"), leg):
+            assert joint["most"] == pytest.approx(
+                robot["joint_limits"][name] - kf.LIMIT_MARGIN_DEG, abs=1e-3
+            )
 
 
 @pytest.mark.parametrize("robot", ROBOTS, ids=ROBOT_IDS)

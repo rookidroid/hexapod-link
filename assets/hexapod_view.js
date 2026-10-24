@@ -44,6 +44,10 @@
     // is always sent when the drag ends.
     var SEND_INTERVAL_MS = 80;
 
+    // How long (ms) a joint dropped is drawn where it was turned to, waiting
+    // for the server to say so, before the server's word is taken as it is.
+    var JOINT_SETTLE_MS = 1500;
+
     // A press that moves further than this (px) is an orbit, not a click.
     var CLICK_SLOP = 5;
 
@@ -181,8 +185,8 @@
             sun: sun,
             bodyHandle: bodyHandle,
             jointHandle: jointHandle,
-            // The joint's angle, and its handle, when its drag began.
-            jointStart: null,
+            // The joint being turned by its ring: see startJointDrag().
+            jointDrag: null,
             raycaster: new T.Raycaster(),
             root: new T.Group(),
             parts: null,
@@ -212,17 +216,23 @@
         gizmo.addEventListener("dragging-changed", function (event) {
             v.dragging = event.value;
             if (event.value && isJoint(v.selected)) {
-                v.jointStart = {
-                    angle: jointData(v, v.selected).angle,
-                    quaternion: jointHandle.quaternion.clone(),
-                };
+                startJointDrag(v);
             }
             orbit.enabled = !event.value;
             if (!event.value) {
+                if (v.jointDrag) {
+                    v.jointDrag.droppedAt = Date.now();
+                }
                 sendTarget(v, true);
             }
         });
         gizmo.addEventListener("objectChange", function () {
+            if (v.jointDrag && v.dragging) {
+                // The leg follows the ring straight away, as a dragged foot
+                // follows the cursor; the server's scene catches up.
+                v.jointDrag.angle = ringAngle(v);
+                draw(v, shownData(v));
+            }
             sendTarget(v, false);
         });
 
@@ -950,6 +960,7 @@
             return;
         }
         v.selected = what;
+        v.jointDrag = null;
         if (what === null) {
             v.gizmo.detach();
         } else if (what === BODY) {
@@ -1051,15 +1062,43 @@
         return { id: FOOT_TARGET_ID, data: data };
     }
 
-    // The angle the joint picked has been turned to, in degrees: where it was
-    // when its drag began, and how far its ring has turned since.
+    // The angle the joint picked has been turned to, in degrees.
     function jointAngle(v) {
-        var start = v.jointStart;
-        if (!start) {
-            var joint = jointData(v, v.selected);
-            return joint ? joint.angle : 0;
+        if (v.jointDrag) {
+            return v.jointDrag.angle;
         }
-        var turn = start.quaternion.clone().invert().multiply(v.jointHandle.quaternion);
+        var joint = jointData(v, v.selected);
+        return joint ? joint.angle : 0;
+    }
+
+    // Where the joint picked, and its leg, were when its ring was taken hold
+    // of: what it is turned from while dragged.
+    function startJointDrag(v) {
+        var T = three();
+        var what = v.selected;
+        var index = JOINT_NAMES.indexOf(what.joint);
+        var joint = jointData(v, what);
+        v.jointDrag = {
+            leg: what.leg,
+            index: index,
+            start: joint.angle,
+            angle: joint.angle,
+            most: typeof joint.most === "number" ? joint.most : 180,
+            axis: vec(T, joint.axis).normalize(),
+            points: v.data.legs[what.leg].map(function (p) {
+                return p.slice();
+            }),
+            quaternion: v.jointHandle.quaternion.clone(),
+            droppedAt: null,
+        };
+    }
+
+    // The angle the ring has been turned to, in degrees: where the joint was
+    // when its drag began, and how far the ring has turned since, held to
+    // the joint's range as the server holds it.
+    function ringAngle(v) {
+        var drag = v.jointDrag;
+        var turn = drag.quaternion.clone().invert().multiply(v.jointHandle.quaternion);
         var radians = 2 * Math.atan2(turn.z, turn.w);
         // The same turn the short way round.
         if (radians > Math.PI) {
@@ -1067,7 +1106,48 @@
         } else if (radians < -Math.PI) {
             radians += 2 * Math.PI;
         }
-        return start.angle + radians / DEGREE;
+        var angle = drag.start + radians / DEGREE;
+        return Math.min(Math.max(angle, -drag.most), drag.most);
+    }
+
+    // What to draw: the scene, with the leg of a joint being turned swung
+    // about the joint to where its ring has it. Everything past the joint
+    // turns with it as one, so this is the pose the server will send back.
+    function shownData(v) {
+        var drag = v.jointDrag;
+        var data = v.data;
+        if (!drag || !data || !data.legs[drag.leg]) {
+            return data;
+        }
+        var T = three();
+        var pivot = vec(T, drag.points[drag.index]);
+        var turn = (drag.angle - drag.start) * DEGREE;
+        var leg = drag.points.map(function (p, i) {
+            if (i <= drag.index) {
+                return p;
+            }
+            return vec(T, p).sub(pivot).applyAxisAngle(drag.axis, turn).add(pivot).toArray();
+        });
+        var legs = data.legs.slice();
+        legs[drag.leg] = leg;
+        var feet = (data.feet || []).slice();
+        feet[drag.leg] = leg[3];
+        return Object.assign({}, data, { legs: legs, feet: feet });
+    }
+
+    // Once a joint dropped is where the server says it is (or it has been
+    // waited for long enough), the server's scene is drawn as it comes.
+    function settleJointDrag(v) {
+        var drag = v.jointDrag;
+        if (!drag || v.dragging || drag.droppedAt === null) {
+            return;
+        }
+        var joints = v.data && v.data.joints;
+        var joint = joints && joints[drag.leg] && joints[drag.leg][drag.index];
+        var arrived = joint && Math.abs(joint.angle - drag.angle) < 0.2;
+        if (arrived || Date.now() - drag.droppedAt > JOINT_SETTLE_MS) {
+            v.jointDrag = null;
+        }
     }
 
     function sendTarget(v, now) {
@@ -1140,7 +1220,8 @@
             select(v, null);
         }
         v.data = data;
-        draw(v, data);
+        settleJointDrag(v);
+        draw(v, shownData(v));
         return true;
     }
 
