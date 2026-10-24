@@ -21,6 +21,7 @@ last step works without one.
 
 - **Pose it.** Click the body or a foot and drag it where you want it. The app
   works out every joint angle for you, and stops where a leg can no longer reach.
+  Or click a single joint and turn it by its ring.
 - **Choreograph it.** Collect your poses and the robot's ready-made gaits
   (walk, turn, climb, twist, ...) into a sequence, set the timing, and watch it
   play.
@@ -145,7 +146,7 @@ on screen changes to match your robot.
   <img src="docs/images/pose.gif" alt="Picking the body up to move and turn it, then lifting a foot">
 </p>
 
-1. **Pick something up.** Click the body or a foot in the 3D view, or its
+1. **Pick something up.** Click the body, a foot or a joint in the 3D view, or its
    button in the **Pose** panel: **Body**, or **L1** to **R3** for the left
    and right legs, front to back. Click empty space, or the button again, to
    let go.
@@ -157,7 +158,10 @@ on screen changes to match your robot.
 3. **Move a foot.** With a foot picked, drag its arrows, or type where it
    should go: **X**, **Y** and **Up** (its height off the floor), in
    millimetres. **Put feet back** returns every foot to where it started.
-4. **Start over** with **Reset pose** at the top right. **Reset view** puts
+4. **Turn a joint.** With a joint picked, drag the ring around it to turn
+   just that joint; the rest of the leg follows. It stops at the joint's
+   limit.
+5. **Start over** with **Reset pose** at the top right. **Reset view** puts
    the camera back.
 
 The body and the feet do not undo each other: tilt the body, lift a foot, and

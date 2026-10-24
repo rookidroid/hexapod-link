@@ -300,6 +300,49 @@ def pose_to_feet(pose, robot_config):
     return clean_feet([xyz(leg.foot_tip()) for leg in hexapod.legs])
 
 
+# How far (degrees) each joint is nudged to find which way it turns.
+_AXIS_NUDGE_DEG = 1.0
+
+
+def joint_axes(pose, robot_config):
+    """What each joint turns about, in the body frame: per leg, per joint
+    (coxia, femur, tibia), the unit vector a positive angle turns it about by
+    the right-hand rule, or None where that cannot be told.
+
+    The hip turns about the body's z, the knee and ankle about the leg's own
+    y (hexapod/linkage.py). Which way round each is, is found by turning the
+    joint a little and seeing which way the foot goes, so it holds whatever
+    the signs of the angles are on each side of the robot. It is how the 3D
+    view's ring on a joint turns it the way it is dragged.
+    """
+    base = _posed_model(pose, robot_config)
+    axes = [[None, None, None] for _ in range(6)]
+    for index, joint in enumerate(("coxia", "femur", "tibia")):
+        nudged = {
+            leg_id: {**pose[leg_id], joint: pose[leg_id][joint] + _AXIS_NUDGE_DEG}
+            for leg_id in range(6)
+        }
+        turned = _posed_model(nudged, robot_config)
+        for leg_id in range(6):
+            leg = base.legs[leg_id]
+            if index == 0:
+                axis = np.array([0.0, 0.0, 1.0])
+            else:
+                heading = np.radians(leg.coxia_axis + leg.alpha)
+                axis = np.array([-np.sin(heading), np.cos(heading), 0.0])
+            points = leg.all_points
+            pivot = np.array([points[index].x, points[index].y, points[index].z])
+            tip = turned.legs[leg_id].foot_tip()
+            before = np.array([points[3].x, points[3].y, points[3].z]) - pivot
+            after = np.array([tip.x, tip.y, tip.z]) - pivot
+            # Turned the right-hand way about `axis`, before x after points
+            # along it.
+            way = float(np.dot(np.cross(before, after), axis))
+            if abs(way) > 1e-9:
+                axes[leg_id][index] = [float(c) for c in np.sign(way) * axis]
+    return axes
+
+
 def pose_to_scene(pose, robot_config):
     """The scene the 3D view draws for a pose (hexapod/scene.py).
 

@@ -18,8 +18,9 @@
 # what a keyframe keeps.
 #
 # The 3D view (assets/hexapod_view.js) reports what is picked through the
-# POSE_SELECTION_ID store, and a dragged foot or body through the
-# POSE_FOOT_TARGET_ID and POSE_BODY_TARGET_ID stores; it draws whatever lands
+# POSE_SELECTION_ID store, a dragged foot or body through the
+# POSE_FOOT_TARGET_ID and POSE_BODY_TARGET_ID stores, and a joint turned by its
+# ring through the POSE_JOINT_TARGET_ID store; it draws whatever lands
 # in the view's scene store, or a frame of the sequence while previewing. The
 # kinematics all happen here.
 #
@@ -54,8 +55,8 @@ from hexapod import gait_library
 from hexapod import keyframes as kf
 from hexapod import pose_layers as pl
 from hexapod.gait_keyframes import gait_keyframes
-from hexapod.naming import LEG_LABELS, leg_label
-from hexapod.robot_config import get_sequence_fps, with_dimensions
+from hexapod.naming import JOINT_NAMES, LEG_LABELS, joint_label, leg_label
+from hexapod.robot_config import get_joint_limits, get_sequence_fps, with_dimensions
 from hexapod.robot_link import ROBOT_LINK
 from pages.shell import view_ack_id, view_store_id
 from widgets.body_ui import BODY_RANGES, BODY_SLIDER_IDS
@@ -71,6 +72,7 @@ from widgets.pose_ui import (
     POSE_ADJUST_BODY_ID,
     POSE_ADJUST_FOOT_ID,
     POSE_ADJUST_HINT_ID,
+    POSE_ADJUST_JOINT_ID,
     POSE_ANGLES_ID,
     POSE_BODY_MODE_ID,
     POSE_BODY_TARGET_ID,
@@ -95,6 +97,8 @@ from widgets.pose_ui import (
     POSE_INTERVAL_ID,
     POSE_JOINT_FIELD_IDS,
     POSE_JOINT_FIELDS,
+    POSE_JOINT_TARGET_ID,
+    POSE_JOINT_TITLE_ID,
     POSE_KEYFRAMES_STORE_ID,
     POSE_KF_EASE_ID,
     POSE_KF_EDITOR_LABEL_ID,
@@ -165,35 +169,49 @@ POSE_RENDER_ACK_ID = view_ack_id(POSE_VIEW_ID)
 PICK_IDS = [POSE_PICK_BODY_ID, *POSE_PICK_LEG_IDS]
 
 
-# Show the controls of what is picked, the body's or a foot's, and light its
-# button; with the body's, the toggle over the view that says how it is
-# dragged. The others are only hidden, so their sliders keep their values.
+# Show the controls of what is picked, the body's, a foot's or a joint's, and
+# light its button; with the body's, the toggle over the view that says how it
+# is dragged. The others are only hidden, so their sliders keep their values.
 clientside_callback(
     """
     function(picked) {
         var labels = %s;
+        var jointLabels = %s;
         var show = {}, hide = {display: "none"};
         var body = picked === "%s";
         var foot = typeof picked === "number";
+        var joint = !!picked && typeof picked === "object" && jointLabels[picked.joint] !== undefined;
         var lit = [body];
         for (var leg = 0; leg < labels.length; leg++) {
             lit.push(picked === leg);
         }
         return [
-            body || foot ? hide : show,
+            body || foot || joint ? hide : show,
             body ? show : hide,
             foot ? show : hide,
+            joint ? show : hide,
             body ? show : hide,
             foot ? labels[picked] + " foot" : window.dash_clientside.no_update,
+            joint
+                ? labels[picked.leg] + " · " + jointLabels[picked.joint]
+                : window.dash_clientside.no_update,
         ].concat(lit.map(function (on) { return on ? "%s is-picked" : "%s"; }));
     }
     """
-    % (json.dumps(list(LEG_LABELS)), SELECT_BODY, PICK_BTN_CLASS, PICK_BTN_CLASS),
+    % (
+        json.dumps(list(LEG_LABELS)),
+        json.dumps({joint: joint_label(joint) for joint in JOINT_NAMES}),
+        SELECT_BODY,
+        PICK_BTN_CLASS,
+        PICK_BTN_CLASS,
+    ),
     Output(POSE_ADJUST_HINT_ID, "style"),
     Output(POSE_ADJUST_BODY_ID, "style"),
     Output(POSE_ADJUST_FOOT_ID, "style"),
+    Output(POSE_ADJUST_JOINT_ID, "style"),
     Output(POSE_BODY_TOOL_ID, "style"),
     Output(POSE_FOOT_TITLE_ID, "children"),
+    Output(POSE_JOINT_TITLE_ID, "children"),
     *[Output(button_id, "className") for button_id in PICK_IDS],
     Input(POSE_SELECTION_ID, "data"),
 )
@@ -221,7 +239,7 @@ clientside_callback(
     prevent_initial_call=True,
 )
 
-# Picking the body or a foot in the view, or dragging it, opens the pose
+# Picking the body, a foot or a joint in the view, or dragging it, opens the pose
 # overlay if it is folded away: the joint angles it moves, and its controls,
 # are in there. Set on the element itself rather than through Dash, which never
 # hears of one folded by hand and so would not open it again.
@@ -243,6 +261,7 @@ clientside_callback(
     Input(POSE_SELECTION_ID, "data"),
     Input(POSE_FOOT_TARGET_ID, "data"),
     Input(POSE_BODY_TARGET_ID, "data"),
+    Input(POSE_JOINT_TARGET_ID, "data"),
     prevent_initial_call=True,
 )
 
@@ -360,6 +379,15 @@ def _picked_leg(selection):
     return None
 
 
+def _number(value):
+    """A finite number out of what the view sent, or None."""
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return number if np.isfinite(number) else None
+
+
 def _triple(values):
     """Three finite numbers out of what the view sent, or None."""
     try:
@@ -416,6 +444,7 @@ def _keyframe_state(keyframe, robot_config):
     inputs=dict(
         foot_target=Input(POSE_FOOT_TARGET_ID, "data"),
         body_target=Input(POSE_BODY_TARGET_ID, "data"),
+        joint_target=Input(POSE_JOINT_TARGET_ID, "data"),
         _reset=Input(POSE_RESET_BTN_ID, "n_clicks"),
         _clear_feet=Input(POSE_CLEAR_FEET_BTN_ID, "n_clicks"),
         _add=Input(POSE_ADD_BTN_ID, "n_clicks"),
@@ -453,6 +482,7 @@ def _keyframe_state(keyframe, robot_config):
 def edit(
     foot_target,
     body_target,
+    joint_target,
     _reset,
     _clear_feet,
     _add,
@@ -568,6 +598,30 @@ def edit(
             # send the robot, until it is dropped: then the foot, left under
             # the cursor while dragging, goes to where its leg ends.
             out_pose = bump(moved) if final or moved != state else no_update
+
+    elif trigger == POSE_JOINT_TARGET_ID and joint_target:
+        # A joint turned by its ring in the view. Like its field, it moves the
+        # leg's foot to wherever the angle puts it; turned past its limit, it
+        # is held a little inside it, so the leg follows the ring up to there.
+        leg = joint_target.get("leg")
+        joint = joint_target.get("joint")
+        angle = _number(joint_target.get("angle"))
+        if not isinstance(leg, int) or not 0 <= leg < 6 or joint not in JOINT_NAMES:
+            raise PreventUpdate
+        if angle is None:
+            raise PreventUpdate
+        most = max(get_joint_limits(robot_config)[joint] - kf.LIMIT_MARGIN_DEG, 0.0)
+        held = abs(angle) > most
+        angle = round(min(max(angle, -most), most), 1)
+        moved = pl.with_leg_angles(state, leg, {joint: angle}, robot_config)
+        final = bool(joint_target.get("final"))
+        if leg in pl.solve(moved, robot_config)[2]:
+            message = _pose_alert(f"{leg_label(leg)}: {joint} cannot turn there.")
+            out_pose = bump(state) if final else no_update
+        else:
+            message = _pose_alert(f"{leg_label(leg)}: {joint} is at its limit.") if held else ""
+            out_pose = bump(moved) if final or moved != state else no_update
+        out_mode = MODE_EDIT
 
     elif trigger == POSE_SELECTION_ID:
         # Something else picked: what was said of the last move is stale.

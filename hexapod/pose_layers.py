@@ -233,7 +233,26 @@ def scene(state, pose, robot_config):
     drawn["support"] = [[x, y, 0.0] for x, y, _ in order_around_centre(standing)]
     drawn["ground"] = 0.0
     drawn["frame"] = body_frame(state, robot_config)
+    drawn["joints"] = scene_joints(pose, rotation, robot_config)
     return drawn
+
+
+def scene_joints(pose, rotation, robot_config):
+    """Each joint as the view's ring on it has it: per leg, per joint (coxia,
+    femur, tibia), {"axis"}, what a positive angle turns it about in the
+    world (None where that cannot be told), and {"angle"}, where it is, in
+    degrees."""
+    axes = kf.joint_axes(pose, robot_config)
+    joints = []
+    for leg_id in range(6):
+        leg = []
+        for index, name in enumerate(("coxia", "femur", "tibia")):
+            axis = axes[leg_id][index]
+            if axis is not None:
+                axis = [round(float(c), 6) + 0.0 for c in rotation @ np.asarray(axis)]
+            leg.append({"axis": axis, "angle": round(float(pose[leg_id][name]), 3) + 0.0})
+        joints.append(leg)
+    return joints
 
 
 def state_to_vector(state):

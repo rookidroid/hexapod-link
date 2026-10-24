@@ -7,6 +7,7 @@
 #   the body  inverse kinematics: move and tilt it over the planted feet, with
 #             its sliders or by dragging its handles in the view
 #   a foot    move it, by dragging it in the view or typing where it goes
+#   a joint   turn it, by dragging the ring on it in the view
 #
 # Over the view too, the pose and the camera can be reset, and while the body
 # is picked a toggle says what dragging it does, move it or turn it; streaming
@@ -35,10 +36,13 @@ from widgets.robot_link_ui import SECTION_CONTROLS_OFFLINE_CLASS
 
 # --- Element IDs ---
 # Written by assets/hexapod_view.js through set_props; keep the two in step.
-# Where a foot, or the body, has been dragged to; and what is picked: a leg's
-# id, SELECT_BODY, or nothing.
+# Where a foot, or the body, has been dragged to, or what a joint has been
+# turned to; and what is picked: a leg's id for its foot, SELECT_BODY, a
+# joint as {"leg": its leg's id, "joint": "coxia" | "femur" | "tibia"}, or
+# nothing.
 POSE_FOOT_TARGET_ID = "pose-foot-target"
 POSE_BODY_TARGET_ID = "pose-body-target"
+POSE_JOINT_TARGET_ID = "pose-joint-target"
 POSE_SELECTION_ID = "pose-selection"
 SELECT_BODY = "body"
 
@@ -62,6 +66,9 @@ PICK_BTN_CLASS = "hud-pick"
 POSE_ADJUST_HINT_ID = "pose-adjust-hint"
 POSE_ADJUST_BODY_ID = "pose-adjust-body"
 POSE_ADJUST_FOOT_ID = "pose-adjust-foot"
+POSE_ADJUST_JOINT_ID = "pose-adjust-joint"
+# Which joint is picked.
+POSE_JOINT_TITLE_ID = "pose-joint-title"
 
 # Which handles the body picked has in the view, to drag it by: arrows that
 # move it, or rings that turn it. The values are the view's names for them.
@@ -344,7 +351,7 @@ angle_table = make_joint_grid(
 )
 
 ADJUST_HINT = html.Div(
-    "Click the body or a foot, in the view or above, to adjust it.",
+    "Click the body, a foot or a joint, in the view or above, to adjust it.",
     id=POSE_ADJUST_HINT_ID,
     className="hud-hint",
 )
@@ -395,6 +402,22 @@ ADJUST_FOOT = html.Div(
     style={"display": "none"},
 )
 
+# A joint picked in the view has a ring on it there, which turns it.
+ADJUST_JOINT = html.Div(
+    [
+        html.Div(
+            html.Span("Joint", id=POSE_JOINT_TITLE_ID, className="hud-adjust-title"),
+            className="hud-adjust-head",
+        ),
+        html.Div(
+            "Drag the ring on it in the view to turn it, or type its angle above.",
+            className="hud-hint",
+        ),
+    ],
+    id=POSE_ADJUST_JOINT_ID,
+    style={"display": "none"},
+)
+
 # A native <details>, so it folds away without a callback. Folded until
 # wanted, or served as it was left (pages/workspace.py); picking the body or
 # a foot in the view opens it (pages/pose.py).
@@ -404,7 +427,7 @@ POSE_HUD = html.Details(
         angle_table,
         html.Div(id=POSE_ANGLES_ID, className="hud-message"),
         html.Div(id=POSE_MESSAGE_ID, className="hud-message"),
-        html.Div([ADJUST_HINT, ADJUST_BODY, ADJUST_FOOT], className="hud-adjust"),
+        html.Div([ADJUST_HINT, ADJUST_BODY, ADJUST_FOOT, ADJUST_JOINT], className="hud-adjust"),
     ],
     id=POSE_HUD_ID,
     className=POSE_HUD_CLASS,
@@ -827,6 +850,7 @@ hidden_components = html.Div(
     [
         dcc.Store(id=POSE_FOOT_TARGET_ID),
         dcc.Store(id=POSE_BODY_TARGET_ID),
+        dcc.Store(id=POSE_JOINT_TARGET_ID),
         dcc.Store(id=POSE_SELECTION_ID),
         dcc.Store(id=POSE_STATE_STORE_ID, storage_type="session"),
         dcc.Store(id=POSE_KEYFRAMES_STORE_ID, storage_type="session"),

@@ -6,15 +6,17 @@
 // pages/pose.py.
 //
 // While it shows the pose (pages/pose.py) the view is also editable: a
-// foot, or the body, can be clicked to pick it up -- which the page hears of
-// through the "pose-selection" store, and shows its controls -- and then
-// dragged by its handles: a foot by arrows, the body by arrows that move it
-// or rings that turn it. A drag becomes a target in the "pose-foot-target" or
+// foot, a joint, or the body, can be clicked to pick it up -- which the page
+// hears of through the "pose-selection" store, and shows its controls -- and
+// then dragged by its handles: a foot by arrows, a joint by a ring about the
+// axis it turns on, the body by arrows that move it or rings that turn it. A
+// drag becomes a target in the "pose-foot-target", "pose-joint-target" or
 // "pose-body-target" store; the server solves the joints and sends back the
 // new scene. A foot dragged past what its leg can reach is held there as near
-// as the leg gets, and goes to where the leg ends when it is dropped; the
-// body is held to the range of its sliders and to where its legs can follow,
-// its handle going back to it when dropped.
+// as the leg gets, and goes to where the leg ends when it is dropped; a joint
+// turned past its limit is held there; the body is held to the range of its
+// sliders and to where its legs can follow, its handle going back to it when
+// dropped.
 //
 // Coordinates are millimetres, z up: the robot's body frame at standby,
 // raised to stand on the floor at z = 0.
@@ -30,10 +32,13 @@
     // The workspace's stores, written while editing.
     var FOOT_TARGET_ID = "pose-foot-target";
     var BODY_TARGET_ID = "pose-body-target";
+    var JOINT_TARGET_ID = "pose-joint-target";
     var SELECTION_ID = "pose-selection";
 
-    // What is picked is a leg's id, for its foot, or this, or null.
+    // What is picked is a leg's id, for its foot, or this, or a joint as
+    // {leg: its leg's id, joint: one of JOINT_NAMES}, or null.
     var BODY = "body";
+    var JOINT_NAMES = ["coxia", "femur", "tibia"];
 
     // How often a target is sent while dragging, in ms. The final position
     // is always sent when the drag ends.
@@ -159,6 +164,12 @@
         bodyHandle.rotation.order = "XYZ";
         scene.add(bodyHandle);
 
+        // What the gizmo turns a joint by: placed on the joint, its z the
+        // axis a positive angle turns the joint about (hexapod/pose_layers.py
+        // scene_joints), so the ring the gizmo shows is the one about z.
+        var jointHandle = new T.Group();
+        scene.add(jointHandle);
+
         var v = {
             id: id,
             container: container,
@@ -169,6 +180,9 @@
             gizmo: gizmo,
             sun: sun,
             bodyHandle: bodyHandle,
+            jointHandle: jointHandle,
+            // The joint's angle, and its handle, when its drag began.
+            jointStart: null,
             raycaster: new T.Raycaster(),
             root: new T.Group(),
             parts: null,
@@ -197,6 +211,12 @@
         });
         gizmo.addEventListener("dragging-changed", function (event) {
             v.dragging = event.value;
+            if (event.value && isJoint(v.selected)) {
+                v.jointStart = {
+                    angle: jointData(v, v.selected).angle,
+                    quaternion: jointHandle.quaternion.clone(),
+                };
+            }
             orbit.enabled = !event.value;
             if (!event.value) {
                 sendTarget(v, true);
@@ -473,6 +493,9 @@
         var armour = mat(c.leg);
         var hub = mat(c.joint);
         var accent = mat(c.jointAccent);
+        // A joint picked is lit as a foot picked is.
+        parts.hub = hub;
+        parts.hubPicked = mat(c.footSelected, { emissive: c.footSelected, emissiveIntensity: 0.35 });
         for (var i = 0; i < 6; i++) {
             var segments = [cylinder, femur, tibia].map(function (shape) {
                 var seg = solid(shape, armour);
@@ -494,6 +517,7 @@
                 band.scale.set(1.08, 1.08, 0.22);
                 joint.add(band);
                 joint.userData.leg = i;
+                joint.userData.joint = j;
                 joints.push(joint);
             }
             parts.joints.push(joints);
@@ -505,8 +529,10 @@
         }
 
         parts.legParts = [];
+        parts.jointParts = [];
         for (var k = 0; k < 6; k++) {
             parts.legParts = parts.legParts.concat(parts.legs[k], parts.joints[k], [parts.feet[k]]);
+            parts.jointParts = parts.jointParts.concat(parts.joints[k]);
         }
 
         v.parts = parts;
@@ -769,6 +795,11 @@
             );
         }
 
+        // The joint being turned keeps its ring where the drag began.
+        if (isJoint(v.selected) && !v.dragging) {
+            placeJointHandle(v, data);
+        }
+
         var axes = data.axes || [];
         for (var a = 0; a < parts.axes.length; a++) {
             var arrow = parts.axes[a];
@@ -797,7 +828,11 @@
             // the leg.
             var across = legAxis(T, points, up);
             for (var j = 0; j < 3; j++) {
-                placeDisc(T, parts.joints[i][j], vec(T, points[j]), j === 0 ? up : across);
+                var disc = parts.joints[i][j];
+                placeDisc(T, disc, vec(T, points[j]), j === 0 ? up : across);
+                var jointPicked =
+                    v.editable && sameSelection(v.selected, { leg: i, joint: JOINT_NAMES[j] });
+                disc.material = jointPicked ? parts.hubPicked : parts.hub;
             }
             // The foot being dragged stays under the cursor; it is put back
             // where the server says once the drag is over.
@@ -829,21 +864,89 @@
 
     // ------------------------------------------------------------- editing
 
+    function isJoint(what) {
+        return what !== null && typeof what === "object";
+    }
+
+    function sameSelection(a, b) {
+        if (isJoint(a) && isJoint(b)) {
+            return a.leg === b.leg && a.joint === b.joint;
+        }
+        return a === b;
+    }
+
+    // What the scene says of a joint picked: {axis, angle}, or null.
+    function jointData(v, what) {
+        var joints = v.data && v.data.joints;
+        var leg = joints && joints[what.leg];
+        return (leg && leg[JOINT_NAMES.indexOf(what.joint)]) || null;
+    }
+
+    // Puts the joint handle on the joint picked, its z on the joint's axis.
+    function placeJointHandle(v, data) {
+        var T = three();
+        var what = v.selected;
+        var index = JOINT_NAMES.indexOf(what.joint);
+        var leg = data.joints && data.joints[what.leg];
+        var joint = leg && leg[index];
+        var points = data.legs[what.leg];
+        if (!joint || !joint.axis || !points) {
+            return;
+        }
+        v.jointHandle.position.copy(vec(T, points[index]));
+        v.jointHandle.quaternion.setFromUnitVectors(
+            new T.Vector3(0, 0, 1),
+            vec(T, joint.axis).normalize()
+        );
+        v.jointHandle.updateMatrixWorld();
+    }
+
+    // Every one of the gizmo's handles, for a foot or the body: a joint's
+    // shows only its one ring.
+    function showAllHandles(gizmo) {
+        gizmo.showX = gizmo.showY = gizmo.showZ = true;
+        gizmo.showE = gizmo.showXYZE = true;
+        gizmo.setSize(0.9);
+    }
+
     // The body is moved along the world's axes, as its sliders move it, and
     // turned about its own.
     function holdBody(v) {
         var mode = bodyModes[v.id] === "rotate" ? "rotate" : "translate";
+        showAllHandles(v.gizmo);
         v.gizmo.setMode(mode);
         v.gizmo.setSpace(mode === "rotate" ? "local" : "world");
         v.gizmo.attach(v.bodyHandle);
     }
 
-    // Picks `what` up: a leg's id for its foot, BODY, or null to let go.
+    // A joint is turned by one ring, about its own axis.
+    function holdJoint(v) {
+        var gizmo = v.gizmo;
+        placeJointHandle(v, v.data);
+        gizmo.showX = gizmo.showY = false;
+        gizmo.showZ = true;
+        gizmo.showE = gizmo.showXYZE = false;
+        gizmo.setSize(0.6);
+        gizmo.setMode("rotate");
+        gizmo.setSpace("local");
+        gizmo.attach(v.jointHandle);
+    }
+
+    // Picks `what` up: a leg's id for its foot, BODY, a joint, or null to
+    // let go.
     function select(v, what) {
         if (!v.editable || (what === BODY && !(v.data && v.data.frame))) {
             what = null;
         }
-        if (v.selected === what) {
+        if (isJoint(what)) {
+            var joint = jointData(v, what);
+            if (!joint || !joint.axis) {
+                what = null;
+            } else {
+                what = { leg: what.leg, joint: what.joint };
+            }
+        }
+        if (sameSelection(v.selected, what)) {
             return;
         }
         v.selected = what;
@@ -851,7 +954,10 @@
             v.gizmo.detach();
         } else if (what === BODY) {
             holdBody(v);
+        } else if (isJoint(what)) {
+            holdJoint(v);
         } else {
+            showAllHandles(v.gizmo);
             v.gizmo.setMode("translate");
             v.gizmo.setSpace("world");
             v.gizmo.attach(v.parts.feet[what]);
@@ -875,10 +981,15 @@
         return hits.length ? hits[0].object : null;
     }
 
-    // What a click on `object` picks: its foot's leg, or the body.
+    // What a click on `object` picks: its foot's leg, its joint, or the body.
     function pickable(v, object) {
         if (v.parts.feet.indexOf(object) >= 0) {
             return object.userData.leg;
+        }
+        if (v.parts.jointParts.indexOf(object) >= 0) {
+            var what = { leg: object.userData.leg, joint: JOINT_NAMES[object.userData.joint] };
+            var joint = jointData(v, what);
+            return joint && joint.axis ? what : null;
         }
         return v.parts.bodyParts.indexOf(object) >= 0 ? BODY : null;
     }
@@ -887,7 +998,7 @@
         if (!v.editable || !v.parts) {
             return;
         }
-        var over = hit(v, event, v.parts.feet.concat(v.parts.bodyParts));
+        var over = hit(v, event, v.parts.feet.concat(v.parts.jointParts, v.parts.bodyParts));
         select(v, over ? pickable(v, over) : null);
     }
 
@@ -903,8 +1014,13 @@
             return;
         }
         var onBody = v.parts.bodyParts.indexOf(over) >= 0;
+        var onJoint = v.parts.jointParts.indexOf(over) >= 0;
         var rect = v.container.getBoundingClientRect();
-        v.label.textContent = onBody ? "Body" : labels[over.userData.leg];
+        var text = onBody ? "Body" : labels[over.userData.leg];
+        if (onJoint) {
+            text += " · Joint " + (over.userData.joint + 1);
+        }
+        v.label.textContent = text;
         v.label.style.left = event.clientX - rect.left + 14 + "px";
         v.label.style.top = event.clientY - rect.top + 10 + "px";
         v.label.style.display = "block";
@@ -912,10 +1028,16 @@
         v.renderer.domElement.style.cursor = canPick ? "pointer" : "";
     }
 
-    // Where what is held has been dragged to: a foot's position, or the
-    // body's and its rotations in degrees.
+    // Where what is held has been dragged to: a foot's position, a joint's
+    // angle in degrees, or the body's position and its rotations in degrees.
     function target(v) {
         var data = { seq: v.seq, final: !v.dragging };
+        if (isJoint(v.selected)) {
+            data.leg = v.selected.leg;
+            data.joint = v.selected.joint;
+            data.angle = jointAngle(v);
+            return { id: JOINT_TARGET_ID, data: data };
+        }
         if (v.selected === BODY) {
             var p = v.bodyHandle.position;
             var r = v.bodyHandle.rotation;
@@ -927,6 +1049,25 @@
         data.leg = v.selected;
         data.foot = [foot.x, foot.y, foot.z];
         return { id: FOOT_TARGET_ID, data: data };
+    }
+
+    // The angle the joint picked has been turned to, in degrees: where it was
+    // when its drag began, and how far its ring has turned since.
+    function jointAngle(v) {
+        var start = v.jointStart;
+        if (!start) {
+            var joint = jointData(v, v.selected);
+            return joint ? joint.angle : 0;
+        }
+        var turn = start.quaternion.clone().invert().multiply(v.jointHandle.quaternion);
+        var radians = 2 * Math.atan2(turn.z, turn.w);
+        // The same turn the short way round.
+        if (radians > Math.PI) {
+            radians -= 2 * Math.PI;
+        } else if (radians < -Math.PI) {
+            radians += 2 * Math.PI;
+        }
+        return start.angle + radians / DEGREE;
     }
 
     function sendTarget(v, now) {
@@ -1013,8 +1154,9 @@
         }
     }
 
-    // Picks up a foot, by its leg's id, or the body ("body"), or lets go
-    // (null), as clicking in the view would: for the workspace's buttons.
+    // Picks up a foot, by its leg's id, the body ("body"), a joint
+    // ({leg, joint}), or lets go (null), as clicking in the view would: for
+    // the workspace's buttons.
     function selectIn(containerId, what) {
         var v = views[containerId];
         if (v && v.parts) {
