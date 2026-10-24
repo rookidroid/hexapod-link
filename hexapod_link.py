@@ -57,7 +57,6 @@ mimetypes.add_type("font/woff2", ".woff2")
 LAYOUT_VARIABLES = {
     "dock_h": "--dock-h",
     "lib_w": "--lib-w",
-    "run_w": "--run-w",
 }
 
 

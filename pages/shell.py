@@ -86,7 +86,7 @@ def make_view(
 #
 # Above `lg` the dock's height can be dragged, by a splitter on its top edge
 # (or, focused, with the arrow keys), and double-clicking it puts it back; so
-# can the widths of the dock's side columns (POSE_DOCK in widgets/pose_ui.py).
+# can the width of the dock's Gaits library (POSE_DOCK in widgets/pose_ui.py).
 # That is done in the page (assets/workspace_resize.js); the sizes let go of
 # come back through the sizes store, to be kept with the preferences and
 # served with the page the next time (hexapod_link.py).

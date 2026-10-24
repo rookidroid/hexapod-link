@@ -108,7 +108,7 @@ SPLITTER_CLASS = "ws-splitter"
 
 
 def make_splitter(kind, orientation, label):
-    """A splitter of `kind` ("dock", "lib", "run"), "vertical" for one
+    """A splitter of `kind` ("dock", "lib"), "vertical" for one
     dragged sideways; `label` says what it does, as "resize the dock"."""
     return html.Div(
         className=f"{SPLITTER_CLASS} {SPLITTER_CLASS}-{kind}",

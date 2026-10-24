@@ -404,12 +404,12 @@ POSE_HUD = html.Details(
 # ................................
 # DOCK
 #
-# Three columns across the bottom of the window. On the left, the library of
-# gaits to put into the sequence: the robot's, and one's own. In the middle,
+# Two columns across the bottom of the window. On the left, the library of
+# gaits to put into the sequence: the robot's, and one's own. On the right,
 # the sequence: the track of keyframes -- poses, and gaits put in as theirs --
-# and an editor for the one selected. On the right, running it on the robot;
-# playing it in the view is over the view itself (PLAYBACK below). The side
-# columns' widths can be dragged; the middle one takes what is left.
+# and an editor for the one selected. Playing it, in the view and on the
+# robot, is over the view itself (PLAYBACK below). The library's width can be
+# dragged; the sequence takes what is left.
 # ................................
 
 
@@ -711,8 +711,11 @@ sequence_section = _section(
 #
 # Over the middle of the view's bottom edge, between the pose and the
 # controller: play the sequence in the view, or scrub through it, and how fast
-# and whether it loops. Running it on the robot stays in the dock.
+# and whether it loops; then run it on the robot, or stand the robot down.
+# What came of that last is a line under them, when there is anything to say.
 # ................................
+
+ROBOT_TITLE = "Run the sequence on the robot, or stop it and stand the robot up."
 
 PLAYBACK_HUD = html.Section(
     [
@@ -766,31 +769,25 @@ PLAYBACK_HUD = html.Section(
             value=[],
             className="dock-check",
         ),
+        # Greyed out while there is no robot (sync_robot_controls in
+        # pages/pose.py); the title says why, on the group around them, which
+        # still takes the pointer while they do not.
+        html.Div(
+            html.Div(
+                [
+                    _button("▶ Run on robot", POSE_RUN_BTN_ID, color="success", disabled=True),
+                    _button("■ Standby", POSE_STOP_BTN_ID, outline=True, disabled=True),
+                ],
+                id=POSE_ROBOT_CONTROLS_ID,
+                className=f"d-flex gap-2 {SECTION_CONTROLS_OFFLINE_CLASS}",
+            ),
+            className="playback-robot",
+            title=ROBOT_TITLE,
+        ),
+        html.Div(id=POSE_ROBOT_MESSAGE_ID, className="dock-note playback-message"),
     ],
     className="hud-panel playback-hud",
     **{"aria-label": "Playback"},
-)
-
-# The robot's buttons beside their title.
-robot_section = _section(
-    "Robot",
-    [
-        html.Div(
-            "Connect a robot to run this on the hardware.",
-            id=POSE_ROBOT_MESSAGE_ID,
-            className="dock-note dock-robot-message",
-        ),
-    ],
-    head=[
-        html.Div(
-            [
-                _button("▶ Run on robot", POSE_RUN_BTN_ID, color="success", disabled=True),
-                _button("■ Standby", POSE_STOP_BTN_ID, outline=True, disabled=True),
-            ],
-            id=POSE_ROBOT_CONTROLS_ID,
-            className=f"d-flex gap-2 {SECTION_CONTROLS_OFFLINE_CLASS}",
-        ),
-    ],
 )
 
 # The pose and the sequence being built live in session storage, so they
@@ -824,10 +821,8 @@ POSE_DOCK = html.Div(
     [
         html.Div(library_section, className="dock-col dock-col-library"),
         html.Div(sequence_section, className="dock-col dock-col-sequence"),
-        html.Div(robot_section, className="dock-col dock-col-run"),
-        # On the lines between the columns; the sequence's takes what is left.
+        # On the line between the columns; the sequence takes what is left.
         make_splitter("lib", "vertical", "resize the Gaits library"),
-        make_splitter("run", "vertical", "resize Robot"),
         hidden_components,
     ],
     className="dock",
