@@ -2427,7 +2427,49 @@ body {
    SCROLLBARS
    =========================================== */
 
-* {
-    scrollbar-width: thin;
-    scrollbar-color: var(--ind-border-strong) transparent;
+/* A thin line out of the way, that widens to a grip under the pointer and
+   while it is dragged, lit in the accent. The thumb is drawn inside a
+   transparent border (background-clip), and the border is what narrows: a
+   scrollbar's own width cannot change on hover. Chromium and WebKit, which
+   the desktop window is; Firefox has no such hooks, so it gets its thin
+   scrollbar instead. */
+
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+    background: transparent;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    min-height: 24px;
+    min-width: 24px;
+    background-color: var(--ind-border-strong);
+    background-clip: padding-box;
+    border: 3.5px solid transparent;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    border-width: 1px;
+}
+
+::-webkit-scrollbar-thumb:active {
+    border-width: 1px;
+    background-color: var(--ind-accent);
+}
+
+::-webkit-scrollbar-button {
+    display: none;
+}
+
+@supports not selector(::-webkit-scrollbar) {
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: var(--ind-border-strong) transparent;
+    }
 }
