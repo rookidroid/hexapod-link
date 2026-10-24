@@ -35,17 +35,6 @@ import struct
 import threading
 import time
 
-from settings import (
-    ROBOT_DEFAULT_IP,
-    ROBOT_UDP_PORT,
-    ROBOT_STREAM_HZ,
-    ROBOT_PING_HZ,
-    ROBOT_DRIVE_HOLD_S,
-    ROBOT_DEFAULT_MAX_STEP,
-    ROBOT_SEQUENCE_MAX_STEP,
-    ROBOT_VERSION_TIMEOUT_S,
-    ROBOT_VERSION_ATTEMPTS,
-)
 from hexapod import robot_http
 from hexapod.robot_config import (
     DEFAULT_CONFIG,
@@ -60,6 +49,17 @@ from hexapod.robot_config import (
     save_cached_config,
 )
 from hexapod.robot_http import RobotHttpError, split_address
+from settings import (
+    ROBOT_DEFAULT_IP,
+    ROBOT_DEFAULT_MAX_STEP,
+    ROBOT_DRIVE_HOLD_S,
+    ROBOT_PING_HZ,
+    ROBOT_SEQUENCE_MAX_STEP,
+    ROBOT_STREAM_HZ,
+    ROBOT_UDP_PORT,
+    ROBOT_VERSION_ATTEMPTS,
+    ROBOT_VERSION_TIMEOUT_S,
+)
 
 # Packet magics, mirrors protocol.h in the firmware
 MAGIC_MOTION = 0xA5
@@ -96,9 +96,7 @@ def parse_version_reply(data, seq):
     head = struct.calcsize(_FMT_VERSION_REPLY)
     if len(data) < head or data[0] != MAGIC_VERSION:
         return None
-    _, reply_seq, protocol, major, minor, patch = struct.unpack_from(
-        _FMT_VERSION_REPLY, data
-    )
+    _, reply_seq, protocol, major, minor, patch = struct.unpack_from(_FMT_VERSION_REPLY, data)
     if reply_seq != seq:
         return None
     return {
@@ -356,7 +354,7 @@ class RobotLink:
                         reply = parse_version_reply(data, seq)
                         if reply is not None:
                             return reply
-                except socket.timeout:
+                except TimeoutError:
                     continue
                 except OSError:
                     # Unreachable; Windows also reports a closed port this way.

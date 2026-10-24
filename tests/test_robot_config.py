@@ -70,7 +70,10 @@ def test_the_payload_carries_the_robots_own_values():
     assert mochi["joint_limits"] == {"coxia": 45, "femur": 75, "tibia": 75}
     assert mochi["gait"]["walk_radius"] == 30
     assert mochi["gait"]["fastwalk"] == {
-        "g_steps": 28, "y_radius": 40, "z_radius": 30, "x_radius": 15
+        "g_steps": 28,
+        "y_radius": 40,
+        "z_radius": 30,
+        "x_radius": 15,
     }
     assert ROBOT_CONFIGS["macaroon"]["delay_ms"] == 25
     assert ROBOT_CONFIGS["nougat"]["config"]["legMountAngle"] == [45, 0, -45, -225, -180, -135]

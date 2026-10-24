@@ -232,11 +232,23 @@ robot-link streaming protocol, reading each robot's config (against
 `tools/fake_robot.py`), and the saved preferences and gait library — all
 without needing a display, a browser, or a physical robot.
 
+## Linting and formatting
+
+[Ruff](https://docs.astral.sh/ruff/) lints and formats the code, configured in
+[`ruff.toml`](../ruff.toml). CI fails on either, so run both before pushing:
+
+```bash
+$ ruff check --fix .
+$ ruff format .
+```
+
 ## CI/CD
 
 - [`tests.yml`](../.github/workflows/tests.yml) — runs `pytest` on Ubuntu and
   Windows across Python 3.13/3.14, and byte-compiles + imports every module to
   catch dead code the tests don't reach.
+- [`lint.yml`](../.github/workflows/lint.yml) — runs `ruff check` and
+  `ruff format --check`; lint findings show up as annotations on the PR diff.
 - [`build-desktop.yml`](../.github/workflows/build-desktop.yml) — builds the
   PyInstaller desktop bundle for Windows and Linux, smoke-tests that the built
   binary actually serves a page, and (Windows) verifies the Mark of the Web is

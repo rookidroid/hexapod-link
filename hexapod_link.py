@@ -21,15 +21,14 @@ from dash import Dash, html
 
 from hexapod.preferences import load_layout, load_theme
 from hexapod.robot_link import ROBOT_LINK
-from pages.last_session import restore, restore_robot_link
 from pages.drive import register_drive_route
+from pages.last_session import restore, restore_robot_link
 from pages.shell import make_topbar, make_window_edges
 from pages.workspace import workspace
 from style_settings import EXTERNAL_STYLESHEETS
 from texts import APP_TITLE
 from window_controls import WindowControls
 from window_state import restore_window
-
 
 # ....................
 # Dash app
@@ -199,9 +198,7 @@ def start_server(port=None):
     if not wait_until_serving(port):
         # The thread is a daemon, so there is nothing to clean up; if waitress
         # failed to bind, the traceback has already gone to stderr.
-        raise RuntimeError(
-            f"server did not come up on {HOST}:{port} within {STARTUP_TIMEOUT:.0f}s"
-        )
+        raise RuntimeError(f"server did not come up on {HOST}:{port} within {STARTUP_TIMEOUT:.0f}s")
 
     return f"http://{HOST}:{port}"
 

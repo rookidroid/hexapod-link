@@ -109,11 +109,7 @@ def _planted(feet):
     the lowest feet, and a foot on it does not move while it stays down.
     """
     floor = feet[:, 2].min()
-    return {
-        leg: feet[leg] - [0.0, 0.0, floor]
-        for leg in range(6)
-        if feet[leg, 2] - floor < TOL_MM
-    }
+    return {leg: feet[leg] - [0.0, 0.0, floor] for leg in range(6) if feet[leg, 2] - floor < TOL_MM}
 
 
 def _stance_runs(motion_name, profile_name):
@@ -147,9 +143,7 @@ def test_support_polygon_keeps_its_shape():
         for a, b in combinations(before, 2):
             was = np.linalg.norm(before[a] - before[b])
             now = np.linalg.norm(after[a] - after[b])
-            assert abs(now - was) < TOL_MM, (
-                f"{case}: {a} to {b} went from {was:.4f} to {now:.4f}mm"
-            )
+            assert abs(now - was) < TOL_MM, f"{case}: {a} to {b} went from {was:.4f} to {now:.4f}mm"
 
 
 def test_planted_feet_move_as_one():
@@ -164,8 +158,7 @@ def test_planted_feet_move_as_one():
         deltas = np.array([after[leg] - point for leg, point in before.items()])
         spread = deltas.max(axis=0) - deltas.min(axis=0)
         assert np.all(spread < TOL_MM), (
-            f"{case}: planted feet displaced by differing amounts, "
-            f"spread={spread}, deltas={deltas}"
+            f"{case}: planted feet displaced by differing amounts, spread={spread}, deltas={deltas}"
         )
 
 
@@ -208,9 +201,7 @@ def test_standup_never_drags_a_planted_foot():
 def _sides(contacts):
     """The pairwise distances of a stance, in a stable order."""
     names = sorted(contacts)
-    return np.array(
-        [np.linalg.norm(contacts[a] - contacts[b]) for a, b in combinations(names, 2)]
-    )
+    return np.array([np.linalg.norm(contacts[a] - contacts[b]) for a, b in combinations(names, 2)])
 
 
 def test_turn_support_polygon_stays_similar():

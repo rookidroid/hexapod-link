@@ -39,12 +39,12 @@ from hexapod.path_generator import (
     inverse_kinematics,
     servo_angles_to_pose,
 )
-from hexapod.scene import hexapod_to_scene, xyz
 from hexapod.robot_config import (
     get_joint_limits,
     get_leg_signs,
     get_simulator_dimensions,
 )
+from hexapod.scene import hexapod_to_scene, xyz
 
 FILE_FORMAT = "hexapod-link-keyframes"
 FILE_VERSION = 1
@@ -557,15 +557,12 @@ def load(text, robot_config):
     if not isinstance(document, dict) or document.get("format") != FILE_FORMAT:
         raise KeyframeFileError("Not a keyframe file.")
     if document.get("version") != FILE_VERSION:
-        raise KeyframeFileError(
-            f"Unsupported keyframe file version: {document.get('version')}."
-        )
+        raise KeyframeFileError(f"Unsupported keyframe file version: {document.get('version')}.")
 
     robot = document.get("robot")
     if robot != robot_config["name"]:
         raise KeyframeFileError(
-            f"These keyframes were made for '{robot}', "
-            f"not for '{robot_config['name']}'."
+            f"These keyframes were made for '{robot}', not for '{robot_config['name']}'."
         )
 
     raw = document.get("keyframes")
@@ -587,9 +584,7 @@ def load(text, robot_config):
             if number is not None and not _is_number(number):
                 raise ValueError("number must be a whole number from 1")
             keyframes.append(
-                make_keyframe(
-                    feet.tolist(), entry["duration_ms"], entry.get("state"), ease, number
-                )
+                make_keyframe(feet.tolist(), entry["duration_ms"], entry.get("state"), ease, number)
             )
         except (KeyError, TypeError, ValueError) as error:
             raise KeyframeFileError(f"Keyframe {index + 1} is malformed: {error}") from error

@@ -584,6 +584,7 @@ def slide(browser, recorder, component_id, start, stop, steps, resolution):
 
 def shoot_app(browser, robot):
     """The whole window in each theme, and the controller cut out of it."""
+    from pages.shell import THEME_TOGGLE_ID
     from widgets.pose_ui import (
         POSE_ADD_BTN_ID,
         POSE_FOOT_FIELD_IDS,
@@ -592,7 +593,6 @@ def shoot_app(browser, robot):
         SELECT_BODY,
     )
     from widgets.robot_link_ui import DRIVE_HUD_ID
-    from pages.shell import THEME_TOGGLE_ID
 
     open_app(browser, robot, APP_WINDOW, panels=("pose", "controller"))
 
@@ -797,8 +797,9 @@ def main():
     os.environ[ROBOT_CONFIG_CACHE_ENV] = os.path.join(scratch, "robot_config.json")
     os.environ[GAITS_ENV] = os.path.join(scratch, "gaits")
 
-    import hexapod_link  # noqa: E402  (imported late; it builds the whole app)
     from fake_robot import FakeRobot
+
+    import hexapod_link  # noqa: E402  (imported late; it builds the whole app)
     from hexapod.robot_link import ROBOT_LINK
 
     os.makedirs(OUT_DIR, exist_ok=True)

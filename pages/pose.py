@@ -44,6 +44,7 @@
 
 import base64
 import json
+
 import numpy as np
 from dash import ALL, callback, clientside_callback, ctx, html, no_update
 from dash.dependencies import Input, Output, State
@@ -51,8 +52,8 @@ from dash.exceptions import PreventUpdate
 
 from hexapod import gait_library
 from hexapod import keyframes as kf
-from hexapod.gait_keyframes import gait_keyframes
 from hexapod import pose_layers as pl
+from hexapod.gait_keyframes import gait_keyframes
 from hexapod.naming import LEG_LABELS, leg_label
 from hexapod.robot_config import get_sequence_fps, with_dimensions
 from hexapod.robot_link import ROBOT_LINK
@@ -62,11 +63,9 @@ from widgets.dimensions_ui import DIMENSIONS_JSON_ID
 from widgets.pose_ui import (
     EASE_OFF,
     EASE_ON,
+    GAIT_SOURCES,
     MODE_EDIT,
     MODE_PREVIEW,
-    POSE_HUD_CLASS,
-    POSE_HUD_ID,
-    GAIT_SOURCES,
     PICK_BTN_CLASS,
     POSE_ADD_BTN_ID,
     POSE_ADJUST_BODY_ID,
@@ -83,17 +82,19 @@ from widgets.pose_ui import (
     POSE_DURATION_LABEL_ID,
     POSE_EARLIER_BTN_ID,
     POSE_FOOT_FIELD_IDS,
-    POSE_FOOT_TITLE_ID,
-    POSE_JOINT_FIELDS,
-    POSE_JOINT_FIELD_IDS,
     POSE_FOOT_TARGET_ID,
+    POSE_FOOT_TITLE_ID,
     POSE_FRAME_DISPLAY_ID,
     POSE_FRAME_SLIDER_ID,
     POSE_GAIT_ITEM_TYPE,
     POSE_GAIT_LIST_IDS,
     POSE_GAIT_REPLACE_TYPE,
     POSE_GAIT_SOURCE_ID,
+    POSE_HUD_CLASS,
+    POSE_HUD_ID,
     POSE_INTERVAL_ID,
+    POSE_JOINT_FIELD_IDS,
+    POSE_JOINT_FIELDS,
     POSE_KEYFRAMES_STORE_ID,
     POSE_KF_EASE_ID,
     POSE_KF_EDITOR_LABEL_ID,
@@ -104,11 +105,11 @@ from widgets.pose_ui import (
     POSE_LATER_BTN_ID,
     POSE_LOOP_ID,
     POSE_MESSAGE_ID,
+    POSE_PICK_BODY_ID,
+    POSE_PICK_LEG_IDS,
     POSE_PLAY_BTN_ID,
     POSE_PLAY_STATE_STORE_ID,
     POSE_PLAYHEAD_ID,
-    POSE_PICK_BODY_ID,
-    POSE_PICK_LEG_IDS,
     POSE_PREVIEW_MESSAGE_ID,
     POSE_PREVIEW_STORE_ID,
     POSE_RENUMBER_BTN_ID,
@@ -120,8 +121,8 @@ from widgets.pose_ui import (
     POSE_SAVE_BTN_ID,
     POSE_SELECTED_KF_STORE_ID,
     POSE_SELECTION_ID,
-    POSE_STATE_STORE_ID,
     POSE_SPEED_ID,
+    POSE_STATE_STORE_ID,
     POSE_STOP_BTN_ID,
     POSE_UPDATE_BTN_ID,
     POSE_UPLOAD_ID,
@@ -427,9 +428,7 @@ def _keyframe_state(keyframe, robot_config):
         _gait_clicks=Input({"type": POSE_GAIT_ITEM_TYPE, "index": ALL}, "n_clicks"),
         _user_gait_clicks=Input({"type": POSE_USER_GAIT_ITEM_TYPE, "index": ALL}, "n_clicks"),
         _gait_replaces=Input({"type": POSE_GAIT_REPLACE_TYPE, "index": ALL}, "n_clicks"),
-        _user_gait_replaces=Input(
-            {"type": POSE_USER_GAIT_REPLACE_TYPE, "index": ALL}, "n_clicks"
-        ),
+        _user_gait_replaces=Input({"type": POSE_USER_GAIT_REPLACE_TYPE, "index": ALL}, "n_clicks"),
         upload=Input(POSE_UPLOAD_ID, "contents"),
         _config_store=Input(ROBOT_CONFIG_STORE_ID, "data"),
         body_values=[Input(widget_id, "value") for widget_id in BODY_SLIDER_IDS],
@@ -532,7 +531,7 @@ def edit(
 
     state = pose_store["state"]
 
-    def bump(new_state, at=pose_store.get("at")):
+    def bump(new_state, at=pose_store.get("at")):  # noqa: B008
         # The sequence number makes the pose differ from the one before even
         # when the feet do not, so a foot dropped past its leg's reach is
         # still redrawn, and goes to where its leg ends. A pose edited stays

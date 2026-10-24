@@ -17,6 +17,7 @@ from widgets.dimensions_ui import (
     DIMENSIONS_JSON_ID,
 )
 from widgets.robot_link_ui import (
+    LINK_DETAIL_ID,
     ROBOT_CONFIG_STORE_ID,
     ROBOT_CONNECT_BTN_ID,
     ROBOT_INFO_ID,
@@ -24,14 +25,12 @@ from widgets.robot_link_ui import (
     ROBOT_POLL_INTERVAL_ID,
     SECTION_CONTROLS_CLASS,
     SECTION_CONTROLS_OFFLINE_CLASS,
-    LINK_DETAIL_ID,
     STATUS_PILL_ID,
     STREAM_CONTROLS_ID,
     STREAM_MAX_STEP_ID,
     STREAM_SWITCH_ID,
     status_pill_class,
 )
-
 
 # ......................
 # The robot's dimensions
@@ -131,10 +130,7 @@ def link_status_text(status):
         return "Disconnected"
 
     mode = "STREAMING" if status["streaming"] else "IDLE (holding)"
-    return (
-        f"{status['robot_label']} @ {status['ip']} — {mode} — "
-        f"{status['packets_sent']} pkts"
-    )
+    return f"{status['robot_label']} @ {status['ip']} — {mode} — {status['packets_sent']} pkts"
 
 
 @callback(

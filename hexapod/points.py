@@ -1,5 +1,5 @@
 # Points, and the homogeneous (4x4) frames that move them.
-from math import radians, sin, cos
+from math import cos, radians, sin
 
 import numpy as np
 
@@ -24,7 +24,9 @@ class Vector:
         return Vector(p[0], p[1], p[2], name)
 
     def __repr__(self):
-        return f"Vector(x={self.x:>+8.2f}, y={self.y:>+8.2f}, z={self.z:>+8.2f}, name='{self.name}')"
+        return (
+            f"Vector(x={self.x:>+8.2f}, y={self.y:>+8.2f}, z={self.z:>+8.2f}, name='{self.name}')"
+        )
 
 
 # rotate about y, translate in x

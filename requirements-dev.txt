@@ -5,17 +5,9 @@
 # Tests
 pytest>=9.1.1
 
-# Linting and formatting
-flake8>=7.4.1
-pylint>=4.1.3
-isort>=9.0.2
-pycodestyle>=2.15.0
-pyflakes>=4.0.3
-mccabe>=0.7.0
-astroid>=4.3.4
-lazy-object-proxy>=1.13.0
-wrapt>=2.5.1
-toml>=0.10.2
+# Linting and formatting. Pinned so the formatter's output matches CI's;
+# configured in ruff.toml.
+ruff==0.16.9
 
 # WSGI server for a traditional (non-desktop) deployment. Unix only.
 gunicorn>=26.2.0; sys_platform != "win32"
