@@ -28,6 +28,7 @@ from pages.workspace import workspace
 from style_settings import EXTERNAL_STYLESHEETS
 from texts import APP_TITLE
 from window_controls import WindowControls
+from window_state import restore_window
 
 
 # ....................
@@ -205,6 +206,16 @@ def start_server(port=None):
     return f"http://{HOST}:{port}"
 
 
+def list_screens(webview):
+    """The desktop's screens, or none if pywebview cannot tell, which keeps
+    the saved window place as it is."""
+    try:
+        return list(webview.screens)
+    except Exception as error:
+        print(f"could not list the screens: {error}", file=sys.stderr)
+        return []
+
+
 def shutdown_robot_link():
     """Return the robot to LUT control before the process goes away.
 
@@ -269,11 +280,22 @@ def main():
     app.frameless = frameless
     webview.settings["DRAG_REGION_DIRECT_TARGET_ONLY"] = True
 
+    # Where the window was left last time, if it is still on a screen.
+    state, maximized = restore_window(
+        (WINDOW_WIDTH, WINDOW_HEIGHT), WINDOW_MIN_SIZE, list_screens(webview)
+    )
+    x, y, width, height = state.geometry()
+
     window = webview.create_window(
         APP_TITLE,
         url,
-        width=WINDOW_WIDTH,
-        height=WINDOW_HEIGHT,
+        width=width,
+        height=height,
+        x=x,
+        y=y,
+        # A frameless one is maximized once shown (WindowControls.attach),
+        # the way its button does, which keeps the taskbar in view.
+        maximized=maximized and not controls,
         min_size=WINDOW_MIN_SIZE,
         text_select=True,
         frameless=frameless,
@@ -281,7 +303,8 @@ def main():
         js_api=controls,
     )
     if controls:
-        controls.attach(window)
+        controls.attach(window, maximize=maximized)
+    state.attach(window)
     # 'closing' fires while the window and the server thread are both still
     # alive, so the RT_EXIT packet actually makes it out. Returning None lets
     # the close proceed.

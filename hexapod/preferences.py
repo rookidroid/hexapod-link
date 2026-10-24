@@ -145,3 +145,51 @@ def save_workspace(values):
         workspace = load_workspace()
         workspace.update(values)
         return save_preference("workspace", workspace)
+
+
+# The window's size and place on the desktop (window_state.py), in logical
+# pixels: the size it had out of maximized, and whether it was left maximized.
+# None for one never saved, which leaves it to the defaults in hexapod_link.py.
+WINDOW_MIN_PX = 100
+WINDOW_MAX_PX = 20000
+# Screens to the left of or above the primary one have negative coordinates.
+WINDOW_MAX_OFFSET_PX = 50000
+
+
+def _whole_number(value, low, high):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    if not low <= value <= high:
+        return None
+    return int(round(value))
+
+
+def load_window():
+    """The saved window: x, y, width and height, each in pixels or None, and
+    maximized. A place without both its x and its y is no place."""
+    saved = load_preferences().get("window")
+    saved = saved if isinstance(saved, dict) else {}
+    window = {
+        key: _whole_number(saved.get(key), -WINDOW_MAX_OFFSET_PX, WINDOW_MAX_OFFSET_PX)
+        for key in ("x", "y")
+    }
+    if window["x"] is None or window["y"] is None:
+        window["x"] = window["y"] = None
+    for key in ("width", "height"):
+        window[key] = _whole_number(saved.get(key), WINDOW_MIN_PX, WINDOW_MAX_PX)
+    window["maximized"] = saved.get("maximized") is True
+    return window
+
+
+def save_window(x, y, width, height, maximized):
+    """Store the window's size, place and whether it is maximized."""
+    return save_preference(
+        "window",
+        {
+            "x": x,
+            "y": y,
+            "width": width,
+            "height": height,
+            "maximized": maximized is True,
+        },
+    )
