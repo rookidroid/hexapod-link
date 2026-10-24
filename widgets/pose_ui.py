@@ -104,6 +104,9 @@ POSE_CLEAR_FEET_BTN_ID = "pose-clear-feet-btn"
 POSE_RESET_VIEW_BTN_ID = "pose-reset-view-btn"
 
 POSE_DURATION_ID = "pose-duration"
+# Says what the time field is: the move into the keyframe, or, for the first,
+# the move back round to it when looping.
+POSE_DURATION_LABEL_ID = "pose-duration-label"
 POSE_ADD_BTN_ID = "pose-add-btn"
 POSE_UPDATE_BTN_ID = "pose-update-btn"
 POSE_DELETE_BTN_ID = "pose-delete-btn"
@@ -112,6 +115,10 @@ POSE_LATER_BTN_ID = "pose-later-btn"
 POSE_KF_LIST_ID = "pose-keyframe-list"
 POSE_KF_SUMMARY_ID = "pose-keyframe-summary"
 POSE_KF_EDITOR_LABEL_ID = "pose-keyframe-editor-label"
+# Where the keyframe selected is in the sequence, beside its number.
+POSE_KF_POSITION_ID = "pose-keyframe-position"
+# Numbers the keyframes 1, 2, 3... in their order again (hexapod/keyframes.py).
+POSE_RENUMBER_BTN_ID = "pose-renumber-btn"
 # Pattern-matching id of one entry in the keyframe list.
 POSE_KF_ITEM_TYPE = "pose-keyframe-item"
 
@@ -125,7 +132,10 @@ POSE_VIEW_MODE_ID = "pose-view-mode"
 # That frame becomes the pose (edit() in pages/pose.py).
 POSE_PLAYHEAD_ID = "pose-playhead"
 POSE_LOOP_ID = "pose-loop"
+# Whether the move into the keyframe eases in and out, or runs steadily.
 POSE_KF_EASE_ID = "pose-keyframe-ease"
+EASE_ON = "ease"
+EASE_OFF = "linear"
 POSE_PLAY_BTN_ID = "pose-play-btn"
 POSE_FRAME_SLIDER_ID = "pose-frame-slider"
 POSE_FRAME_DISPLAY_ID = "pose-frame-display"
@@ -431,6 +441,13 @@ sequence_tools = [
     html.Div(id=POSE_KF_SUMMARY_ID, className="dock-note"),
     html.Div(
         [
+            _button(
+                "Renumber",
+                POSE_RENUMBER_BTN_ID,
+                outline=True,
+                disabled=True,
+                title="Number the keyframes 1, 2, 3… in their order",
+            ),
             dcc.Upload(
                 _button("Load…", outline=True, title="Load keyframes from a file"),
                 id=POSE_UPLOAD_ID,
@@ -582,27 +599,36 @@ library_section = _section(
 
 # ---- The sequence ----
 
+def ease_icon(eased):
+    """A little graph of a move: an S for one that eases in and out, a
+    straight line for one that runs steadily (drawn in assets/industrial.css)."""
+    return html.Span(className=f"ind-ease-icon {'is-eased' if eased else 'is-linear'}")
+
+
+ease_toggle = dbc.RadioItems(
+    id=POSE_KF_EASE_ID,
+    options=[
+        {"label": [ease_icon(True), "Ease"], "value": EASE_ON},
+        {"label": [ease_icon(False), "Linear"], "value": EASE_OFF},
+    ],
+    value=EASE_ON,
+    className="dock-seg",
+    inputClassName="btn-check",
+    labelClassName="dock-seg-item",
+    labelCheckedClassName="active",
+)
+
 keyframes_part = html.Div(
     [
-        # The keyframes in order, each with when it is reached and, on the
-        # arrow into it, how long it takes to get there (list_keyframes in
-        # pages/pose.py).
-        html.Div(
-            [
-                html.Div(id=POSE_KF_LIST_ID, className="ind-kf-strip"),
-                _button(
-                    "+ Add pose",
-                    POSE_ADD_BTN_ID,
-                    color="primary",
-                    class_name="dock-add-btn",
-                    title="Record the pose as a keyframe",
-                ),
-            ],
-            className="dock-track",
-        ),
+        # The keyframes in order, each with the arrow into it: how long the
+        # move there takes and whether it eases (list_keyframes in
+        # pages/pose.py). The first one's is the move back round to it, used
+        # when looping. They wrap onto as many rows as the dock is tall, and
+        # scroll down when there are more.
+        html.Div(id=POSE_KF_LIST_ID, className="ind-kf-strip"),
         # The keyframe selected; with none, the time and easing are the next
-        # one's. Two rows: what it is and how it is reached, then what can be
-        # done to it.
+        # one's. One bar: what it is and how it is reached, then what can be
+        # done to it, then adding the pose after it.
         html.Div(
             [
                 html.Div(
@@ -610,47 +636,44 @@ keyframes_part = html.Div(
                         html.Span(
                             "New keyframe", id=POSE_KF_EDITOR_LABEL_ID, className="dock-kf-label"
                         ),
-                        html.Div(
+                        html.Span(id=POSE_KF_POSITION_ID, className="dock-note"),
+                    ],
+                    className="dock-kf-title",
+                ),
+                html.Div(
+                    [
+                        field_label("Transition", id=POSE_DURATION_LABEL_ID),
+                        dbc.InputGroup(
                             [
-                                field_label("Transition"),
-                                dbc.InputGroup(
-                                    [
-                                        # Applied when the field is left or Enter is
-                                        # pressed, not per digit. No min, max or step,
-                                        # for the same reason as the speed's: the
-                                        # range is kept by edit() in pages/pose.py.
-                                        dbc.Input(
-                                            id=POSE_DURATION_ID,
-                                            type="number",
-                                            value=DEFAULT_DURATION_MS,
-                                            debounce=True,
-                                        ),
-                                        dbc.InputGroupText("ms"),
-                                    ],
-                                    size="sm",
-                                    className="ind-duration-input",
+                                # Applied when the field is left or Enter is
+                                # pressed, not per digit. No min, max or step,
+                                # for the same reason as the speed's: the
+                                # range is kept by edit() in pages/pose.py.
+                                dbc.Input(
+                                    id=POSE_DURATION_ID,
+                                    type="number",
+                                    value=DEFAULT_DURATION_MS,
+                                    debounce=True,
                                 ),
+                                dbc.InputGroupText("ms"),
                             ],
-                            className="dock-inline-field",
-                            title=(
-                                "Time to reach this keyframe from the one before it, "
-                                f"{MIN_DURATION_MS} to {MAX_DURATION_MS} ms"
-                            ),
-                        ),
-                        html.Div(
-                            dcc.Checklist(
-                                id=POSE_KF_EASE_ID,
-                                options=[{"label": "Ease in", "value": "ease"}],
-                                value=["ease"],
-                                className="dock-check",
-                            ),
-                            title=(
-                                "Start and stop the move into this keyframe gently. Off, "
-                                "it runs at a steady speed, as a gait's moves do."
-                            ),
+                            size="sm",
+                            className="ind-duration-input",
                         ),
                     ],
-                    className="dock-kf-row",
+                    className="dock-inline-field",
+                    title=(
+                        "Time to reach this keyframe from the one before it, "
+                        f"{MIN_DURATION_MS} to {MAX_DURATION_MS} ms. The first "
+                        "keyframe's is the move back round to it, used when looping."
+                    ),
+                ),
+                html.Div(
+                    ease_toggle,
+                    title=(
+                        "Ease: start and stop the move into this keyframe gently. "
+                        "Linear: run it at a steady speed, as a gait's moves do."
+                    ),
                 ),
                 html.Div(
                     [
@@ -668,14 +691,14 @@ keyframes_part = html.Div(
                                     POSE_EARLIER_BTN_ID,
                                     outline=True,
                                     disabled=True,
-                                    title="Move earlier",
+                                    title="Move earlier in the sequence; it keeps its number",
                                 ),
                                 _button(
                                     "▶",
                                     POSE_LATER_BTN_ID,
                                     outline=True,
                                     disabled=True,
-                                    title="Move later",
+                                    title="Move later in the sequence; it keeps its number",
                                 ),
                             ],
                             className="btn-group",
@@ -687,10 +710,16 @@ keyframes_part = html.Div(
                             outline=True,
                             disabled=True,
                             title="Delete the selected keyframe",
-                            class_name="dock-push",
                         ),
                     ],
-                    className="dock-kf-row",
+                    className="dock-group",
+                ),
+                _button(
+                    "+ Add pose",
+                    POSE_ADD_BTN_ID,
+                    color="primary",
+                    class_name="dock-add-btn dock-push",
+                    title="Record the pose as a keyframe",
                 ),
             ],
             className="dock-kf-editor",

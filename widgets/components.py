@@ -7,8 +7,8 @@ from dash import dcc, html
 from hexapod.naming import leg_label
 
 
-def field_label(text):
-    return html.Label(text, className="ind-field-label")
+def field_label(text, **props):
+    return html.Label(text, className="ind-field-label", **props)
 
 
 def group_header(text):

@@ -29,7 +29,10 @@ a [pywebview](https://pywebview.flowrl.com/) window. No browser chrome, no
 dev-server warnings, and it works offline. The window is frameless: the app's
 top bar, laid see-through over the 3D view, is its title bar, with its own
 minimize, maximize and close buttons ([`window_controls.py`](../window_controls.py)
-and [`assets/window_frame.js`](../assets/window_frame.js)).
+and [`assets/window_frame.js`](../assets/window_frame.js)). On Windows,
+dragging the bar is handed to Windows itself, so the window snaps to the
+screen's edges and corners like any other, and dragging a maximized window
+restores it.
 
 To serve it for a browser instead, which needs only `requirements.txt`:
 

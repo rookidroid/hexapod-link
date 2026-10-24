@@ -180,13 +180,17 @@ another, each with the time it takes to get there.
    to the sequence. Press **+** again for another cycle; they join up
    seamlessly. **⇄** replaces the whole sequence with that gait instead.
 2. **Add your own poses.** Pose the robot, then press **+ Add pose**.
-3. **Edit a keyframe.** Click it in the row. The bar underneath sets its
-   **Transition** (how long the move into it takes) and **Ease in** (start and
-   stop gently, rather than at a steady speed). **Save pose** overwrites it
-   with the pose on screen, **◀ ▶** move it earlier or later, and **Delete**
-   removes it.
+3. **Edit a keyframe.** Click it, or the arrow into it, in the row. The bar
+   underneath sets its **Transition** (how long the move into it takes) and
+   whether it moves with **Ease** (starts and stops gently) or **Linear**
+   (a steady speed); each arrow shows its time and a little curve for which.
+   **Save pose** overwrites it with the pose on screen, **◀ ▶** move it
+   earlier or later, and **Delete** removes it. Keyframes keep their number
+   wherever they move; **Renumber** numbers them 1, 2, 3… in order again.
 4. **Watch it.** Press **Play**, or drag the slider beside it. **Speed** plays
-   it all slower or faster, and **Loop** repeats it.
+   it all slower or faster, and **Loop** repeats it. Looping, the move from
+   the last keyframe back round to the first takes the first one's time: the
+   **↺** arrow in front of it, which is dimmed while Loop is off.
 5. **Run it on the robot** with **Run on robot**. **Standby** stops it and
    stands the robot up.
 

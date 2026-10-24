@@ -12,6 +12,7 @@ import json
 import numpy as np
 import pytest
 
+from hexapod import keyframes as kf
 from hexapod.keyframes import (
     LIMIT_MARGIN_DEG,
     MAX_DURATION_MS,
@@ -332,7 +333,56 @@ def test_file_round_trip():
     robot = ROBOT_CONFIGS["mochi"]
     start = standby_feet(robot)
     keyframes = [make_keyframe(start, 400), make_keyframe(lifted(start, 2, 25), 700)]
-    assert load(dump(keyframes, robot), robot) == keyframes
+    # A file without numbers is numbered in order.
+    assert load(dump(keyframes, robot), robot) == kf.numbered(keyframes)
+
+
+def test_numbers_survive_a_file_round_trip():
+    robot = ROBOT_CONFIGS["mochi"]
+    start = standby_feet(robot)
+    keyframes = [make_keyframe(start, 400, number=7), make_keyframe(start, 700, number=2)]
+    assert [kf.number_of(frame) for frame in load(dump(keyframes, robot), robot)] == [7, 2]
+
+
+def test_a_bad_number_is_refused():
+    robot = ROBOT_CONFIGS["mochi"]
+    document = json.loads(dump([make_keyframe(standby_feet(robot))], robot))
+    document["keyframes"][0]["number"] = 0
+    with pytest.raises(KeyframeFileError, match="number"):
+        load(json.dumps(document), robot)
+
+
+def test_numbered_keeps_numbers_and_gives_new_ones_after_the_highest():
+    feet = standby_feet(ROBOT_CONFIGS["mochi"])
+    frames = [
+        make_keyframe(feet, number=3),
+        make_keyframe(feet),
+        make_keyframe(feet, number=1),
+        make_keyframe(feet, number=3),
+    ]
+    assert [kf.number_of(frame) for frame in kf.numbered(frames)] == [3, 4, 1, 5]
+
+
+def test_numbers_do_not_change_when_keyframes_move():
+    feet = standby_feet(ROBOT_CONFIGS["mochi"])
+    frames = kf.numbered([make_keyframe(feet) for _ in range(3)])
+    frames[0], frames[1] = frames[1], frames[0]
+    del frames[2]
+    assert [kf.label(frame) for frame in kf.numbered(frames)] == ["#2", "#1"]
+    assert [kf.label(frame) for frame in kf.renumbered(frames)] == ["#1", "#2"]
+
+
+def test_unnumbered_drops_the_numbers():
+    feet = standby_feet(ROBOT_CONFIGS["mochi"])
+    assert kf.unnumbered([make_keyframe(feet, number=4)]) == [make_keyframe(feet)]
+
+
+def test_keyframe_edits_keep_its_number():
+    feet = standby_feet(ROBOT_CONFIGS["mochi"])
+    frame = make_keyframe(feet, 300, number=5)
+    assert kf.number_of(kf.with_ease(frame, False)) == 5
+    assert not kf.eases(kf.with_ease(frame, False))
+    assert kf.number_of(kf.remade(frame, feet, None)) == 5
 
 
 def test_file_for_another_robot_is_refused():

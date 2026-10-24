@@ -18,6 +18,12 @@
 # (hexapod/gait_keyframes.py) do not: each is one point on a path the feet
 # keep moving along, and easing into it would stop them there.
 #
+# Each keyframe in a sequence carries a number, as "number", given when it is
+# made and kept from then on: moving a keyframe earlier or later, or deleting
+# another, does not renumber the rest, so "#3" stays the keyframe it named.
+# numbered() gives one to each keyframe that has none; renumbered() numbers
+# them afresh, in their order.
+#
 # Nothing here settles the body onto the ground: the body is held still and the
 # feet move around it. That is how the robot sees it too -- it has no idea where
 # the floor is, it only places its feet -- and in the editor it keeps a dragged
@@ -317,7 +323,11 @@ def clamp_duration(duration_ms):
     return min(max(duration, MIN_DURATION_MS), MAX_DURATION_MS)
 
 
-def make_keyframe(feet, duration_ms=DEFAULT_DURATION_MS, state=None, ease=True):
+def _is_number(number):
+    return isinstance(number, int) and not isinstance(number, bool) and number >= 1
+
+
+def make_keyframe(feet, duration_ms=DEFAULT_DURATION_MS, state=None, ease=True, number=None):
     keyframe = {
         "feet": clean_feet(feet),
         "duration_ms": clamp_duration(duration_ms),
@@ -326,6 +336,8 @@ def make_keyframe(feet, duration_ms=DEFAULT_DURATION_MS, state=None, ease=True):
         keyframe["state"] = state
     if ease is False:
         keyframe["ease"] = False
+    if _is_number(number):
+        keyframe["number"] = number
     return keyframe
 
 
@@ -334,9 +346,69 @@ def eases(keyframe):
     return keyframe.get("ease", True) is not False
 
 
+def number_of(keyframe):
+    """The keyframe's number, or None for one not numbered yet."""
+    number = keyframe.get("number")
+    return number if _is_number(number) else None
+
+
 def remade(keyframe, feet, state):
-    """`keyframe` with a new pose, keeping its time and easing."""
-    return make_keyframe(feet, keyframe["duration_ms"], state, ease=eases(keyframe))
+    """`keyframe` with a new pose, keeping its time, easing and number."""
+    return make_keyframe(
+        feet, keyframe["duration_ms"], state, ease=eases(keyframe), number=number_of(keyframe)
+    )
+
+
+def with_ease(keyframe, ease):
+    """`keyframe` easing into it, or not, and otherwise as it was."""
+    return make_keyframe(
+        keyframe["feet"],
+        keyframe["duration_ms"],
+        keyframe.get("state"),
+        ease=ease,
+        number=number_of(keyframe),
+    )
+
+
+def unnumbered(keyframes):
+    """The keyframes without their numbers: how keyframes taken from elsewhere
+    (a gait) go into a sequence, to be numbered after the ones already there."""
+    return [{key: value for key, value in frame.items() if key != "number"} for frame in keyframes]
+
+
+def numbered(keyframes):
+    """The keyframes, each with a number of its own. Those that have one keep
+    it; the rest -- and any that repeat one already taken -- get the next
+    numbers after the highest, in order."""
+    taken, out = set(), []
+    for frame in keyframes:
+        number = number_of(frame)
+        if number is not None and number not in taken:
+            taken.add(number)
+    next_number = max(taken, default=0) + 1
+    seen = set()
+    for frame in keyframes:
+        number = number_of(frame)
+        if number is None or number in seen:
+            number = next_number
+            next_number += 1
+            frame = {**frame, "number": number}
+        seen.add(number)
+        out.append(frame)
+    return out
+
+
+def renumbered(keyframes):
+    """The keyframes numbered 1, 2, 3... in their order."""
+    return [{**frame, "number": index + 1} for index, frame in enumerate(keyframes)]
+
+
+def label(keyframe, fallback_index=None):
+    """How a keyframe is named in the editor: "#" and its number."""
+    number = number_of(keyframe)
+    if number is None and fallback_index is not None:
+        number = fallback_index + 1
+    return f"#{number}"
 
 
 def _ease(t):
@@ -509,10 +581,17 @@ def load(text, robot_config):
             ease = entry.get("ease", True)
             if not isinstance(ease, bool):
                 raise ValueError("ease must be true or false")
+            # A file saved before keyframes kept their numbers has none: they
+            # are numbered in order.
+            number = entry.get("number")
+            if number is not None and not _is_number(number):
+                raise ValueError("number must be a whole number from 1")
             keyframes.append(
-                make_keyframe(feet.tolist(), entry["duration_ms"], entry.get("state"), ease)
+                make_keyframe(
+                    feet.tolist(), entry["duration_ms"], entry.get("state"), ease, number
+                )
             )
         except (KeyError, TypeError, ValueError) as error:
             raise KeyframeFileError(f"Keyframe {index + 1} is malformed: {error}") from error
 
-    return keyframes
+    return numbered(keyframes)
