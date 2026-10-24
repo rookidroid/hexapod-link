@@ -41,12 +41,21 @@ class WindowControls:
         self._min_width, self._min_height = min_size
         self._resize_from = None
 
-    def attach(self, window):
+    def attach(self, window, maximize=False):
+        """Follow `window`; `maximize` maximizes it once it is shown, as it
+        was left last time, the way the maximize button does."""
         self._window = window
         window.events.maximized += self._on_maximized
         window.events.restored += self._on_restored
-        if sys.platform == "win32":
-            window.events.shown += lambda: make_snappable(window)
+
+        def on_shown():
+            # Snapping first: it is what fits a maximized window to the screen.
+            if sys.platform == "win32":
+                make_snappable(window)
+            if maximize:
+                self.toggle_maximize()
+
+        window.events.shown += on_shown
 
     def _on_maximized(self):
         self._maximized = True

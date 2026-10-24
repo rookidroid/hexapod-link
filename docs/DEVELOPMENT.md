@@ -32,7 +32,9 @@ minimize, maximize and close buttons ([`window_controls.py`](../window_controls.
 and [`assets/window_frame.js`](../assets/window_frame.js)). On Windows,
 dragging the bar is handed to Windows itself, so the window snaps to the
 screen's edges and corners like any other, and dragging a maximized window
-restores it.
+restores it. The window reopens at the size and place it was closed at, and
+maximized if it was left so ([`window_state.py`](../window_state.py)); a
+place on a screen since unplugged is dropped, and the window opens centred.
 
 To serve it for a browser instead, which needs only `requirements.txt`:
 

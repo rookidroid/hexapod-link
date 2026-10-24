@@ -215,6 +215,21 @@ body {
     overflow: hidden;
 }
 
+/* Dash's "Loading..." placeholder, shown until the layout first renders:
+   centred in the window rather than left in the top-left corner. */
+._dash-loading {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--ind-text-muted);
+}
+
 /* Dash's own components (sliders, checklists) read their colours from these. */
 .app-shell {
     --Dash-Fill-Interactive-Strong: var(--ind-accent);
