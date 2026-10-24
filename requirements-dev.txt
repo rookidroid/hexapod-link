@@ -7,7 +7,7 @@ pytest>=9.1.1
 
 # Linting and formatting. Pinned so the formatter's output matches CI's;
 # configured in ruff.toml.
-ruff==0.16.9
+ruff==0.17.1
 
 # WSGI server for a traditional (non-desktop) deployment. Unix only.
 gunicorn>=26.2.0; sys_platform != "win32"
