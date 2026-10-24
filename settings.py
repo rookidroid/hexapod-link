@@ -76,8 +76,8 @@ ROBOT_SEQUENCE_MAX_STEP = 40
 # ***************************
 
 # UI choices that outlive a session (the colour theme, the workspace's sizes,
-# which of the view's overlays are open, the window's place on screen, and the
-# sequence and controls as they were left). Kept on
+# which of the view's overlays are open, and the sequence and controls as they
+# were left). Kept on
 # disk rather than in the browser: the desktop window runs in pywebview's
 # private mode and on a fresh port each launch, so browser storage would not
 # survive a restart. The environment variable overrides it (the tests use this).
