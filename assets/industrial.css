@@ -2449,15 +2449,11 @@ body {
 /* ===========================================
    CORNERS
    The top-right and bottom-left corners of the plates -- buttons, panels,
-   fields, keyframe cards -- are filled in at 45 degrees, in the colour of
-   the plate's outline, over it.
-
-   A border is painted over the background, so it would run across the
-   corners. So the plates' borders keep their width but are made
-   transparent, and the outline is drawn under the corners instead, as four
-   lines of the background: --line, --line-w wide. Both are kept in step
-   with the plate's hover, focus and disabled states below. The plates set
-   background-color, never the background shorthand, which would wipe them.
+   fields, keyframe cards -- are filled in at 45 degrees with --corner, in
+   the plate's border colour, kept in step with its hover, focus and
+   disabled states. Each is a gradient across the corner's square, solid up
+   to the diagonal. Laid as background images, so the plates set
+   background-color, never the background shorthand.
    =========================================== */
 
 .btn,
@@ -2467,12 +2463,6 @@ body {
 .form-control,
 .input-group-text,
 .dash-range-slider-input {
-    --line: transparent;
-    --line-w: 1px;
-    --corner: var(--line);
-    --corner-tr: var(--chamfer);
-    --corner-bl: var(--chamfer);
-    border-color: transparent !important;
     background-image:
         linear-gradient(
             to bottom left,
@@ -2483,116 +2473,92 @@ body {
             to top right,
             var(--corner, transparent) 50%,
             transparent calc(50% + 0.75px)
-        ),
-        linear-gradient(var(--line), var(--line)),
-        linear-gradient(var(--line), var(--line)),
-        linear-gradient(var(--line), var(--line)),
-        linear-gradient(var(--line), var(--line));
-    background-size:
-        var(--corner-tr) var(--corner-tr),
-        var(--corner-bl) var(--corner-bl),
-        100% var(--line-w),
-        100% var(--line-w),
-        var(--line-w) 100%,
-        var(--line-w) 100%;
-    background-position: top right, bottom left, top, bottom, left, right;
+        );
+    background-size: var(--chamfer) var(--chamfer);
+    background-position: top right, bottom left;
     background-repeat: no-repeat;
     background-origin: border-box;
-    /* Bootstrap's fields stop their background inside the border. */
-    background-clip: border-box;
 }
 
-/* ---- Buttons ----
-   The outline as Bootstrap has it in each state. */
-
 .btn {
-    --line: var(--bs-btn-border-color);
-    --line-w: var(--bs-btn-border-width);
+    --corner: var(--bs-btn-border-color);
 }
 
 .btn:hover {
-    --line: var(--bs-btn-hover-border-color);
+    --corner: var(--bs-btn-hover-border-color);
 }
 
 .btn:active,
 .btn.active,
 .btn.show,
 .btn-check:checked + .btn {
-    --line: var(--bs-btn-active-border-color);
+    --corner: var(--bs-btn-active-border-color);
 }
 
 .btn:disabled,
 .btn.disabled {
-    --line: var(--bs-btn-disabled-border-color);
+    --corner: var(--bs-btn-disabled-border-color);
 }
 
-/* ---- The status pill, the panels and the keyframe cards ---- */
-
 .status-pill {
-    --line: var(--ind-frame);
-    --line-w: 2px;
+    --corner: var(--ind-frame);
 }
 
 .status-pill.is-fault {
-    --line: var(--ind-red);
+    --corner: var(--ind-red);
 }
 
 .hud-panel {
-    --line: var(--hud-border);
+    --corner: var(--hud-border);
 }
 
 .ind-kf-card {
-    --line: var(--ind-frame);
+    --corner: var(--ind-frame);
 }
 
 .ind-kf-item:hover .ind-kf-card {
-    --line: var(--ind-accent);
+    --corner: var(--ind-accent);
 }
 
 .ind-kf-item.active .ind-kf-card {
-    --line: var(--ind-accent);
+    --corner: var(--ind-accent);
 }
 
 .ind-kf-item[data-playing="at"] .ind-kf-card {
-    --line: var(--ind-accent-alt);
-    --line-w: 2px;
+    --corner: var(--ind-accent-alt);
 }
 
-/* ---- Fields ----
-   Plates too, with smaller corners, outlined in blue while typed in. A
-   field with its unit after it is one plate: the field has the bottom-left
-   corner, the unit the top-right. */
-
+/* Fields are plates too, with smaller corners. A field with its unit after
+   it is one plate: the field has the bottom-left corner, the unit the
+   top-right. */
 .form-control,
 .input-group-text,
 .dash-range-slider-input {
     --chamfer: 6px;
-    --line: var(--ind-border-strong);
+    --corner: var(--ind-border-strong);
 }
 
-.form-control:focus,
-.dash-range-slider-input:focus {
-    --line: var(--ind-accent);
+.form-control:focus {
+    --corner: var(--ind-accent);
 }
 
 .hud-panel .form-control,
 .hud-panel .input-group-text,
 .hud-panel .dash-range-slider-input {
-    --line: var(--hud-border);
-    border-color: transparent !important;
+    --corner: var(--hud-border);
 }
 
 .hud-panel .form-control:focus,
 .hud-panel .dash-range-slider-input:focus {
-    --line: rgba(var(--hud-cyan-rgb), 0.75);
+    --corner: rgba(var(--hud-cyan-rgb), 0.75);
 }
 
 .input-group > .form-control:not(:last-child) {
-    --corner-tr: 0px;
+    background-size: 0 0, var(--chamfer) var(--chamfer);
 }
 
 .input-group > .input-group-text:last-child {
-    --corner-bl: 0px;
+    background-size: var(--chamfer) var(--chamfer), 0 0;
 }
 
 /* The units in a field's own small type, as a stamped label on the plate. */
