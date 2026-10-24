@@ -73,8 +73,14 @@ class WindowControls:
         if self._maximized:
             self._window.restore()
         else:
-            keep_taskbar_visible(self._window)
-            self._window.maximize()
+            self.maximize()
+
+    def maximize(self):
+        """Maximize, keeping the taskbar in view. Also how a window closed
+        maximized opens again (hexapod_link.py), rather than create_window's
+        maximized=True, which would cover the taskbar on Windows."""
+        keep_taskbar_visible(self._window)
+        self._window.maximize()
 
     def is_maximized(self):
         return self._maximized

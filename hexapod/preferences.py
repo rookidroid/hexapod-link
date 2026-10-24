@@ -110,3 +110,46 @@ def save_panels(states):
         if key in states:
             panels[key] = states[key] is True
     return save_preference("panels", panels)
+
+
+# The desktop window's place on screen as it was closed (window_state.py):
+# its position and size when not maximized, in the logical pixels pywebview
+# uses, and whether it was maximized. None for one not known, which leaves it
+# to the defaults (centered, at the default size).
+WINDOW_KEYS = ("x", "y", "width", "height")
+# Only junk is refused here; whether a position is on a screen that is still
+# there is checked as the window is made (hexapod_link.py).
+WINDOW_MIN_PX = 200
+WINDOW_MAX_PX = 20000
+
+
+def _window_value(key, value):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    if key in ("width", "height"):
+        if not WINDOW_MIN_PX <= value <= WINDOW_MAX_PX:
+            return None
+    elif not -WINDOW_MAX_PX <= value <= WINDOW_MAX_PX:
+        return None
+    return int(round(value))
+
+
+def load_window():
+    """Each of WINDOW_KEYS, in pixels or None, and "maximized"."""
+    saved = load_preferences().get("window")
+    saved = saved if isinstance(saved, dict) else {}
+    window = {key: _window_value(key, saved.get(key)) for key in WINDOW_KEYS}
+    window["maximized"] = saved.get("maximized") is True
+    return window
+
+
+def save_window(state):
+    """Store the window's state, keeping a saved value not given; one that is
+    not usable clears it."""
+    window = load_window()
+    for key in WINDOW_KEYS:
+        if key in state:
+            window[key] = _window_value(key, state[key])
+    if "maximized" in state:
+        window["maximized"] = state["maximized"] is True
+    return save_preference("window", window)

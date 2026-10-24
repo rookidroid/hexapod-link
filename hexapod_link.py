@@ -27,6 +27,7 @@ from pages.workspace import workspace
 from style_settings import EXTERNAL_STYLESHEETS
 from texts import APP_TITLE
 from window_controls import WindowControls
+from window_state import WindowState, restored_window
 
 
 # ....................
@@ -263,11 +264,16 @@ def main():
     app.frameless = frameless
     webview.settings["DRAG_REGION_DIRECT_TARGET_ONLY"] = True
 
+    # Where and how big the window was when it was last closed.
+    saved, placement = restored_window((WINDOW_WIDTH, WINDOW_HEIGHT))
+    window_state = WindowState(saved)
+    # The frameless window maximizes through its own controls, once shown.
+    maximize_when_shown = frameless and placement.pop("maximized")
+
     window = webview.create_window(
         APP_TITLE,
         url,
-        width=WINDOW_WIDTH,
-        height=WINDOW_HEIGHT,
+        **placement,
         min_size=WINDOW_MIN_SIZE,
         text_select=True,
         frameless=frameless,
@@ -276,6 +282,9 @@ def main():
     )
     if controls:
         controls.attach(window)
+        if maximize_when_shown:
+            window.events.shown += controls.maximize
+    window_state.attach(window)
     # 'closing' fires while the window and the server thread are both still
     # alive, so the RT_EXIT packet actually makes it out. Returning None lets
     # the close proceed.
