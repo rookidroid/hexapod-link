@@ -1415,9 +1415,6 @@ def stop_on_robot(_n_clicks):
     return "Robot returning to standby."
 
 
-OFFLINE_MESSAGE = "Connect a robot to run this on the hardware."
-
-
 @callback(
     output=dict(
         controls_class=Output(POSE_ROBOT_CONTROLS_ID, "className"),
@@ -1450,11 +1447,10 @@ def sync_robot_controls(_n_intervals, message, speed, speed_min, speed_max):
     limits = ROBOT_LINK.robot_config["speed"]
     link_speed = ROBOT_LINK.speed_pct
 
+    # What came of the last run or stop no longer holds once the robot is
+    # gone; that there is none is said by the greyed-out buttons' title.
     offline = not ROBOT_LINK.connected
-    if offline:
-        new_message = no_update if message == OFFLINE_MESSAGE else OFFLINE_MESSAGE
-    else:
-        new_message = "" if message == OFFLINE_MESSAGE else no_update
+    new_message = "" if offline and message else no_update
     controls_class = SECTION_CONTROLS_OFFLINE_CLASS if offline else SECTION_CONTROLS_CLASS
     return dict(
         controls_class=f"d-flex gap-2 {controls_class}",

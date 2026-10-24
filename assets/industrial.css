@@ -159,14 +159,16 @@
     --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
 
     --topbar-h: 52px;
+    /* How far down the view the top bar reaches, where it lies over the view
+       (TOP BAR below); the view's top overlays start under it. */
+    --view-top: 0px;
     /* The red block that starts the top bar's trim. */
     --trim-w: 68px;
-    /* The dock's height and the widths of its side columns (a percentage
+    /* The dock's height and the width of its Gaits library (a percentage
        there is of the dock); dragging the workspace's splitters sets them on
        <html> instead (assets/workspace_resize.js). */
     --dock-h: 15rem;
     --lib-w: clamp(14rem, 18%, 18rem);
-    --run-w: clamp(22rem, 28%, 28rem);
     /* How much of the workspace's height the view always keeps, however tall
        the dock is set: a window made shorter shortens it, and it comes back
        with the window. */
@@ -241,8 +243,8 @@ body {
 
 /* ===========================================
    TOP BAR
-   Brand on the left; the connection, the status pill and the theme toggle
-   on the right.
+   Brand on the left; the link's status pill, which opens to connect, and the
+   theme toggle on the right.
    =========================================== */
 
 .topbar {
@@ -300,24 +302,96 @@ body {
     border: 1px solid var(--ind-border-strong);
 }
 
-.topbar-connection {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
+/* ---- Link menu ----
+   The status pill, whose LED takes the state's colour: grey offline, green
+   online, pulsing yellow while streaming, red on a fault. It is the button of
+   a dropdown, under it at the right, with the robot's address, Connect and
+   the link's detail. */
+
+.link-menu {
+    position: relative;
     margin-left: auto;
 }
 
-.topbar-connection .topbar-ip {
-    width: 9.5rem;
+.link-menu > summary {
+    list-style: none;
+    cursor: pointer;
 }
 
-.topbar-connection .btn {
+.link-menu > summary::-webkit-details-marker {
+    display: none;
+}
+
+/* A caret after the label, turned up while open. */
+.link-menu > summary::after {
+    content: '';
+    flex: 0 0 auto;
+    width: 6px;
+    height: 6px;
+    margin: -3px 0 0 0.1rem;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: rotate(45deg);
+    opacity: 0.7;
+    transition: transform 0.15s ease;
+}
+
+.link-menu[open] > summary::after {
+    margin-top: 3px;
+    transform: rotate(-135deg);
+}
+
+.link-menu > summary:hover,
+.link-menu[open] > summary {
+    border-color: var(--ind-accent);
+}
+
+.link-menu > summary:focus-visible {
+    outline: none;
+    box-shadow: var(--ind-glow-inset);
+}
+
+.link-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 10;
+    width: 19rem;
+    padding: 0.6rem 0.75rem 0.7rem;
+    cursor: default;
+}
+
+.link-panel .ind-field-label {
+    margin-bottom: 0.3rem;
+}
+
+.link-row {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.link-row .link-ip {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.link-row .btn {
     min-width: 6.5rem;
 }
 
-/* ---- Status pill ----
-   The LED takes the state's colour: grey offline, green online, pulsing
-   yellow while streaming, red on a fault. */
+/* The pill's tooltip, kept in view: the address, mode and packet count, and
+   the firmware, a line each. */
+.link-detail {
+    margin-top: 0.55rem;
+    padding-top: 0.45rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    line-height: 1.4;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+    color: var(--hud-muted);
+    border-top: 1px dashed var(--hud-border);
+}
 
 .status-pill {
     display: inline-flex;
@@ -381,6 +455,199 @@ body {
 .icon-btn:hover {
     background: var(--ind-hover);
 }
+
+/* ---- Over the view ----
+   Above `lg` the top bar is laid over the top of the 3D view rather than
+   above it, and is see-through, with only a faint shade so its text reads:
+   the view, and the robot in it, run up to the window's top edge. Being on
+   the dark monitor, it takes the HUD's colours in either theme. In the
+   desktop app it is the window's title bar too (WINDOW below). */
+
+@media (min-width: 992px) {
+    :root {
+        --view-top: var(--topbar-h);
+    }
+
+    .app-shell {
+        position: relative;
+    }
+
+    .topbar {
+        color-scheme: dark;
+        --ind-surface-alt: var(--hud-bg);
+        --ind-border: var(--hud-border);
+        --ind-border-strong: rgba(var(--hud-cyan-rgb), 0.45);
+        --ind-frame: rgba(var(--hud-cyan-rgb), 0.45);
+        --ind-accent: #3d7cf0;
+        --ind-accent-hover: #2f68d6;
+        --ind-accent-active: #2455b4;
+        --ind-accent-rgb: 61, 124, 240;
+        --ind-accent-alt: #ffd23f;
+        --ind-red: #ff4d4d;
+        --ind-ok: #22c55e;
+        --ind-outline: #02060f;
+        --ind-text: var(--hud-text);
+        --ind-text-muted: var(--hud-muted);
+        --ind-hover: rgba(var(--hud-cyan-rgb), 0.14);
+        --ind-input-bg: rgba(8, 16, 34, 0.6);
+        --ind-glow: 0 0 0 1px rgba(var(--hud-cyan-rgb), 0.45), 0 0 14px rgba(var(--hud-cyan-rgb), 0.25);
+        --ind-glow-inset: inset 0 0 0 2px rgba(var(--hud-cyan-rgb), 0.7);
+
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: var(--topbar-h);
+        color: var(--ind-text);
+        background: linear-gradient(to bottom, rgba(6, 12, 24, 0.62), rgba(6, 12, 24, 0));
+        box-shadow: none;
+        user-select: none;
+    }
+
+    .topbar-title {
+        text-shadow: 0 0 12px rgba(var(--hud-cyan-rgb), 0.35);
+    }
+
+    /* The trim stays as a decal under the brand: red, then the yellow vents,
+       without the blue run across the view. */
+    .topbar::after {
+        right: auto;
+        width: calc(var(--trim-w) + 82px);
+        height: 3px;
+        background:
+            linear-gradient(90deg, var(--ind-red) 0 var(--trim-w), transparent var(--trim-w)),
+            repeating-linear-gradient(90deg, var(--ind-accent-alt) 0 10px, transparent 10px 16px)
+                calc(var(--trim-w) + 6px) 0 / 76px 100% no-repeat;
+    }
+
+    .topbar .status-pill {
+        backdrop-filter: blur(6px);
+    }
+}
+
+/* ===========================================
+   WINDOW
+   In the desktop app the window has no frame of its own (hexapod_link.py):
+   the top bar drags it and ends in its buttons, and strips along its edges
+   resize it. Shown only there, with data-window="frameless" on <html>;
+   assets/window_frame.js drives them.
+   =========================================== */
+
+.window-buttons,
+.window-edges {
+    display: none;
+}
+
+[data-window="frameless"] .topbar {
+    padding-right: 0;
+}
+
+[data-window="frameless"] .window-buttons {
+    display: flex;
+    align-self: stretch;
+    margin-left: 0.25rem;
+    margin-bottom: -4px;
+}
+
+.window-btn {
+    width: 46px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ind-text);
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    transition: background-color 0.15s ease;
+}
+
+.window-btn:hover {
+    background: var(--ind-hover);
+}
+
+.window-btn-close:hover {
+    color: #fff;
+    background: #e81123;
+}
+
+.window-btn:focus-visible {
+    outline: none;
+    box-shadow: var(--ind-glow-inset);
+}
+
+/* The icons, drawn in the bar's text colour: a dash, a square (two, when
+   maximized), a cross. */
+.window-btn-icon {
+    position: relative;
+    width: 10px;
+    height: 10px;
+    pointer-events: none;
+}
+
+.window-btn-minimize .window-btn-icon::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    border-top: 1px solid currentColor;
+}
+
+.window-btn-maximize .window-btn-icon::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1px solid currentColor;
+}
+
+.is-maximized .window-btn-maximize .window-btn-icon::before {
+    inset: 2px 2px 0 0;
+}
+
+.is-maximized .window-btn-maximize .window-btn-icon::after {
+    content: '';
+    position: absolute;
+    inset: 0 0 2px 2px;
+    border-top: 1px solid currentColor;
+    border-right: 1px solid currentColor;
+}
+
+.window-btn-close .window-btn-icon::before,
+.window-btn-close .window-btn-icon::after {
+    content: '';
+    position: absolute;
+    left: -2px;
+    right: -2px;
+    top: 50%;
+    border-top: 1px solid currentColor;
+    transform: rotate(45deg);
+}
+
+.window-btn-close .window-btn-icon::after {
+    transform: rotate(-45deg);
+}
+
+/* The resize strips: invisible, just inside the window's edges, over
+   everything. None while maximized. */
+[data-window="frameless"]:not(.is-maximized) .window-edges {
+    display: block;
+}
+
+.window-edge {
+    --edge: 5px;
+    position: fixed;
+    z-index: 20;
+    touch-action: none;
+}
+
+.window-edge[data-edge="n"] { top: 0; left: var(--edge); right: var(--edge); height: var(--edge); cursor: ns-resize; }
+.window-edge[data-edge="s"] { bottom: 0; left: var(--edge); right: var(--edge); height: var(--edge); cursor: ns-resize; }
+.window-edge[data-edge="e"] { right: 0; top: var(--edge); bottom: var(--edge); width: var(--edge); cursor: ew-resize; }
+.window-edge[data-edge="w"] { left: 0; top: var(--edge); bottom: var(--edge); width: var(--edge); cursor: ew-resize; }
+.window-edge[data-edge="ne"] { top: 0; right: 0; width: calc(2 * var(--edge)); height: calc(2 * var(--edge)); cursor: nesw-resize; }
+.window-edge[data-edge="sw"] { bottom: 0; left: 0; width: calc(2 * var(--edge)); height: calc(2 * var(--edge)); cursor: nesw-resize; }
+.window-edge[data-edge="nw"] { top: 0; left: 0; width: calc(2 * var(--edge)); height: calc(2 * var(--edge)); cursor: nwse-resize; }
+.window-edge[data-edge="se"] { bottom: 0; right: 0; width: calc(2 * var(--edge)); height: calc(2 * var(--edge)); cursor: nwse-resize; }
 
 /* ===========================================
    WORKSPACE
@@ -459,20 +726,12 @@ body {
     width: 3px;
 }
 
-/* The dock's: on the line after the Gaits library, and on the line before
-   Playback and Robot. */
+/* The dock's: on the line between the Gaits library and the sequence. */
 .ws-splitter-lib {
     grid-row: 1;
     grid-column: 1;
     justify-self: end;
     margin-right: -4px;
-}
-
-.ws-splitter-run {
-    grid-row: 1;
-    grid-column: 3;
-    justify-self: start;
-    margin-left: -4px;
 }
 
 .ws-splitter-dock {
@@ -548,20 +807,12 @@ body {
         display: none;
     }
 
-    .topbar-connection {
-        order: 3;
-        width: 100%;
-        margin-left: 0;
-    }
-
-    .topbar-connection .topbar-ip {
-        flex: 1 1 auto;
-        width: auto;
-    }
-
     .status-pill {
-        margin-left: auto;
         max-width: 11rem;
+    }
+
+    .link-panel {
+        width: min(19rem, calc(100vw - 24px));
     }
 }
 
@@ -887,7 +1138,7 @@ body {
 
 .hexapod-view-overlay {
     position: absolute;
-    top: 12px;
+    top: calc(var(--view-top) + 12px);
     right: 12px;
     z-index: 3;
     display: flex;
@@ -898,7 +1149,7 @@ body {
    its speed limit, and under it the robot's dimensions, folded away. */
 .hexapod-view-controls {
     position: absolute;
-    top: 12px;
+    top: calc(var(--view-top) + 12px);
     left: 12px;
     z-index: 3;
     max-width: calc(100% - 24px);
@@ -1006,7 +1257,7 @@ body {
    the view's top edge, above the handles it changes. */
 .hexapod-view-tool {
     position: absolute;
-    top: 12px;
+    top: calc(var(--view-top) + 12px);
     left: 50%;
     z-index: 3;
     transform: translateX(-50%);
@@ -1075,7 +1326,7 @@ body {
     max-width: calc(100% - 24px);
     /* Up to the robot's controls in the corner above: taller than the room
        under them, it scrolls. */
-    max-height: calc(100% - 7.5rem);
+    max-height: calc(100% - var(--view-top) - 7.5rem);
     overflow: auto;
 }
 
@@ -1306,6 +1557,97 @@ body {
     padding: 0.35rem 0.6rem;
 }
 
+/* ---- Playback ----
+   Over the middle of the view's bottom edge, between the pose and the
+   controller: Play, the scrubber and where it is, the speed and Loop, then
+   running it on the robot; what came of that on a line under them. Where
+   there is not room for one line, the robot's buttons go on the next.
+   Folded, the pose and the controller sit either side of it; opened, either
+   goes up above it, so it is never covered. How tall it is, --playback-h,
+   is kept up to date by assets/playback_bar.js. */
+
+.hexapod-view-frame {
+    /* How far up a corner's panel goes when opened: clear of the bar. */
+    --playback-lift: calc(12px + var(--playback-h, 3rem) + 8px);
+}
+
+.hexapod-view-frame:has(.pose-hud[open]) .hexapod-view-hud,
+.hexapod-view-frame:has(.drive-hud[open]) .hexapod-view-drive {
+    bottom: var(--playback-lift);
+}
+
+.hexapod-view-frame:has(.pose-hud[open]) .hexapod-view-hud {
+    max-height: calc(100% - var(--view-top) - 7.5rem - var(--playback-lift) + 12px);
+}
+
+/* Clear of the folded pose and controller either side. */
+.hexapod-view-playback {
+    position: absolute;
+    left: 50%;
+    bottom: 12px;
+    z-index: 2;
+    width: min(60rem, calc(100% - 19rem));
+    transform: translateX(-50%);
+}
+
+.playback-hud {
+    --chamfer: 9px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.9rem;
+    padding: 0.4rem 0.75rem;
+}
+
+.playback-hud .ind-dock-scrubber {
+    flex-basis: 6rem;
+}
+
+.playback-hud .dock-note,
+.playback-hud .ind-field-label {
+    color: var(--hud-muted);
+}
+
+.playback-hud .ind-duration-input {
+    width: 5.5rem;
+}
+
+.playback-hud .ind-duration-input .input-group-text {
+    color: var(--hud-muted);
+    background: rgba(var(--hud-cyan-rgb), 0.1);
+    border-color: var(--hud-border);
+}
+
+.playback-hud .dock-check label.dash-options-list-option {
+    color: var(--hud-text);
+}
+
+/* Set off from playing in the view by a rule; on a line of its own, at the
+   end of it. */
+.playback-robot {
+    margin-left: auto;
+    padding-left: 0.9rem;
+    border-left: 1px solid var(--hud-border);
+}
+
+.playback-message {
+    flex-basis: 100%;
+    white-space: normal;
+}
+
+/* No room beside the folded corners: the bar takes the width, and they sit
+   above it. */
+@media (max-width: 767.98px) {
+    .hexapod-view-playback {
+        width: calc(100% - 24px);
+    }
+
+    .hexapod-view-hud,
+    .hexapod-view-drive {
+        bottom: var(--playback-lift);
+    }
+}
+
 .drive-hud[open] {
     padding-bottom: 0.55rem;
 }
@@ -1472,29 +1814,24 @@ body {
 
 /* ===========================================
    DOCK
-   Three columns: on the left the Gaits library, the robot's and one's own;
-   in the middle the sequence -- keyframes of poses and gaits -- and on the
-   right playing it, in the view and then on the robot. Each block is titled
-   like a panel section, with what belongs to it on the same line. The columns
+   Two columns: on the left the Gaits library, the robot's and one's own;
+   on the right the sequence -- keyframes of poses and gaits. Playing it, in
+   the view and on the robot, is over the view (PLAYBACK). Each block is
+   titled like a panel section, with what belongs to it on the same line. The columns
    stack below `lg`, with the rest of the workspace.
    =========================================== */
 
 .dock {
     display: grid;
     flex: 1 0 auto;
-    /* The side columns as set, but never so wide the sequence is squeezed
-       out: each keeps to its share of the dock. */
-    grid-template-columns: min(var(--lib-w), 35%) minmax(0, 1fr) min(var(--run-w), 40%);
+    /* The library as set, but never so wide the sequence is squeezed out. */
+    grid-template-columns: min(var(--lib-w), 35%) minmax(0, 1fr);
 }
 
 .dock-col {
     min-width: 0;
     display: flex;
     flex-direction: column;
-}
-
-.dock-col-run {
-    border-left: 1px solid var(--ind-border);
 }
 
 .dock-col-library {
@@ -1509,10 +1846,6 @@ body {
 
 .dock-col-sequence {
     grid-area: 1 / 2;
-}
-
-.dock-col-run {
-    grid-area: 1 / 3;
 }
 
 .dock-section + .dock-section {
@@ -1590,10 +1923,6 @@ body {
 .dock-note:empty,
 .dock-message:empty {
     display: none;
-}
-
-.dock-robot-message {
-    white-space: normal;
 }
 
 .ind-duration-input {
@@ -1947,14 +2276,8 @@ body {
     }
 
     .dock-col-library,
-    .dock-col-sequence,
-    .dock-col-run {
+    .dock-col-sequence {
         grid-area: auto;
-    }
-
-    .dock-col-run {
-        border-left: none;
-        border-top: 1px solid var(--ind-border);
     }
 
     .dock-col-library {

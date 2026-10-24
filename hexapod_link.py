@@ -5,6 +5,7 @@ a pywebview window by default.
 
     python hexapod_link.py              # native window
     python hexapod_link.py --no-window  # serve only, open the URL in a browser
+    python hexapod_link.py --framed     # native window with the system's frame
 """
 
 import argparse
@@ -21,10 +22,11 @@ from dash import Dash, html
 from hexapod.preferences import load_layout, load_theme
 from hexapod.robot_link import ROBOT_LINK
 from pages.drive import register_drive_route
-from pages.shell import make_topbar
+from pages.shell import make_topbar, make_window_edges
 from pages.workspace import workspace
 from style_settings import EXTERNAL_STYLESHEETS
 from texts import APP_TITLE
+from window_controls import WindowControls
 
 
 # ....................
@@ -55,7 +57,6 @@ mimetypes.add_type("font/woff2", ".woff2")
 LAYOUT_VARIABLES = {
     "dock_h": "--dock-h",
     "lib_w": "--lib-w",
-    "run_w": "--run-w",
 }
 
 
@@ -68,7 +69,12 @@ class HexapodDash(Dash):
     start would flash light and a resized dock would jump. Putting them into
     the index page itself avoids that. See the theme and workspace sections of
     pages/shell.py.
+
+    In the frameless window the page also draws the window's own controls
+    (assets/window_frame.js); data-window="frameless" turns them on.
     """
+
+    frameless = False
 
     def interpolate_index(self, **kwargs):
         index = super().interpolate_index(**kwargs)
@@ -77,8 +83,9 @@ class HexapodDash(Dash):
             f"{LAYOUT_VARIABLES[key]}: {px}px" for key, px in load_layout().items() if px
         )
         style = f' style="{sizes}"' if sizes else ""
+        frame = ' data-window="frameless"' if self.frameless else ""
         return index.replace(
-            "<html>", f'<html data-theme="{theme}" data-bs-theme="{theme}"{style}>', 1
+            "<html>", f'<html data-theme="{theme}" data-bs-theme="{theme}"{frame}{style}>', 1
         )
 
 
@@ -102,7 +109,9 @@ def serve_layout():
     """Built per page load, so the top bar's theme button matches the saved
     theme (see HexapodDash above) and the view's overlays are folded as they
     were left. There is one screen, served at any path."""
-    return html.Div([make_topbar(load_theme()), workspace()], className="app-shell")
+    return html.Div(
+        [make_topbar(load_theme()), workspace(), make_window_edges()], className="app-shell"
+    )
 
 
 app.layout = serve_layout
@@ -223,6 +232,11 @@ def main():
         action="store_true",
         help="open the webview's developer tools",
     )
+    parser.add_argument(
+        "--framed",
+        action="store_true",
+        help="keep the system's own window frame and title bar",
+    )
     args = parser.parse_args()
 
     url = start_server(args.port)
@@ -241,6 +255,14 @@ def main():
     # without pywebview installed.
     import webview
 
+    # Frameless: the top bar, laid over the 3D view, is the title bar. Only
+    # the bar itself drags the window (the drag-region class in
+    # pages/shell.py), not the inputs and buttons on it, and not the view.
+    frameless = not args.framed
+    controls = WindowControls(min_size=WINDOW_MIN_SIZE) if frameless else None
+    app.frameless = frameless
+    webview.settings["DRAG_REGION_DIRECT_TARGET_ONLY"] = True
+
     window = webview.create_window(
         APP_TITLE,
         url,
@@ -248,7 +270,12 @@ def main():
         height=WINDOW_HEIGHT,
         min_size=WINDOW_MIN_SIZE,
         text_select=True,
+        frameless=frameless,
+        easy_drag=False,
+        js_api=controls,
     )
+    if controls:
+        controls.attach(window)
     # 'closing' fires while the window and the server thread are both still
     # alive, so the RT_EXIT packet actually makes it out. Returning None lets
     # the close proceed.

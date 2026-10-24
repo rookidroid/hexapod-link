@@ -23,6 +23,7 @@ from widgets.robot_link_ui import (
     ROBOT_POLL_INTERVAL_ID,
     SECTION_CONTROLS_CLASS,
     SECTION_CONTROLS_OFFLINE_CLASS,
+    LINK_DETAIL_ID,
     STATUS_PILL_ID,
     STREAM_CONTROLS_ID,
     STREAM_MAX_STEP_ID,
@@ -134,14 +135,15 @@ def link_status_text(status):
     Output(STATUS_PILL_ID, "children"),
     Output(STATUS_PILL_ID, "className"),
     Output(STATUS_PILL_ID, "title"),
+    Output(LINK_DETAIL_ID, "children"),
     Input(ROBOT_POLL_INTERVAL_ID, "n_intervals"),
 )
 def update_robot_status(_n_intervals):
     """Refresh the status pill in the top bar.
 
     It reads the summary -- which robot, and whether it is reachable and being
-    streamed to -- and its tooltip the detail: the address, mode and packet
-    count, and the robot's firmware version.
+    streamed to -- and its tooltip, and its dropdown, the detail: the address,
+    mode and packet count, and the robot's firmware version.
     """
     status = ROBOT_LINK.status()
     text = link_status_text(status)
@@ -157,7 +159,7 @@ def update_robot_status(_n_intervals):
         label, state = f"{status['robot_label']} · Online", "is-online"
 
     tooltip = f"{text}\n{firmware}" if firmware else text
-    return label, status_pill_class(state), tooltip
+    return label, status_pill_class(state), tooltip, tooltip
 
 
 # ......................

@@ -23,9 +23,9 @@ def preferences_file(tmp_path, monkeypatch):
     return path
 
 
-def test_theme_defaults_to_light_without_a_file(preferences_file):
-    assert DEFAULT_THEME == "light"
-    assert load_theme() == "light"
+def test_theme_defaults_to_dark_without_a_file(preferences_file):
+    assert DEFAULT_THEME == "dark"
+    assert load_theme() == "dark"
 
 
 def test_theme_round_trips(preferences_file):
@@ -51,9 +51,9 @@ def test_saving_keeps_other_preferences(preferences_file):
     "contents",
     ["not json", "[1, 2]", '{"theme": "purple"}', '{"theme": null}'],
 )
-def test_unusable_file_falls_back_to_light(preferences_file, contents):
+def test_unusable_file_falls_back_to_dark(preferences_file, contents):
     preferences_file.write_text(contents, encoding="utf-8")
-    assert load_theme() == "light"
+    assert load_theme() == "dark"
 
 
 def test_unknown_theme_is_rejected(preferences_file):
@@ -62,7 +62,7 @@ def test_unknown_theme_is_rejected(preferences_file):
     assert not preferences_file.exists()
 
 
-NO_LAYOUT = {"dock_h": None, "lib_w": None, "run_w": None}
+NO_LAYOUT = {"dock_h": None, "lib_w": None}
 
 
 def test_layout_defaults_to_the_stylesheets(preferences_file):
@@ -72,13 +72,13 @@ def test_layout_defaults_to_the_stylesheets(preferences_file):
 def test_layout_sizes_are_saved_one_at_a_time(preferences_file):
     assert save_theme("dark")
     assert save_layout({"lib_w": 412.4, "n": 123})
-    assert save_layout({"dock_h": 260, "run_w": 380})
-    assert load_layout() == {"lib_w": 412, "dock_h": 260, "run_w": 380}
+    assert save_layout({"dock_h": 260})
+    assert load_layout() == {"lib_w": 412, "dock_h": 260}
     assert load_theme() == "dark"
 
     # Set back with a double-click.
-    assert save_layout({"lib_w": None, "run_w": 250})
-    assert load_layout() == {**NO_LAYOUT, "dock_h": 260, "run_w": 250}
+    assert save_layout({"lib_w": None})
+    assert load_layout() == {**NO_LAYOUT, "dock_h": 260}
 
 
 @pytest.mark.parametrize("value", [None, "300", True, -5, 50, 10_000, float("nan")])
@@ -93,8 +93,9 @@ def test_a_size_out_of_range_is_not_kept(preferences_file, value):
     [
         '{"layout": [1]}',
         '{"layout": {"lib_w": "wide", "dock_h": {}}}',
-        # A size of the tool panel's, which the workspace no longer has.
+        # Sizes of columns the workspace no longer has.
         '{"layout": {"panel_w": 400}}',
+        '{"layout": {"run_w": 300}}',
     ],
 )
 def test_an_unusable_layout_is_ignored(preferences_file, contents):

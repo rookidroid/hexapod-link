@@ -9,7 +9,7 @@ from pathlib import Path
 from settings import PREFERENCES_ENV, PREFERENCES_PATH
 
 THEMES = ("light", "dark")
-DEFAULT_THEME = "light"
+DEFAULT_THEME = "dark"
 
 
 def preferences_path():
@@ -55,10 +55,10 @@ def save_theme(theme):
 
 
 # The workspace's sizes, set by dragging its splitters (assets/workspace_resize.js):
-# the height of the dock and the widths of its side columns (the Gaits
-# library, and Playback and Robot), in CSS pixels. None for one never dragged,
+# the height of the dock and the width of the Gaits library beside the
+# sequence, in CSS pixels. None for one never dragged,
 # or set back with a double-click, which leaves it to the stylesheet.
-LAYOUT_SIZES = ("dock_h", "lib_w", "run_w")
+LAYOUT_SIZES = ("dock_h", "lib_w")
 # Far wider than any sensible value either way: only junk is refused here;
 # the page keeps them within the window.
 LAYOUT_MIN_PX = 100

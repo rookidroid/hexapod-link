@@ -2,16 +2,17 @@
 
     [stream]                  [move | rotate]         [reset pose][reset view]
     [dimensions]                 3D view
-    [pose: angles, what is picked]                                [controller]
+    [pose: angles, what is picked]    [playback]                  [controller]
     ---------------------------------------------------------------------------
-    dock: gaits library  |  sequence (poses and gaits, as keyframes)  |  playback, robot
+    dock: gaits library  |  sequence (poses and gaits, as keyframes)  |  robot
 
 Everything that sets the pose is on the view: click the body or a foot to pick
 it, and its controls show under the joint angles, in the view's corner. While
 the body is picked, what dragging it does -- move it or turn it -- is chosen
 over the view's top edge, by the handles it is dragged with. What
 belongs to the robot rather than to the pose -- streaming to it, its
-dimensions, the controller that drives it -- sits over the view too.
+dimensions, the controller that drives it -- sits over the view too, and so
+does playing the sequence in the view.
 
 The pose, the dimensions and the controller fold away, and start
 folded, so the view starts clear; each is served as it was last left by hand.
@@ -27,7 +28,14 @@ from hexapod.robot_link import ROBOT_LINK
 from pages import pose, robot  # noqa: F401  (registers the workspace's callbacks)
 from pages.shell import PANEL_ATTRIBUTE, make_view, make_workspace
 from widgets.dimensions_ui import DIMENSIONS_HUD
-from widgets.pose_ui import POSE_HUD, POSE_DOCK, POSE_VIEW_ID, VIEW_OVERLAY, VIEW_TOOL
+from widgets.pose_ui import (
+    PLAYBACK_HUD,
+    POSE_DOCK,
+    POSE_HUD,
+    POSE_VIEW_ID,
+    VIEW_OVERLAY,
+    VIEW_TOOL,
+)
 from widgets.robot_link_ui import DRIVE_HUD, STREAM_OVERLAY
 
 
@@ -49,6 +57,7 @@ WORKSPACE = make_workspace(
         controls=[STREAM_OVERLAY, DIMENSIONS_HUD],
         drive=DRIVE_HUD,
         tool=VIEW_TOOL,
+        playback=PLAYBACK_HUD,
     ),
     POSE_DOCK,
 )

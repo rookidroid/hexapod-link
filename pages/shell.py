@@ -13,7 +13,7 @@ from hexapod.preferences import save_layout, save_panels, save_theme
 from texts import APP_TITLE, APP_VERSION
 from widgets.components import make_splitter
 from widgets.dimensions_ui import DIMENSIONS_JSON
-from widgets.robot_link_ui import STATUS_PILL, TOPBAR_CONNECTION
+from widgets.robot_link_ui import LINK_MENU
 
 
 # ......................
@@ -35,14 +35,25 @@ def view_ack_id(view_id):
     return f"{view_id}-ack"
 
 
-def make_view(view_id, scene=None, overlay=None, hud=None, controls=None, drive=None, tool=None):
+def make_view(
+    view_id,
+    scene=None,
+    overlay=None,
+    hud=None,
+    controls=None,
+    drive=None,
+    tool=None,
+    playback=None,
+):
     """The element the view draws into, and the store its scene goes in.
 
     `overlay` is laid over the view's top-right corner, for a button or two
     that act on the view itself; `hud` over its bottom-left, for a readout;
     `controls` over its top-left, for what acts on what the view shows;
     `drive` over its bottom-right, for driving the robot itself; and `tool`
-    over the middle of its top edge, for how what is picked is dragged.
+    over the middle of its top edge, for how what is picked is dragged; and
+    `playback` over the middle of its bottom edge, for playing what the view
+    shows.
     """
     children = [
         html.Div(id=view_id, className="hexapod-view"),
@@ -59,6 +70,8 @@ def make_view(view_id, scene=None, overlay=None, hud=None, controls=None, drive=
         children.append(html.Div(drive, className="hexapod-view-drive"))
     if tool:
         children.append(html.Div(tool, className="hexapod-view-tool"))
+    if playback:
+        children.append(html.Div(playback, className="hexapod-view-playback"))
     return html.Div(children, className="hexapod-view-frame")
 
 
@@ -73,7 +86,7 @@ def make_view(view_id, scene=None, overlay=None, hud=None, controls=None, drive=
 #
 # Above `lg` the dock's height can be dragged, by a splitter on its top edge
 # (or, focused, with the arrow keys), and double-clicking it puts it back; so
-# can the widths of the dock's side columns (POSE_DOCK in widgets/pose_ui.py).
+# can the width of the dock's Gaits library (POSE_DOCK in widgets/pose_ui.py).
 # That is done in the page (assets/workspace_resize.js); the sizes let go of
 # come back through the sizes store, to be kept with the preferences and
 # served with the page the next time (hexapod_link.py).
@@ -119,24 +132,68 @@ def keep_panel_states(states):
         save_panels(states)
 
 
-# The status pill is the app's link readout: whether the robot is reachable,
-# which one it is, and whether it is being streamed to. The state modifier
-# colours its LED (STATUS PILL in industrial.css); its tooltip has the detail.
+# The top bar is also the window's title bar. In the desktop app the window
+# has no frame of its own: the bar lies over the top of the 3D view, see-through
+# so the view shows behind it, drags the window, and ends in the window's
+# buttons. Strips along the window's edges resize it. All of that is shown only
+# in the frameless window (data-window="frameless" on <html>, from
+# hexapod_link.py) and driven by assets/window_frame.js.
+#
+# pywebview drags the window from the elements with DRAG_REGION, and only by a
+# press on one of them directly, so the inputs and buttons on the bar still
+# work as before.
+DRAG_REGION = "pywebview-drag-region"
+
+# What each of the window's buttons does, by data-window-action.
+_WINDOW_BUTTONS = (
+    ("minimize", "Minimize"),
+    ("maximize", "Maximize"),
+    ("close", "Close"),
+)
+
+# The window's edges and corners, by data-edge.
+_WINDOW_EDGES = ("n", "s", "e", "w", "ne", "nw", "se", "sw")
+
+
+def make_window_buttons():
+    return html.Div(
+        [
+            html.Button(
+                html.Span(className="window-btn-icon"),
+                className=f"window-btn window-btn-{action}",
+                title=title,
+                **{"aria-label": title, "data-window-action": action},
+            )
+            for action, title in _WINDOW_BUTTONS
+        ],
+        className="window-buttons",
+    )
+
+
+def make_window_edges():
+    return html.Div(
+        [html.Div(className="window-edge", **{"data-edge": edge}) for edge in _WINDOW_EDGES],
+        className="window-edges",
+    )
+
+
+# The link's status pill, which opens to connect (LINK_MENU in
+# widgets/robot_link_ui.py), then the theme and the window's buttons.
 def make_topbar(theme):
     return html.Header(
         [
             html.Div(
                 [
-                    html.Span(APP_TITLE, className="topbar-title"),
-                    html.Span(f"v{APP_VERSION}", className="topbar-version"),
+                    html.Span(APP_TITLE, className=f"topbar-title {DRAG_REGION}"),
+                    html.Span(f"v{APP_VERSION}", className=f"topbar-version {DRAG_REGION}"),
                 ],
-                className="topbar-brand",
+                className=f"topbar-brand {DRAG_REGION}",
             ),
-            TOPBAR_CONNECTION,
-            STATUS_PILL,
+            LINK_MENU,
             make_theme_toggle(theme),
+            make_window_buttons(),
         ],
-        className="topbar",
+        className=f"topbar {DRAG_REGION}",
     )
 
 

@@ -1,7 +1,6 @@
 // The workspace's splitters (make_splitter in widgets/components.py): one
-// on the dock's top edge sets its height, and one either side of the dock's
-// middle column the width of the column beside it, the middle one taking what
-// is left. Drag one, or focus it and use the arrow keys (Shift for bigger
+// on the dock's top edge sets its height, and one between the dock's columns
+// the width of the Gaits library, the sequence taking what is left. Drag one, or focus it and use the arrow keys (Shift for bigger
 // steps); double-click it to put the size back to the stylesheet's.
 //
 // A size is a CSS variable on <html> (WORKSPACE in assets/industrial.css),
@@ -21,12 +20,10 @@
     // in the stylesheet), and the shortest the dock may be made.
     var VIEW_MIN_H = 180;
     var DOCK_MIN_H = 140;
-    // The dock's columns: the side ones' least, and most as a share of the
-    // dock (as capped in the stylesheet), and what the sequence always keeps.
+    // The library's least width, and most as a share of the dock (as capped
+    // in the stylesheet), and what the sequence always keeps.
     var LIB_MIN_W = 180;
     var LIB_MAX_SHARE = 0.35;
-    var RUN_MIN_W = 260;
-    var RUN_MAX_SHARE = 0.4;
     var SEQUENCE_MIN_W = 320;
     var KEY_STEP = 16;
     var KEY_STEP_BIG = 64;
@@ -55,32 +52,17 @@
             current: function (box) { return box.width; },
             fromPointer: function (x, y, box) { return x - box.left; },
             range: function () {
-                return columnRange(LIB_MIN_W, LIB_MAX_SHARE, ".dock-col-run");
+                return columnRange(LIB_MIN_W, LIB_MAX_SHARE);
             },
             keys: {ArrowLeft: -1, ArrowRight: 1},
         },
-        run: {
-            variable: "--run-w",
-            key: "run_w",
-            selector: ".dock-col-run",
-            cursor: "col-resize",
-            current: function (box) { return box.width; },
-            // On its left edge: dragging left widens it.
-            fromPointer: function (x, y, box) { return box.right - x; },
-            range: function () {
-                return columnRange(RUN_MIN_W, RUN_MAX_SHARE, ".dock-col-library");
-            },
-            keys: {ArrowLeft: 1, ArrowRight: -1},
-        },
     };
 
-    // How wide a side column of the dock may be: no more than its share of
-    // the dock, and leaving the sequence its room beside the other one.
-    function columnRange(least, share, other) {
-        var dock = document.querySelector(".dock");
-        var beside = document.querySelector(other);
-        var width = dock.clientWidth;
-        var room = width - (beside ? beside.offsetWidth : 0) - SEQUENCE_MIN_W;
+    // How wide the library may be: no more than its share of the dock, and
+    // leaving the sequence its room.
+    function columnRange(least, share) {
+        var width = document.querySelector(".dock").clientWidth;
+        var room = width - SEQUENCE_MIN_W;
         return [least, Math.max(least, Math.min(width * share, room))];
     }
 
