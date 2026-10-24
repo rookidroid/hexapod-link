@@ -69,7 +69,7 @@ moves it:
 
 | File | What | Variable |
 |---|---|---|
-| `preferences.json` | theme, dock sizes, which overlays are folded | `HEXAPOD_LINK_PREFERENCES` |
+| `preferences.json` | theme, dock sizes, which overlays are folded, and the workspace as it was closed (sequence, pose, dock and playback controls, dimensions, robot address) | `HEXAPOD_LINK_PREFERENCES` |
 | `robot_config.json` | the last robot's config | `HEXAPOD_LINK_CONFIG_CACHE` |
 | `gaits/` | gaits saved under **Mine**, one keyframe file each | `HEXAPOD_LINK_GAITS` |
 

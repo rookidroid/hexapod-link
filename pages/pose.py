@@ -245,7 +245,8 @@ clientside_callback(
     prevent_initial_call=True,
 )
 
-# Which handles the body picked is dragged by in the view.
+# Which handles the body picked is dragged by in the view; on load too, as the
+# mode can come back as it was left (pages/last_session.py).
 clientside_callback(
     """
     function(mode) {
@@ -258,7 +259,7 @@ clientside_callback(
     % POSE_VIEW_ID,
     Output(POSE_RENDER_ACK_ID, "data", allow_duplicate=True),
     Input(POSE_BODY_MODE_ID, "value"),
-    prevent_initial_call=True,
+    prevent_initial_call="initial_duplicate",
 )
 
 

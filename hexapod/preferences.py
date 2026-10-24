@@ -4,6 +4,7 @@
 
 import json
 import os
+import threading
 from pathlib import Path
 
 from settings import PREFERENCES_ENV, PREFERENCES_PATH
@@ -29,14 +30,28 @@ def load_preferences():
     return preferences if isinstance(preferences, dict) else {}
 
 
+# Dash runs callbacks on several threads at once; two saving different
+# preferences together must not each write back the file without the other's.
+_SAVE_LOCK = threading.RLock()
+
+
 def save_preference(key, value):
     """Store one preference, keeping the others. Best effort."""
+    with _SAVE_LOCK:
+        return _save_preference(key, value)
+
+
+def _save_preference(key, value):
     path = preferences_path()
     preferences = load_preferences()
     preferences[key] = value
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(preferences, indent=2), encoding="utf-8")
+        # Written aside and swapped in, so a page loading meanwhile never
+        # reads half a file.
+        partial = path.with_name(path.name + ".tmp")
+        partial.write_text(json.dumps(preferences, indent=2), encoding="utf-8")
+        os.replace(partial, path)
     except OSError as error:
         print(f"Could not save the preferences to {path}: {error}")
         return False
@@ -83,11 +98,12 @@ def load_layout():
 def save_layout(sizes):
     """Store the sizes given, keeping a saved one not among them; one that is
     not a size in range clears it."""
-    layout = load_layout()
-    for key in LAYOUT_SIZES:
-        if key in sizes:
-            layout[key] = _layout_size(sizes[key])
-    return save_preference("layout", layout)
+    with _SAVE_LOCK:
+        layout = load_layout()
+        for key in LAYOUT_SIZES:
+            if key in sizes:
+                layout[key] = _layout_size(sizes[key])
+        return save_preference("layout", layout)
 
 
 # The overlays on the view that fold away (pages/workspace.py): whether each
@@ -105,8 +121,27 @@ def load_panels():
 
 def save_panels(states):
     """Store the states given, keeping a saved one not among them."""
-    panels = load_panels()
-    for key in PANELS:
-        if key in states:
-            panels[key] = states[key] is True
-    return save_preference("panels", panels)
+    with _SAVE_LOCK:
+        panels = load_panels()
+        for key in PANELS:
+            if key in states:
+                panels[key] = states[key] is True
+        return save_preference("panels", panels)
+
+
+# What the workspace was left showing (pages/last_session.py): the sequence
+# and the pose being edited, and the dock's and the view's controls, by name.
+# Each value is checked as it is put back, not here.
+
+
+def load_workspace():
+    saved = load_preferences().get("workspace")
+    return saved if isinstance(saved, dict) else {}
+
+
+def save_workspace(values):
+    """Store the values given, keeping a saved one not among them."""
+    with _SAVE_LOCK:
+        workspace = load_workspace()
+        workspace.update(values)
+        return save_preference("workspace", workspace)
