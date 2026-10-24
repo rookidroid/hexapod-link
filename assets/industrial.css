@@ -8,7 +8,7 @@
    Styled after the RX-78-2 Gundam: white armour plates framed in navy,
    Federation blue as the accent, red and V-fin yellow as trim. Light is the
    armour, dark is the cockpit, with a cyan HUD glow on focus. The markings are
-   kept to a few -- the chest trim under the top bar, chamfered corners on the
+   kept to a few -- the chest trim under the top bar, filled-in corners on the
    controls and the HUD cards, and the display face on headings -- so the view
    is still what draws the eye.
 
@@ -125,39 +125,16 @@
     --ind-track: #c9d2e0;          /* Slider tracks */
 
     /* Focus ring: a plain blue halo on the armour, a HUD glow in the cockpit.
-       The inset one is for the chamfered controls, whose clip-path would cut
-       off anything drawn outside them. */
+       The inset one is drawn inside a control, for the buttons and fields,
+       which sit edge to edge with their neighbours. */
     --ind-glow: 0 0 0 2px rgba(29, 79, 163, 0.28);
     --ind-glow-inset: inset 0 0 0 2px rgba(29, 79, 163, 0.55);
     --shadow-soft: 0 2px 10px rgba(15, 26, 48, 0.12);
     --radius: 0;
 
-    /* Mecha corners: the top-right and bottom-left cut off at 45 degrees. */
+    /* Mecha corners: the top-right and bottom-left filled in at 45 degrees,
+       as armour plates are (CORNERS, at the end). */
     --chamfer: 7px;
-    --chamfer-clip: polygon(
-        0 0,
-        calc(100% - var(--chamfer)) 0,
-        100% var(--chamfer),
-        100% 100%,
-        var(--chamfer) 100%,
-        0 calc(100% - var(--chamfer))
-    );
-    /* One corner of the two, for the ends of a field and its unit, which are
-       one plate between them. */
-    --chamfer-clip-bl: polygon(
-        0 0,
-        100% 0,
-        100% 100%,
-        var(--chamfer) 100%,
-        0 calc(100% - var(--chamfer))
-    );
-    --chamfer-clip-tr: polygon(
-        0 0,
-        calc(100% - var(--chamfer)) 0,
-        100% var(--chamfer),
-        100% 100%,
-        0 100%
-    );
 
     /* The 3D view is the cockpit's panoramic monitor in both themes, and so
        is what is laid over it: navy plates edged in HUD cyan. */
@@ -425,7 +402,6 @@ body {
     color: var(--ind-text);
     background-color: var(--ind-surface-alt);
     border: 2px solid var(--ind-frame);
-    clip-path: var(--chamfer-clip);
     cursor: default;
     transition: border-color 0.15s ease;
 }
@@ -836,9 +812,9 @@ body {
    CONTROLS
    =========================================== */
 
-/* Buttons are armour plates: a heavy navy border and chamfered corners. The
-   clip cuts off anything drawn outside the button, so the focus ring is
-   drawn inside it. */
+/* Buttons are armour plates: a heavy navy border, and two corners filled in
+   (CORNERS, at the end). The focus ring is drawn inside, as the buttons sit
+   edge to edge in their groups. */
 .btn {
     --bs-btn-font-family: var(--font-ui);
     --bs-btn-font-weight: 700;
@@ -847,9 +823,9 @@ body {
     --bs-btn-padding-x: 0.75rem;
     --bs-btn-padding-y: 0.3rem;
     --bs-btn-focus-box-shadow: var(--ind-glow-inset);
+    --chamfer: 10px;
     letter-spacing: 0.4px;
     white-space: nowrap;
-    clip-path: var(--chamfer-clip);
     transition: filter 0.1s ease, background-color 0.1s ease, border-color 0.1s ease;
 }
 
@@ -858,7 +834,7 @@ body {
 }
 
 .btn-sm {
-    --chamfer: 6px;
+    --chamfer: 8px;
     --bs-btn-border-radius: 0;
     --bs-btn-padding-x: 0.65rem;
     --bs-btn-padding-y: 0.25rem;
@@ -1223,7 +1199,6 @@ body {
     color: var(--hud-text);
     background-color: var(--hud-bg);
     border: 1px solid var(--hud-border);
-    clip-path: var(--chamfer-clip);
     backdrop-filter: blur(6px);
 }
 
@@ -1346,7 +1321,6 @@ body {
     .view-tool {
         padding: 0;
         border: none;
-        clip-path: none;
     }
 
     .view-tool .ind-field-label {
@@ -2106,8 +2080,7 @@ body {
     text-align: left;
     background-color: var(--ind-surface-alt);
     border: 1px solid var(--ind-frame);
-    --chamfer: 6px;
-    clip-path: var(--chamfer-clip);
+    --chamfer: 8px;
     transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
@@ -2474,13 +2447,13 @@ body {
 }
 
 /* ===========================================
-   CHAMFERS
-   The cut corners are a clip-path, which cuts the border off along the cut
-   too. These draw it back: a stroke along each cut, as wide as the border,
-   in --edge -- the border's colour, kept in step with it below. Each is a
-   gradient across the corner's square, solid up to just inside the
-   diagonal; the clip takes the rest. Laid as background images, so the
-   plates set background-color, never the background shorthand.
+   CORNERS
+   The top-right and bottom-left corners of the plates -- buttons, panels,
+   fields, keyframe cards -- are filled in at 45 degrees with --corner, in
+   the plate's border colour unless said otherwise below, kept in step with
+   its hover, focus and disabled states. Each is a gradient across the
+   corner's square, solid up to the diagonal. Laid as background images, so
+   the plates set background-color, never the background shorthand.
    =========================================== */
 
 .btn,
@@ -2493,13 +2466,13 @@ body {
     background-image:
         linear-gradient(
             to bottom left,
-            var(--edge, transparent) calc(50% + var(--edge-w, 1px) - 0.4px),
-            transparent calc(50% + var(--edge-w, 1px) + 0.4px)
+            var(--corner, transparent) 50%,
+            transparent calc(50% + 0.75px)
         ),
         linear-gradient(
             to top right,
-            var(--edge, transparent) calc(50% + var(--edge-w, 1px) - 0.4px),
-            transparent calc(50% + var(--edge-w, 1px) + 0.4px)
+            var(--corner, transparent) 50%,
+            transparent calc(50% + 0.75px)
         );
     background-size: var(--chamfer) var(--chamfer);
     background-position: top right, bottom left;
@@ -2508,87 +2481,100 @@ body {
 }
 
 .btn {
-    --edge: var(--bs-btn-border-color);
-    --edge-w: var(--bs-btn-border-width);
+    --corner: var(--bs-btn-border-color);
 }
 
 .btn:hover {
-    --edge: var(--bs-btn-hover-border-color);
+    --corner: var(--bs-btn-hover-border-color);
 }
 
 .btn:active,
 .btn.active,
 .btn.show,
 .btn-check:checked + .btn {
-    --edge: var(--bs-btn-active-border-color);
+    --corner: var(--bs-btn-active-border-color);
+}
+
+/* In trim colours, so they read against the frame: Federation blue on the
+   white and navy plates, V-fin yellow on the solid ones, red on delete. */
+.btn.btn-secondary,
+.btn.btn-outline-secondary {
+    --corner: var(--ind-accent);
+}
+
+.btn.btn-primary,
+.btn.btn-success {
+    --corner: var(--ind-accent-alt);
+}
+
+.btn.btn-danger,
+.btn.btn-outline-danger {
+    --corner: var(--ind-red);
 }
 
 .btn:disabled,
 .btn.disabled {
-    --edge: var(--bs-btn-disabled-border-color);
+    --corner: var(--bs-btn-disabled-border-color);
 }
 
 .status-pill {
-    --edge: var(--ind-frame);
-    --edge-w: 2px;
+    --corner: var(--ind-frame);
 }
 
 .status-pill.is-fault {
-    --edge: var(--ind-red);
+    --corner: var(--ind-red);
 }
 
-/* Over the view, the cuts are lit: panel lines catching the HUD's light. */
+/* Over the view, the corners are lit: panel lights in HUD cyan. */
 .hud-panel {
-    --edge: rgba(var(--hud-cyan-rgb), 0.85);
+    --corner: rgba(var(--hud-cyan-rgb), 0.85);
 }
 
 .ind-kf-card {
-    --edge: var(--ind-frame);
+    --corner: var(--ind-frame);
 }
 
-.ind-kf-item:hover .ind-kf-card,
-.ind-kf-item.active .ind-kf-card {
-    --edge: var(--ind-accent);
+.ind-kf-item:hover .ind-kf-card {
+    --corner: var(--ind-accent);
 }
 
+/* The card selected is filled in the accent already: its corners are
+   V-fin yellow, as is the one playback is on. */
+.ind-kf-item.active .ind-kf-card,
 .ind-kf-item[data-playing="at"] .ind-kf-card {
-    --edge: var(--ind-accent-alt);
-    --edge-w: 2px;
+    --corner: var(--ind-accent-alt);
 }
 
-/* Fields are plates too, with smaller cuts. A field with its unit after it
-   is one plate: the field takes the bottom-left cut, the unit the top-right. */
+/* Fields are plates too, with smaller corners. A field with its unit after
+   it is one plate: the field has the bottom-left corner, the unit the
+   top-right. */
 .form-control,
 .input-group-text,
 .dash-range-slider-input {
-    --chamfer: 5px;
-    --edge: var(--ind-border-strong);
-    clip-path: var(--chamfer-clip);
+    --chamfer: 6px;
+    --corner: var(--ind-border-strong);
 }
 
 .form-control:focus {
-    --edge: var(--ind-accent);
+    --corner: var(--ind-accent);
 }
 
 .hud-panel .form-control,
 .hud-panel .input-group-text,
 .hud-panel .dash-range-slider-input {
-    --edge: var(--hud-border);
+    --corner: rgba(var(--hud-cyan-rgb), 0.45);
 }
 
 .hud-panel .form-control:focus,
 .hud-panel .dash-range-slider-input:focus {
-    --edge: rgba(var(--hud-cyan-rgb), 0.75);
+    --corner: rgba(var(--hud-cyan-rgb), 0.85);
 }
 
-/* Each draws only the stroke of the corner it cuts. */
 .input-group > .form-control:not(:last-child) {
-    clip-path: var(--chamfer-clip-bl);
     background-size: 0 0, var(--chamfer) var(--chamfer);
 }
 
 .input-group > .input-group-text:last-child {
-    clip-path: var(--chamfer-clip-tr);
     background-size: var(--chamfer) var(--chamfer), 0 0;
 }
 
