@@ -224,6 +224,54 @@ def test_setting_a_legs_joints_moves_only_that_foot(robot):
     assert drawn_feet(moved, robot)[4][2] > 1.0
 
 
+def _turned(point, pivot, axis, degrees):
+    """`point` turned `degrees` about `axis` through `pivot`, right-handed."""
+    axis = np.asarray(axis) / np.linalg.norm(axis)
+    r = np.asarray(point) - pivot
+    theta = np.radians(degrees)
+    return (
+        pivot
+        + r * np.cos(theta)
+        + np.cross(axis, r) * np.sin(theta)
+        + axis * np.dot(axis, r) * (1 - np.cos(theta))
+    )
+
+
+@pytest.mark.parametrize("robot", ROBOTS, ids=ROBOT_IDS)
+def test_each_joint_turns_about_the_axis_the_view_rings_it_by(robot):
+    # The view turns a joint by a ring about the scene's axis for it; turning
+    # the joint's angle up must swing its foot the way the ring went, on
+    # either side of the robot and with the body tilted.
+    state = tilted()
+    _, pose, _ = pl.solve(state, robot)
+    drawn = pl.scene(state, pose, robot)
+    for leg in range(6):
+        points = np.array(drawn["legs"][leg])
+        for index, joint in enumerate(("coxia", "femur", "tibia")):
+            info = drawn["joints"][leg][index]
+            assert info["angle"] == pytest.approx(pose[leg][joint], abs=1e-3)
+            assert info["axis"] is not None
+            moved = pl.with_leg_angles(state, leg, {joint: pose[leg][joint] + 3.0}, robot)
+            foot = pl.view_feet(moved, robot)[leg]
+            expected = _turned(points[3], points[index], info["axis"], 3.0)
+            np.testing.assert_allclose(foot, expected, atol=0.05)
+
+
+def test_scene_joints_survive_json():
+    robot = DEFAULT_CONFIG
+    state = tilted()
+    _, pose, _ = pl.solve(state, robot)
+    joints = pl.scene(state, pose, robot)["joints"]
+    assert json.loads(json.dumps(joints)) == joints
+    assert [len(leg) for leg in joints] == [3] * 6
+    # The view holds the ring to the same range the server holds the joint to.
+    for leg in joints:
+        for name, joint in zip(("coxia", "femur", "tibia"), leg):
+            assert joint["most"] == pytest.approx(
+                robot["joint_limits"][name] - kf.LIMIT_MARGIN_DEG, abs=1e-3
+            )
+
+
 @pytest.mark.parametrize("robot", ROBOTS, ids=ROBOT_IDS)
 def test_the_body_put_where_its_frame_is_is_the_same_body(robot):
     state = tilted()

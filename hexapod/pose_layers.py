@@ -23,7 +23,7 @@ import numpy as np
 
 from hexapod import keyframes as kf
 from hexapod.points import frame_rotxyz
-from hexapod.robot_config import get_simulator_dimensions
+from hexapod.robot_config import get_joint_limits, get_simulator_dimensions
 from hexapod.scene import order_around_centre, transform_scene
 
 BODY_KEYS = ("percent_x", "percent_y", "percent_z", "rot_x", "rot_y", "rot_z")
@@ -233,7 +233,42 @@ def scene(state, pose, robot_config):
     drawn["support"] = [[x, y, 0.0] for x, y, _ in order_around_centre(standing)]
     drawn["ground"] = 0.0
     drawn["frame"] = body_frame(state, robot_config)
+    drawn["joints"] = scene_joints(pose, rotation, robot_config)
     return drawn
+
+
+def joint_most(joint, robot_config, limits=None):
+    """How far either way (degrees) a joint is turned by its ring in the
+    view: a little inside its limit, so the leg can still be solved."""
+    limits = limits or get_joint_limits(robot_config)
+    return round(max(float(limits[joint]) - kf.LIMIT_MARGIN_DEG, 0.0), 3) + 0.0
+
+
+def scene_joints(pose, rotation, robot_config):
+    """Each joint as the view's ring on it has it: per leg, per joint (coxia,
+    femur, tibia), {"axis"}, what a positive angle turns it about in the
+    world (None where that cannot be told), {"angle"}, where it is, and
+    {"most"}, how far either way the ring turns it (as pages/pose.py holds
+    it), in degrees. The view turns the leg itself while the ring is dragged,
+    so it follows without waiting for the server."""
+    axes = kf.joint_axes(pose, robot_config)
+    limits = get_joint_limits(robot_config)
+    joints = []
+    for leg_id in range(6):
+        leg = []
+        for index, name in enumerate(("coxia", "femur", "tibia")):
+            axis = axes[leg_id][index]
+            if axis is not None:
+                axis = [round(float(c), 6) + 0.0 for c in rotation @ np.asarray(axis)]
+            leg.append(
+                {
+                    "axis": axis,
+                    "angle": round(float(pose[leg_id][name]), 3) + 0.0,
+                    "most": joint_most(name, robot_config, limits),
+                }
+            )
+        joints.append(leg)
+    return joints
 
 
 def state_to_vector(state):
