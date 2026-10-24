@@ -1893,6 +1893,7 @@ body {
 
 /* The keyframes part: the track, then the editor under it. */
 .dock-part-stack {
+    min-height: 0;
     flex-direction: column;
     flex-wrap: nowrap;
     align-items: stretch;
@@ -1976,28 +1977,36 @@ body {
 }
 
 /* ---- Keyframe track ----
-   The keyframes in order as cards, joined by arrows that carry the time each
-   move takes, in an outlined lane; it scrolls sideways when they do not fit. */
+   The keyframes in order, each a card behind the arrow into it: the time the
+   move takes over a line ending in an arrowhead, beside a little graph of how
+   it moves (eased or linear). The first one's arrow is the move back round to
+   it, used when looping. They wrap onto as many rows as the dock is tall and
+   scroll down past that: like the library's list, the track takes no height
+   of its own (contain: size), only what the dock leaves it. */
 
-.dock-track {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
+.dock-sequence {
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 .ind-kf-strip {
-    flex: 1 1 auto;
+    position: relative;
+    flex: 1 1 0;
+    min-height: 4.4rem;
+    contain: size;
     display: flex;
-    align-items: center;
-    min-width: 0;
-    min-height: 3.3rem;
-    overflow-x: auto;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    align-items: stretch;
+    gap: 0.45rem 0;
+    overflow-y: auto;
     padding: 0.45rem 0.6rem;
     border: 1px solid var(--ind-border-strong);
 }
 
 /* Inside the lane, which is outlined already. */
 .ind-kf-strip .dock-empty {
+    align-self: center;
     padding: 0;
     border: none;
 }
@@ -2014,17 +2023,37 @@ body {
     border: 1px dashed var(--ind-border-strong);
 }
 
-.ind-kf-card {
+/* One keyframe: its arrow, then its card; clicking either selects it. */
+.ind-kf-item {
     flex: 0 0 auto;
     display: inline-flex;
-    flex-direction: column;
-    align-items: flex-start;
-    min-width: 4rem;
-    padding: 0.22rem 0.65rem 0.28rem;
+    align-items: stretch;
+    padding: 0;
+    margin: 0;
     font-family: var(--font-mono);
-    line-height: 1.2;
-    text-align: left;
     color: var(--ind-text);
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.ind-kf-item:focus-visible {
+    outline: none;
+}
+
+.ind-kf-item:focus-visible .ind-kf-card {
+    box-shadow: var(--ind-glow);
+}
+
+.ind-kf-card {
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    min-width: 4.4rem;
+    padding: 0.3rem 0.7rem 0.34rem;
+    line-height: 1.25;
+    text-align: left;
     background: var(--ind-surface-alt);
     border: 1px solid var(--ind-frame);
     --chamfer: 6px;
@@ -2032,19 +2061,25 @@ body {
     transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
-.ind-kf-card:hover {
+.ind-kf-item:hover .ind-kf-card {
     border-color: var(--ind-accent);
     background: var(--ind-hover);
 }
 
-.ind-kf-card.active {
+.ind-kf-item.active .ind-kf-card {
     color: #fff;
     background: var(--ind-accent);
     border-color: var(--ind-accent);
 }
 
+/* The keyframe playback is on, in the view: edged in V-fin yellow. */
+.ind-kf-item[data-playing="at"] .ind-kf-card {
+    border-color: var(--ind-accent-alt);
+    box-shadow: inset 0 0 0 1px var(--ind-accent-alt);
+}
+
 .ind-kf-index {
-    font-size: 0.8rem;
+    font-size: 0.86rem;
     font-weight: 700;
 }
 
@@ -2053,42 +2088,122 @@ body {
     color: var(--ind-text-muted);
 }
 
-.ind-kf-card.active .ind-kf-time {
+.ind-kf-item.active .ind-kf-time {
     color: rgba(255, 255, 255, 0.8);
 }
 
-/* The time over a line that ends in an arrowhead (or, looping, in ↺). */
+/* The arrow into a keyframe: the time over a line, the graph beside it. */
 .ind-kf-link {
-    flex: 0 0 auto;
     display: inline-flex;
     flex-direction: column;
+    justify-content: center;
     align-items: stretch;
-    min-width: 3.8rem;
-    padding: 0 0.15rem;
-    font-family: var(--font-mono);
+    gap: 0.1rem;
+    min-width: 4.6rem;
+    padding: 0 0.3rem 0 0.4rem;
     text-align: center;
     white-space: nowrap;
-    cursor: default;
-}
-
-.ind-kf-link-label {
-    font-size: 0.66rem;
     color: var(--ind-text-muted);
 }
 
-.ind-kf-arrow {
+.ind-kf-link-label {
+    font-size: 0.68rem;
+}
+
+.ind-kf-loop {
+    margin-right: 0.2rem;
+    font-weight: 700;
+}
+
+.ind-kf-link-line {
     display: flex;
     align-items: center;
-    font-size: 0.8rem;
-    line-height: 0.8;
-    color: var(--ind-border-strong);
+    gap: 0.25rem;
+}
+
+/* A line and its arrowhead, filled from the left as playback goes through
+   the move (--kf-progress, set by pages/pose.py). */
+.ind-kf-arrow {
+    position: relative;
+    flex: 1 1 auto;
+    height: 2px;
+    min-width: 1.2rem;
+    margin-right: 5px;
+    background: var(--ind-border-strong);
 }
 
 .ind-kf-arrow::before {
     content: '';
-    flex: 1 1 auto;
-    height: 1px;
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: calc(var(--kf-progress, 0) * 100%);
+    background: var(--ind-accent-alt);
+}
+
+.ind-kf-arrow::after {
+    content: '';
+    position: absolute;
+    right: -6px;
+    top: 50%;
+    border-left: 6px solid var(--ind-border-strong);
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    transform: translateY(-50%);
+}
+
+.ind-kf-item[data-playing] .ind-kf-arrow::after {
+    border-left-color: var(--ind-accent-alt);
+}
+
+/* The arrow of the keyframe selected is what its Transition field sets. */
+.ind-kf-item.active .ind-kf-link,
+.ind-kf-item:hover .ind-kf-link {
+    color: var(--ind-accent);
+}
+
+.ind-kf-item.active .ind-kf-arrow {
+    background: var(--ind-accent);
+}
+
+.ind-kf-item.active .ind-kf-arrow::after {
+    border-left-color: var(--ind-accent);
+}
+
+/* The move back round to the first keyframe, while the sequence does not
+   loop: there, but not used. */
+.ind-kf-link.is-idle {
+    opacity: 0.45;
+}
+
+.ind-kf-link.is-idle .ind-kf-arrow {
+    background: repeating-linear-gradient(
+        90deg, var(--ind-border-strong) 0 4px, transparent 4px 7px
+    );
+}
+
+/* How a move goes, as a graph of where against when: an S that starts and
+   stops gently, or a straight line. Drawn in the text's colour. */
+.ind-ease-icon {
+    flex: 0 0 auto;
+    display: inline-block;
+    width: 1.3rem;
+    height: 0.95rem;
     background: currentColor;
+    -webkit-mask: var(--ease-curve) center / contain no-repeat;
+    mask: var(--ease-curve) center / contain no-repeat;
+}
+
+.ind-ease-icon.is-eased {
+    --ease-curve: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 12'%3E%3Cpath d='M1 1v10h14' fill='none' stroke='%23000' stroke-opacity='.35' stroke-width='1'/%3E%3Cpath d='M1.5 10.5C7 10.5 9 1.5 14.5 1.5' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+.ind-ease-icon.is-linear {
+    --ease-curve: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 12'%3E%3Cpath d='M1 1v10h14' fill='none' stroke='%23000' stroke-opacity='.35' stroke-width='1'/%3E%3Cpath d='M1.5 10.5L14.5 1.5' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+.dock-seg-item .ind-ease-icon {
+    margin-right: 0.3rem;
+    vertical-align: -0.1rem;
 }
 
 /* ---- Gaits library ----
@@ -2232,31 +2347,36 @@ body {
 }
 
 /* ---- Keyframe editor ----
-   Under the track, about the card selected: tinted and edged in the accent
-   so it reads as belonging to it. */
+   A bar under the track, about the card selected: tinted and edged in the
+   accent so it reads as belonging to it. It wraps when the dock is narrow. */
 
 .dock-kf-editor {
+    flex: 0 0 auto;
     display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.9rem;
     padding: 0.4rem 0.6rem;
     background: var(--ind-input-bg);
     border-left: 3px solid var(--ind-accent);
 }
 
-.dock-kf-row {
+.dock-kf-title {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.4rem 0.6rem;
+    flex-direction: column;
+    min-width: 7.5rem;
+    line-height: 1.2;
 }
 
 .dock-kf-label {
-    min-width: 7.5rem;
     font-family: var(--font-mono);
-    font-size: 0.78rem;
+    font-size: 0.8rem;
     font-weight: 700;
     white-space: nowrap;
+}
+
+.dock-kf-title .dock-note {
+    font-size: 0.66rem;
 }
 
 .dock-inline-field {
@@ -2290,6 +2410,11 @@ body {
     .dock-gait-mine {
         flex: 0 0 auto;
         height: 13rem;
+    }
+
+    .ind-kf-strip {
+        flex: 0 0 auto;
+        height: 9rem;
     }
 
     .dock-gait-mine .dock-gait-list {

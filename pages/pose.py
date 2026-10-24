@@ -60,6 +60,8 @@ from pages.shell import view_ack_id, view_store_id
 from widgets.body_ui import BODY_RANGES, BODY_SLIDER_IDS
 from widgets.dimensions_ui import DIMENSIONS_JSON_ID
 from widgets.pose_ui import (
+    EASE_OFF,
+    EASE_ON,
     MODE_EDIT,
     MODE_PREVIEW,
     POSE_HUD_CLASS,
@@ -78,6 +80,7 @@ from widgets.pose_ui import (
     POSE_DELETE_BTN_ID,
     POSE_DOWNLOAD_ID,
     POSE_DURATION_ID,
+    POSE_DURATION_LABEL_ID,
     POSE_EARLIER_BTN_ID,
     POSE_FOOT_FIELD_IDS,
     POSE_FOOT_TITLE_ID,
@@ -96,6 +99,7 @@ from widgets.pose_ui import (
     POSE_KF_EDITOR_LABEL_ID,
     POSE_KF_ITEM_TYPE,
     POSE_KF_LIST_ID,
+    POSE_KF_POSITION_ID,
     POSE_KF_SUMMARY_ID,
     POSE_LATER_BTN_ID,
     POSE_LOOP_ID,
@@ -107,6 +111,7 @@ from widgets.pose_ui import (
     POSE_PICK_LEG_IDS,
     POSE_PREVIEW_MESSAGE_ID,
     POSE_PREVIEW_STORE_ID,
+    POSE_RENUMBER_BTN_ID,
     POSE_RESET_BTN_ID,
     POSE_RESET_VIEW_BTN_ID,
     POSE_ROBOT_CONTROLS_ID,
@@ -416,6 +421,7 @@ def _keyframe_state(keyframe, robot_config):
         _delete=Input(POSE_DELETE_BTN_ID, "n_clicks"),
         _earlier=Input(POSE_EARLIER_BTN_ID, "n_clicks"),
         _later=Input(POSE_LATER_BTN_ID, "n_clicks"),
+        _renumber=Input(POSE_RENUMBER_BTN_ID, "n_clicks"),
         _item_clicks=Input({"type": POSE_KF_ITEM_TYPE, "index": ALL}, "n_clicks"),
         _gait_clicks=Input({"type": POSE_GAIT_ITEM_TYPE, "index": ALL}, "n_clicks"),
         _user_gait_clicks=Input({"type": POSE_USER_GAIT_ITEM_TYPE, "index": ALL}, "n_clicks"),
@@ -431,7 +437,7 @@ def _keyframe_state(keyframe, robot_config):
         foot_values=[Input(field_id, "value") for field_id in POSE_FOOT_FIELD_IDS],
         joint_values=[Input(field_id, "value") for field_id in POSE_JOINT_FIELD_IDS],
         duration=Input(POSE_DURATION_ID, "value"),
-        ease_values=Input(POSE_KF_EASE_ID, "value"),
+        ease_value=Input(POSE_KF_EASE_ID, "value"),
         playhead=Input(POSE_PLAYHEAD_ID, "data"),
         # Resizing the robot moves every foot field and joint.
         dimensions_json=DIMENSIONS_INPUT,
@@ -454,6 +460,7 @@ def edit(
     _delete,
     _earlier,
     _later,
+    _renumber,
     _item_clicks,
     _gait_clicks,
     _user_gait_clicks,
@@ -466,7 +473,7 @@ def edit(
     foot_values,
     joint_values,
     duration,
-    ease_values,
+    ease_value,
     playhead,
     dimensions_json,
     pose_store,
@@ -532,7 +539,9 @@ def edit(
         return _pose_store(robot_config, new_state, pose_store.get("seq", 0) + 1, at)
 
     def set_frames(new_frames):
-        return {"robot": robot_config["name"], "keyframes": new_frames}
+        # Every keyframe keeps the number it was given; a new one gets the
+        # next.
+        return {"robot": robot_config["name"], "keyframes": kf.numbered(new_frames)}
 
     if trigger == POSE_FOOT_TARGET_ID and foot_target:
         leg = foot_target.get("leg")
@@ -642,7 +651,7 @@ def edit(
 
     elif trigger == POSE_ADD_BTN_ID:
         feet = pl.body_feet(state, robot_config)
-        eased = bool(ease_values) and "ease" in ease_values
+        eased = ease_value != EASE_OFF
         at = pose_store.get("at")
         if selected is None and at and 0 <= at["after"] < len(frames):
             # Taken from where playback came to rest: it goes in there,
@@ -715,6 +724,9 @@ def edit(
         except kf.KeyframeFileError as error:
             inserted = []
             message = _pose_alert(error)
+        if trigger["type"] in (POSE_GAIT_ITEM_TYPE, POSE_USER_GAIT_ITEM_TYPE):
+            # Put into a sequence, they are numbered after what is there.
+            inserted = kf.unnumbered(inserted)
         if inserted and trigger["type"] in (POSE_GAIT_REPLACE_TYPE, POSE_USER_GAIT_REPLACE_TYPE):
             frames = list(inserted)
             out_keyframes = set_frames(frames)
@@ -772,15 +784,17 @@ def edit(
         # selected, it waits for the next + Add.
         if selected is None:
             raise PreventUpdate
-        eased = bool(ease_values) and "ease" in ease_values
+        eased = ease_value != EASE_OFF
         if kf.eases(frames[selected]) != eased:
-            frame = frames[selected]
-            frames[selected] = kf.make_keyframe(
-                frame["feet"], frame["duration_ms"], frame.get("state"), ease=eased
-            )
+            frames[selected] = kf.with_ease(frames[selected], eased)
             out_keyframes = set_frames(frames)
 
+    elif trigger == POSE_RENUMBER_BTN_ID:
+        if frames:
+            out_keyframes = {"robot": robot_config["name"], "keyframes": kf.renumbered(frames)}
+
     elif trigger in (POSE_EARLIER_BTN_ID, POSE_LATER_BTN_ID):
+        # It keeps its number, wherever it goes.
         step = -1 if trigger == POSE_EARLIER_BTN_ID else 1
         if selected is None or not 0 <= selected + step < len(frames):
             raise PreventUpdate
@@ -849,13 +863,13 @@ def edit(
     out_ease = no_update
     if trigger != POSE_KF_EASE_ID and shown_selected is not None:
         if 0 <= shown_selected < len(shown_frames):
-            out_ease = ["ease"] if kf.eases(shown_frames[shown_selected]) else []
+            out_ease = EASE_ON if kf.eases(shown_frames[shown_selected]) else EASE_OFF
     if out_selected is None:
         # Nothing selected any more: the bar is the next keyframe's again,
         # starting from the usual time and easing rather than the last
         # keyframe's.
         out_duration = kf.DEFAULT_DURATION_MS
-        out_ease = ["ease"]
+        out_ease = EASE_ON
 
     # A pose stays "at" its point of the sequence only while the keyframes
     # are as they were and none is selected; then the bar is the keyframe it
@@ -866,7 +880,7 @@ def edit(
     elif at and trigger == POSE_PLAYHEAD_ID:
         out_duration = max(kf.MIN_DURATION_MS, round(at["ms"]))
         following = frames[(at["after"] + 1) % len(frames)]
-        out_ease = ["ease"] if kf.eases(following) else []
+        out_ease = EASE_ON if kf.eases(following) else EASE_OFF
 
     return dict(
         pose=out_pose,
@@ -967,16 +981,50 @@ clientside_callback(
 # ......................
 
 
-def _kf_link(label, arrow, title):
-    """The arrow from one keyframe to the next, with how long the move takes."""
+def _ease_icon(eased):
+    return html.Span(className=f"ind-ease-icon {'is-eased' if eased else 'is-linear'}")
+
+
+def _kf_link(frame, title, loop_back=False, idle=False):
+    """The arrow into a keyframe: how long the move takes, over a line ending
+    in an arrowhead, and a little graph of how it moves -- eased or steady.
+    The first keyframe's is the move back round to it, marked ↺, and dimmed
+    while it is not used: when the sequence does not loop."""
+    eased = kf.eases(frame)
+    classes = ["ind-kf-link", "is-eased" if eased else "is-linear"]
+    if loop_back:
+        classes.append("is-loop")
+    if idle:
+        classes.append("is-idle")
     return html.Span(
         [
-            html.Span(label, className="ind-kf-link-label"),
-            html.Span(arrow, className="ind-kf-arrow"),
+            html.Span(
+                [
+                    *([html.Span("↺", className="ind-kf-loop")] if loop_back else []),
+                    f"{frame['duration_ms']} ms",
+                ],
+                className="ind-kf-link-label",
+            ),
+            html.Span(
+                [_ease_icon(eased), html.Span(className="ind-kf-arrow")],
+                className="ind-kf-link-line",
+            ),
         ],
-        className="ind-kf-link",
+        className=" ".join(classes),
         title=title,
     )
+
+
+def _link_title(frames, index, loop):
+    frame = frames[index]
+    how = "eased" if kf.eases(frame) else "linear"
+    name = kf.label(frame)
+    if index:
+        return f"{kf.label(frames[index - 1])} to {name}: {frame['duration_ms']} ms, {how}"
+    if len(frames) < 2:
+        return f"Back round to {name}: used when the sequence loops"
+    back = f"Back from {kf.label(frames[-1])} to {name}: {frame['duration_ms']} ms, {how}"
+    return back if loop else f"{back}. Only used when Loop is on."
 
 
 @callback(
@@ -987,6 +1035,7 @@ def _kf_link(label, arrow, title):
     Output(POSE_DELETE_BTN_ID, "disabled"),
     Output(POSE_EARLIER_BTN_ID, "disabled"),
     Output(POSE_LATER_BTN_ID, "disabled"),
+    Output(POSE_RENUMBER_BTN_ID, "disabled"),
     Input(POSE_KEYFRAMES_STORE_ID, "data"),
     Input(POSE_SELECTED_KF_STORE_ID, "data"),
     Input(POSE_LOOP_ID, "value"),
@@ -995,81 +1044,159 @@ def list_keyframes(keyframes_store, selected, loop_values):
     """The keyframe track, and the editor's buttons for the keyframe selected:
     each one is only enabled when there is something for it to do."""
     frames = keyframes_store["keyframes"] if isinstance(keyframes_store, dict) else []
+    # As edit() keeps them; a store from before keyframes were numbered is
+    # numbered in order.
+    frames = kf.numbered(frames)
     if selected is not None and not 0 <= selected < len(frames):
         selected = None
     loop = bool(loop_values) and "loop" in loop_values
 
     if frames:
-        # Each keyframe with when it is reached; on the arrow into it, how
-        # long it takes to get there from the one before.
+        # Each keyframe behind the arrow into it, with when it is reached.
+        # The arrow and the card are one button: either selects it.
         items = []
-        at_ms = 0
-        for index, frame in enumerate(frames):
-            if index:
-                at_ms += frame["duration_ms"]
-                items.append(
-                    _kf_link(
-                        f"{frame['duration_ms']} ms",
-                        "▸",
-                        f"#{index} to #{index + 1} in {frame['duration_ms']} ms",
-                    )
-                )
+        for index, (frame, at_ms) in enumerate(zip(frames, kf.keyframe_times_ms(frames))):
+            first = index == 0
+            classes = "ind-kf-item"
+            if index == selected:
+                classes += " active"
             items.append(
                 html.Button(
                     [
-                        html.Span(f"#{index + 1}", className="ind-kf-index"),
-                        html.Span(f"{at_ms / 1000:.2f} s", className="ind-kf-time"),
+                        _kf_link(
+                            frame,
+                            _link_title(frames, index, loop),
+                            loop_back=first,
+                            idle=first and (not loop or len(frames) < 2),
+                        ),
+                        html.Span(
+                            [
+                                html.Span(kf.label(frame), className="ind-kf-index"),
+                                html.Span(f"{at_ms / 1000:.2f} s", className="ind-kf-time"),
+                            ],
+                            className="ind-kf-card",
+                            title=f"Keyframe {kf.label(frame)}: load it into the pose",
+                        ),
                     ],
                     id={"type": POSE_KF_ITEM_TYPE, "index": index},
-                    className="ind-kf-card active" if index == selected else "ind-kf-card",
-                    title="Load this keyframe into the pose",
+                    className=classes,
+                    **{"data-kf": index},
                 )
-            )
-        if loop and len(frames) > 1:
-            # Looping, the move back to the start takes the first keyframe's
-            # time (hexapod/keyframes.py).
-            first_ms = frames[0]["duration_ms"]
-            items.append(
-                _kf_link(f"{first_ms} ms", "↺", f"Back to #1 in {first_ms} ms, then again")
             )
         total = kf.sequence_duration_ms(frames, loop) / 1000.0
         summary = f"{len(frames)} keyframe{'s' if len(frames) != 1 else ''} · {total:.2f} s"
     else:
         items = html.Div(
-            "No keyframes yet: pose the robot in the view, then + Add pose.",
+            "No keyframes yet: pose the robot in the view, then + Add pose, "
+            "or add a gait from the library.",
             className="dock-empty",
         )
         summary = ""
 
+    in_order = [kf.number_of(frame) for frame in frames] == list(range(1, len(frames) + 1))
     if selected is None:
-        return items, summary, "Save pose", True, True, True, True
+        return items, summary, "Save pose", True, True, True, True, in_order
 
-    number = selected + 1
+    name = kf.label(frames[selected])
     last = selected == len(frames) - 1
-    return items, summary, f"Save pose to #{number}", False, False, selected == 0, last
+    return (
+        items,
+        summary,
+        f"Save pose to {name}",
+        False,
+        False,
+        selected == 0,
+        last,
+        in_order,
+    )
 
 
 @callback(
     Output(POSE_KF_EDITOR_LABEL_ID, "children"),
+    Output(POSE_KF_POSITION_ID, "children"),
+    Output(POSE_DURATION_LABEL_ID, "children"),
     Output(POSE_ADD_BTN_ID, "children"),
     Input(POSE_KEYFRAMES_STORE_ID, "data"),
     Input(POSE_SELECTED_KF_STORE_ID, "data"),
     Input(POSE_STATE_STORE_ID, "data"),
 )
 def label_editor(keyframes_store, selected, pose_store):
-    """What the bar is about, and where + Add pose puts the pose: after the
-    keyframe selected, at the point of the sequence the pose was taken from,
-    or at the end."""
+    """What the bar is about, what its time field is, and where + Add pose
+    puts the pose: after the keyframe selected, at the point of the sequence
+    the pose was taken from, or at the end."""
     frames = keyframes_store["keyframes"] if isinstance(keyframes_store, dict) else []
+    frames = kf.numbered(frames)
     at = pose_store.get("at") if isinstance(pose_store, dict) else None
     if selected is not None and 0 <= selected < len(frames):
-        number = selected + 1
+        name = kf.label(frames[selected])
         last = selected == len(frames) - 1
-        return f"Keyframe #{number}", "+ Add pose" if last else f"+ Insert after #{number}"
+        # The first keyframe's time is the move back round to it.
+        field = "Loop back" if selected == 0 else "Transition"
+        position = f"{selected + 1} of {len(frames)}"
+        add = "+ Add pose" if last else f"+ Insert after {name}"
+        return f"Keyframe {name}", position, field, add
     if at and 0 <= at["after"] < len(frames):
         seconds = _at_ms(frames, at) / 1000.0
-        return f"New keyframe at {seconds:.2f} s", f"+ Add pose at {seconds:.2f} s"
-    return "New keyframe", "+ Add pose"
+        return (
+            f"New keyframe at {seconds:.2f} s",
+            "",
+            "Transition",
+            f"+ Add pose at {seconds:.2f} s",
+        )
+    return "New keyframe", "", "Transition", "+ Add pose"
+
+
+# While the sequence plays in the view, or is scrubbed, the track shows where
+# it is: the arrow into the keyframe it is heading for fills as it goes, and
+# the keyframe it is on is marked. Set on the elements themselves, as data
+# attributes, so the list is not rebuilt every frame.
+clientside_callback(
+    """
+    function(frame, mode, preview, keyframes_store) {
+        var strip = document.getElementById("%s");
+        if (!strip) {
+            return window.dash_clientside.no_update;
+        }
+        var items = strip.querySelectorAll("[data-kf]");
+        items.forEach(function (item) {
+            item.removeAttribute("data-playing");
+            item.style.removeProperty("--kf-progress");
+        });
+        var frames = keyframes_store && keyframes_store.keyframes;
+        if (mode !== "%s" || !preview || !preview.times || !frames
+                || preview.count !== frames.length) {
+            return window.dash_clientside.no_update;
+        }
+        var times = preview.times[Math.min(Math.max(frame || 0, 0), preview.times.length - 1)];
+        if (!times) {
+            return window.dash_clientside.no_update;
+        }
+        var end = times[1], ms = times[2];
+        var move = Math.max(frames[end].duration_ms, 1);
+        var item = strip.querySelector('[data-kf="' + end + '"]');
+        if (!item) {
+            return window.dash_clientside.no_update;
+        }
+        var progress = times[0] === end ? 1 : Math.min(ms / move, 1);
+        item.setAttribute("data-playing", progress >= 0.999 ? "at" : "moving");
+        item.style.setProperty("--kf-progress", progress.toFixed(3));
+        // Keep it in sight in the track, which scrolls down a long sequence.
+        var top = item.offsetTop;
+        var bottom = strip.scrollTop + strip.clientHeight;
+        if (top < strip.scrollTop || top + item.offsetHeight > bottom) {
+            strip.scrollTop = top - 4;
+        }
+        return window.dash_clientside.no_update;
+    }
+    """
+    % (POSE_KF_LIST_ID, MODE_PREVIEW),
+    Output(POSE_RENDER_ACK_ID, "data", allow_duplicate=True),
+    Input(POSE_FRAME_SLIDER_ID, "value"),
+    Input(POSE_VIEW_MODE_ID, "data"),
+    Input(POSE_PREVIEW_STORE_ID, "data"),
+    State(POSE_KEYFRAMES_STORE_ID, "data"),
+    prevent_initial_call=True,
+)
 
 
 @callback(
