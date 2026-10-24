@@ -2449,8 +2449,8 @@ body {
 /* ===========================================
    CORNERS
    The top-right and bottom-left corners of the plates -- buttons, panels,
-   fields, keyframe cards -- are filled in at 45 degrees with --corner, over
-   the plate's outline, in a trim colour or the outline's own.
+   fields, keyframe cards -- are filled in at 45 degrees, in the colour of
+   the plate's outline, over it.
 
    A border is painted over the background, so it would run across the
    corners. So the plates' borders keep their width but are made
@@ -2469,6 +2469,7 @@ body {
 .dash-range-slider-input {
     --line: transparent;
     --line-w: 1px;
+    --corner: var(--line);
     --corner-tr: var(--chamfer);
     --corner-bl: var(--chamfer);
     border-color: transparent !important;
@@ -2502,14 +2503,11 @@ body {
 }
 
 /* ---- Buttons ----
-   The outline as Bootstrap has it in each state; the corners in trim
-   colours, so they read against it: Federation blue on the white and navy
-   plates, V-fin yellow on the solid ones, red on delete. */
+   The outline as Bootstrap has it in each state. */
 
 .btn {
     --line: var(--bs-btn-border-color);
     --line-w: var(--bs-btn-border-width);
-    --corner: var(--line);
 }
 
 .btn:hover {
@@ -2523,25 +2521,9 @@ body {
     --line: var(--bs-btn-active-border-color);
 }
 
-.btn.btn-secondary,
-.btn.btn-outline-secondary {
-    --corner: var(--ind-accent);
-}
-
-.btn.btn-primary,
-.btn.btn-success {
-    --corner: var(--ind-accent-alt);
-}
-
-.btn.btn-danger,
-.btn.btn-outline-danger {
-    --corner: var(--ind-red);
-}
-
 .btn:disabled,
 .btn.disabled {
     --line: var(--bs-btn-disabled-border-color);
-    --corner: var(--bs-btn-disabled-border-color);
 }
 
 /* ---- The status pill, the panels and the keyframe cards ---- */
@@ -2549,54 +2531,43 @@ body {
 .status-pill {
     --line: var(--ind-frame);
     --line-w: 2px;
-    --corner: var(--ind-accent);
 }
 
 .status-pill.is-fault {
     --line: var(--ind-red);
-    --corner: var(--ind-red);
 }
 
-/* Over the view, the corners are lit: panel lights in HUD cyan. */
 .hud-panel {
     --line: var(--hud-border);
-    --corner: rgba(var(--hud-cyan-rgb), 0.85);
 }
 
 .ind-kf-card {
     --line: var(--ind-frame);
-    --corner: var(--ind-frame);
 }
 
 .ind-kf-item:hover .ind-kf-card {
     --line: var(--ind-accent);
-    --corner: var(--ind-accent);
 }
 
-/* The card selected is filled in the accent already: its corners are
-   V-fin yellow, as is the one playback is on. */
 .ind-kf-item.active .ind-kf-card {
     --line: var(--ind-accent);
-    --corner: var(--ind-accent-alt);
 }
 
 .ind-kf-item[data-playing="at"] .ind-kf-card {
     --line: var(--ind-accent-alt);
     --line-w: 2px;
-    --corner: var(--ind-accent-alt);
 }
 
 /* ---- Fields ----
-   Plates too, with smaller corners in their outline's colour, blue while
-   typed in. A field with its unit after it is one plate: the field has the
-   bottom-left corner, the unit the top-right. */
+   Plates too, with smaller corners, outlined in blue while typed in. A
+   field with its unit after it is one plate: the field has the bottom-left
+   corner, the unit the top-right. */
 
 .form-control,
 .input-group-text,
 .dash-range-slider-input {
     --chamfer: 6px;
     --line: var(--ind-border-strong);
-    --corner: var(--line);
 }
 
 .form-control:focus,
@@ -2608,14 +2579,12 @@ body {
 .hud-panel .input-group-text,
 .hud-panel .dash-range-slider-input {
     --line: var(--hud-border);
-    --corner: rgba(var(--hud-cyan-rgb), 0.45);
     border-color: transparent !important;
 }
 
 .hud-panel .form-control:focus,
 .hud-panel .dash-range-slider-input:focus {
     --line: rgba(var(--hud-cyan-rgb), 0.75);
-    --corner: rgba(var(--hud-cyan-rgb), 0.85);
 }
 
 .input-group > .form-control:not(:last-child) {
