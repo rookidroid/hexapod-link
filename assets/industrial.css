@@ -401,7 +401,7 @@ body {
     text-overflow: ellipsis;
     color: var(--ind-text);
     background-color: var(--ind-surface-alt);
-    border: 2px solid var(--ind-frame);
+    border: 1px solid var(--ind-frame);
     cursor: default;
     transition: border-color 0.15s ease;
 }
@@ -677,7 +677,7 @@ body {
     flex-direction: column;
     overflow-y: auto;
     background: var(--ind-surface);
-    border-top: 2px solid var(--ind-frame);
+    border-top: 1px solid var(--ind-frame);
 }
 
 /* ---- Splitters ----
@@ -812,13 +812,13 @@ body {
    CONTROLS
    =========================================== */
 
-/* Buttons are armour plates: a heavy navy border, and two corners filled in
+/* Buttons are armour plates: a navy border, and two corners filled in
    (CORNERS, at the end). The focus ring is drawn inside, as the buttons sit
    edge to edge in their groups. */
 .btn {
     --bs-btn-font-family: var(--font-ui);
     --bs-btn-font-weight: 700;
-    --bs-btn-border-width: 2px;
+    --bs-btn-border-width: 1px;
     --bs-btn-border-radius: 0;
     --bs-btn-padding-x: 0.75rem;
     --bs-btn-padding-y: 0.3rem;
@@ -1121,7 +1121,7 @@ body {
     background-position: center;
     background-repeat: no-repeat;
     background-size: 11px 11px;
-    border: 1.5px solid var(--ind-border-strong);
+    border: 1px solid var(--ind-border-strong);
     cursor: pointer;
     transition: background-color 0.1s ease, border-color 0.1s ease;
 }
@@ -2098,7 +2098,6 @@ body {
 /* The keyframe playback is on, in the view: edged in V-fin yellow. */
 .ind-kf-item[data-playing="at"] .ind-kf-card {
     border-color: var(--ind-accent-alt);
-    box-shadow: inset 0 0 0 1px var(--ind-accent-alt);
 }
 
 .ind-kf-index {
