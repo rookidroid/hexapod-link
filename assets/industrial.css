@@ -159,6 +159,9 @@
     --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
 
     --topbar-h: 52px;
+    /* How far down the view the top bar reaches, where it lies over the view
+       (TOP BAR below); the view's top overlays start under it. */
+    --view-top: 0px;
     /* The red block that starts the top bar's trim. */
     --trim-w: 68px;
     /* The dock's height and the widths of its side columns (a percentage
@@ -381,6 +384,199 @@ body {
 .icon-btn:hover {
     background: var(--ind-hover);
 }
+
+/* ---- Over the view ----
+   Above `lg` the top bar is laid over the top of the 3D view rather than
+   above it, and is see-through, with only a faint shade so its text reads:
+   the view, and the robot in it, run up to the window's top edge. Being on
+   the dark monitor, it takes the HUD's colours in either theme. In the
+   desktop app it is the window's title bar too (WINDOW below). */
+
+@media (min-width: 992px) {
+    :root {
+        --view-top: var(--topbar-h);
+    }
+
+    .app-shell {
+        position: relative;
+    }
+
+    .topbar {
+        color-scheme: dark;
+        --ind-surface-alt: var(--hud-bg);
+        --ind-border: var(--hud-border);
+        --ind-border-strong: rgba(var(--hud-cyan-rgb), 0.45);
+        --ind-frame: rgba(var(--hud-cyan-rgb), 0.45);
+        --ind-accent: #3d7cf0;
+        --ind-accent-hover: #2f68d6;
+        --ind-accent-active: #2455b4;
+        --ind-accent-rgb: 61, 124, 240;
+        --ind-accent-alt: #ffd23f;
+        --ind-red: #ff4d4d;
+        --ind-ok: #22c55e;
+        --ind-outline: #02060f;
+        --ind-text: var(--hud-text);
+        --ind-text-muted: var(--hud-muted);
+        --ind-hover: rgba(var(--hud-cyan-rgb), 0.14);
+        --ind-input-bg: rgba(8, 16, 34, 0.6);
+        --ind-glow: 0 0 0 1px rgba(var(--hud-cyan-rgb), 0.45), 0 0 14px rgba(var(--hud-cyan-rgb), 0.25);
+        --ind-glow-inset: inset 0 0 0 2px rgba(var(--hud-cyan-rgb), 0.7);
+
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: var(--topbar-h);
+        color: var(--ind-text);
+        background: linear-gradient(to bottom, rgba(6, 12, 24, 0.62), rgba(6, 12, 24, 0));
+        box-shadow: none;
+        user-select: none;
+    }
+
+    .topbar-title {
+        text-shadow: 0 0 12px rgba(var(--hud-cyan-rgb), 0.35);
+    }
+
+    /* The trim stays as a decal under the brand: red, then the yellow vents,
+       without the blue run across the view. */
+    .topbar::after {
+        right: auto;
+        width: calc(var(--trim-w) + 82px);
+        height: 3px;
+        background:
+            linear-gradient(90deg, var(--ind-red) 0 var(--trim-w), transparent var(--trim-w)),
+            repeating-linear-gradient(90deg, var(--ind-accent-alt) 0 10px, transparent 10px 16px)
+                calc(var(--trim-w) + 6px) 0 / 76px 100% no-repeat;
+    }
+
+    .topbar .status-pill {
+        backdrop-filter: blur(6px);
+    }
+}
+
+/* ===========================================
+   WINDOW
+   In the desktop app the window has no frame of its own (hexapod_link.py):
+   the top bar drags it and ends in its buttons, and strips along its edges
+   resize it. Shown only there, with data-window="frameless" on <html>;
+   assets/window_frame.js drives them.
+   =========================================== */
+
+.window-buttons,
+.window-edges {
+    display: none;
+}
+
+[data-window="frameless"] .topbar {
+    padding-right: 0;
+}
+
+[data-window="frameless"] .window-buttons {
+    display: flex;
+    align-self: stretch;
+    margin-left: 0.25rem;
+    margin-bottom: -4px;
+}
+
+.window-btn {
+    width: 46px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ind-text);
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    transition: background-color 0.15s ease;
+}
+
+.window-btn:hover {
+    background: var(--ind-hover);
+}
+
+.window-btn-close:hover {
+    color: #fff;
+    background: #e81123;
+}
+
+.window-btn:focus-visible {
+    outline: none;
+    box-shadow: var(--ind-glow-inset);
+}
+
+/* The icons, drawn in the bar's text colour: a dash, a square (two, when
+   maximized), a cross. */
+.window-btn-icon {
+    position: relative;
+    width: 10px;
+    height: 10px;
+    pointer-events: none;
+}
+
+.window-btn-minimize .window-btn-icon::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    border-top: 1px solid currentColor;
+}
+
+.window-btn-maximize .window-btn-icon::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1px solid currentColor;
+}
+
+.is-maximized .window-btn-maximize .window-btn-icon::before {
+    inset: 2px 2px 0 0;
+}
+
+.is-maximized .window-btn-maximize .window-btn-icon::after {
+    content: '';
+    position: absolute;
+    inset: 0 0 2px 2px;
+    border-top: 1px solid currentColor;
+    border-right: 1px solid currentColor;
+}
+
+.window-btn-close .window-btn-icon::before,
+.window-btn-close .window-btn-icon::after {
+    content: '';
+    position: absolute;
+    left: -2px;
+    right: -2px;
+    top: 50%;
+    border-top: 1px solid currentColor;
+    transform: rotate(45deg);
+}
+
+.window-btn-close .window-btn-icon::after {
+    transform: rotate(-45deg);
+}
+
+/* The resize strips: invisible, just inside the window's edges, over
+   everything. None while maximized. */
+[data-window="frameless"]:not(.is-maximized) .window-edges {
+    display: block;
+}
+
+.window-edge {
+    --edge: 5px;
+    position: fixed;
+    z-index: 20;
+    touch-action: none;
+}
+
+.window-edge[data-edge="n"] { top: 0; left: var(--edge); right: var(--edge); height: var(--edge); cursor: ns-resize; }
+.window-edge[data-edge="s"] { bottom: 0; left: var(--edge); right: var(--edge); height: var(--edge); cursor: ns-resize; }
+.window-edge[data-edge="e"] { right: 0; top: var(--edge); bottom: var(--edge); width: var(--edge); cursor: ew-resize; }
+.window-edge[data-edge="w"] { left: 0; top: var(--edge); bottom: var(--edge); width: var(--edge); cursor: ew-resize; }
+.window-edge[data-edge="ne"] { top: 0; right: 0; width: calc(2 * var(--edge)); height: calc(2 * var(--edge)); cursor: nesw-resize; }
+.window-edge[data-edge="sw"] { bottom: 0; left: 0; width: calc(2 * var(--edge)); height: calc(2 * var(--edge)); cursor: nesw-resize; }
+.window-edge[data-edge="nw"] { top: 0; left: 0; width: calc(2 * var(--edge)); height: calc(2 * var(--edge)); cursor: nwse-resize; }
+.window-edge[data-edge="se"] { bottom: 0; right: 0; width: calc(2 * var(--edge)); height: calc(2 * var(--edge)); cursor: nwse-resize; }
 
 /* ===========================================
    WORKSPACE
@@ -887,7 +1083,7 @@ body {
 
 .hexapod-view-overlay {
     position: absolute;
-    top: 12px;
+    top: calc(var(--view-top) + 12px);
     right: 12px;
     z-index: 3;
     display: flex;
@@ -898,7 +1094,7 @@ body {
    its speed limit, and under it the robot's dimensions, folded away. */
 .hexapod-view-controls {
     position: absolute;
-    top: 12px;
+    top: calc(var(--view-top) + 12px);
     left: 12px;
     z-index: 3;
     max-width: calc(100% - 24px);
@@ -1006,7 +1202,7 @@ body {
    the view's top edge, above the handles it changes. */
 .hexapod-view-tool {
     position: absolute;
-    top: 12px;
+    top: calc(var(--view-top) + 12px);
     left: 50%;
     z-index: 3;
     transform: translateX(-50%);
@@ -1075,7 +1271,7 @@ body {
     max-width: calc(100% - 24px);
     /* Up to the robot's controls in the corner above: taller than the room
        under them, it scrolls. */
-    max-height: calc(100% - 7.5rem);
+    max-height: calc(100% - var(--view-top) - 7.5rem);
     overflow: auto;
 }
 

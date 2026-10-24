@@ -26,7 +26,10 @@ $ python hexapod_link.py
 
 That opens the native window: a waitress server bound to loopback, wrapped in
 a [pywebview](https://pywebview.flowrl.com/) window. No browser chrome, no
-dev-server warnings, and it works offline.
+dev-server warnings, and it works offline. The window is frameless: the app's
+top bar, laid see-through over the 3D view, is its title bar, with its own
+minimize, maximize and close buttons ([`window_controls.py`](../window_controls.py)
+and [`assets/window_frame.js`](../assets/window_frame.js)).
 
 To serve it for a browser instead, which needs only `requirements.txt`:
 
@@ -37,7 +40,8 @@ serving on http://127.0.0.1:8050 (ctrl-c to stop)
 ```
 
 Flags: `--port` to pin the port, `--debug` for the webview developer tools,
-and `--no-window` to start the server only.
+`--framed` to keep the system's window frame, and `--no-window` to start the
+server only.
 
 ## Changing how it looks and behaves
 

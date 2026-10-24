@@ -119,6 +119,51 @@ def keep_panel_states(states):
         save_panels(states)
 
 
+# The top bar is also the window's title bar. In the desktop app the window
+# has no frame of its own: the bar lies over the top of the 3D view, see-through
+# so the view shows behind it, drags the window, and ends in the window's
+# buttons. Strips along the window's edges resize it. All of that is shown only
+# in the frameless window (data-window="frameless" on <html>, from
+# hexapod_link.py) and driven by assets/window_frame.js.
+#
+# pywebview drags the window from the elements with DRAG_REGION, and only by a
+# press on one of them directly, so the inputs and buttons on the bar still
+# work as before.
+DRAG_REGION = "pywebview-drag-region"
+
+# What each of the window's buttons does, by data-window-action.
+_WINDOW_BUTTONS = (
+    ("minimize", "Minimize"),
+    ("maximize", "Maximize"),
+    ("close", "Close"),
+)
+
+# The window's edges and corners, by data-edge.
+_WINDOW_EDGES = ("n", "s", "e", "w", "ne", "nw", "se", "sw")
+
+
+def make_window_buttons():
+    return html.Div(
+        [
+            html.Button(
+                html.Span(className="window-btn-icon"),
+                className=f"window-btn window-btn-{action}",
+                title=title,
+                **{"aria-label": title, "data-window-action": action},
+            )
+            for action, title in _WINDOW_BUTTONS
+        ],
+        className="window-buttons",
+    )
+
+
+def make_window_edges():
+    return html.Div(
+        [html.Div(className="window-edge", **{"data-edge": edge}) for edge in _WINDOW_EDGES],
+        className="window-edges",
+    )
+
+
 # The status pill is the app's link readout: whether the robot is reachable,
 # which one it is, and whether it is being streamed to. The state modifier
 # colours its LED (STATUS PILL in industrial.css); its tooltip has the detail.
@@ -127,16 +172,17 @@ def make_topbar(theme):
         [
             html.Div(
                 [
-                    html.Span(APP_TITLE, className="topbar-title"),
-                    html.Span(f"v{APP_VERSION}", className="topbar-version"),
+                    html.Span(APP_TITLE, className=f"topbar-title {DRAG_REGION}"),
+                    html.Span(f"v{APP_VERSION}", className=f"topbar-version {DRAG_REGION}"),
                 ],
-                className="topbar-brand",
+                className=f"topbar-brand {DRAG_REGION}",
             ),
             TOPBAR_CONNECTION,
             STATUS_PILL,
             make_theme_toggle(theme),
+            make_window_buttons(),
         ],
-        className="topbar",
+        className=f"topbar {DRAG_REGION}",
     )
 
 
