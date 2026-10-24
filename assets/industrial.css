@@ -2449,11 +2449,15 @@ body {
 /* ===========================================
    CORNERS
    The top-right and bottom-left corners of the plates -- buttons, panels,
-   fields, keyframe cards -- are filled in at 45 degrees with --corner, in
-   the plate's border colour unless said otherwise below, kept in step with
-   its hover, focus and disabled states. Each is a gradient across the
-   corner's square, solid up to the diagonal. Laid as background images, so
-   the plates set background-color, never the background shorthand.
+   fields, keyframe cards -- are filled in at 45 degrees with --corner, over
+   the plate's outline, in a trim colour or the outline's own.
+
+   A border is painted over the background, so it would run across the
+   corners. So the plates' borders keep their width but are made
+   transparent, and the outline is drawn under the corners instead, as four
+   lines of the background: --line, --line-w wide. Both are kept in step
+   with the plate's hover, focus and disabled states below. The plates set
+   background-color, never the background shorthand, which would wipe them.
    =========================================== */
 
 .btn,
@@ -2463,6 +2467,11 @@ body {
 .form-control,
 .input-group-text,
 .dash-range-slider-input {
+    --line: transparent;
+    --line-w: 1px;
+    --corner-tr: var(--chamfer);
+    --corner-bl: var(--chamfer);
+    border-color: transparent !important;
     background-image:
         linear-gradient(
             to bottom left,
@@ -2473,30 +2482,47 @@ body {
             to top right,
             var(--corner, transparent) 50%,
             transparent calc(50% + 0.75px)
-        );
-    background-size: var(--chamfer) var(--chamfer);
-    background-position: top right, bottom left;
+        ),
+        linear-gradient(var(--line), var(--line)),
+        linear-gradient(var(--line), var(--line)),
+        linear-gradient(var(--line), var(--line)),
+        linear-gradient(var(--line), var(--line));
+    background-size:
+        var(--corner-tr) var(--corner-tr),
+        var(--corner-bl) var(--corner-bl),
+        100% var(--line-w),
+        100% var(--line-w),
+        var(--line-w) 100%,
+        var(--line-w) 100%;
+    background-position: top right, bottom left, top, bottom, left, right;
     background-repeat: no-repeat;
     background-origin: border-box;
+    /* Bootstrap's fields stop their background inside the border. */
+    background-clip: border-box;
 }
 
+/* ---- Buttons ----
+   The outline as Bootstrap has it in each state; the corners in trim
+   colours, so they read against it: Federation blue on the white and navy
+   plates, V-fin yellow on the solid ones, red on delete. */
+
 .btn {
-    --corner: var(--bs-btn-border-color);
+    --line: var(--bs-btn-border-color);
+    --line-w: var(--bs-btn-border-width);
+    --corner: var(--line);
 }
 
 .btn:hover {
-    --corner: var(--bs-btn-hover-border-color);
+    --line: var(--bs-btn-hover-border-color);
 }
 
 .btn:active,
 .btn.active,
 .btn.show,
 .btn-check:checked + .btn {
-    --corner: var(--bs-btn-active-border-color);
+    --line: var(--bs-btn-active-border-color);
 }
 
-/* In trim colours, so they read against the frame: Federation blue on the
-   white and navy plates, V-fin yellow on the solid ones, red on delete. */
 .btn.btn-secondary,
 .btn.btn-outline-secondary {
     --corner: var(--ind-accent);
@@ -2514,68 +2540,90 @@ body {
 
 .btn:disabled,
 .btn.disabled {
+    --line: var(--bs-btn-disabled-border-color);
     --corner: var(--bs-btn-disabled-border-color);
 }
 
+/* ---- The status pill, the panels and the keyframe cards ---- */
+
 .status-pill {
-    --corner: var(--ind-frame);
+    --line: var(--ind-frame);
+    --line-w: 2px;
+    --corner: var(--ind-accent);
 }
 
 .status-pill.is-fault {
+    --line: var(--ind-red);
     --corner: var(--ind-red);
 }
 
 /* Over the view, the corners are lit: panel lights in HUD cyan. */
 .hud-panel {
+    --line: var(--hud-border);
     --corner: rgba(var(--hud-cyan-rgb), 0.85);
 }
 
 .ind-kf-card {
+    --line: var(--ind-frame);
     --corner: var(--ind-frame);
 }
 
 .ind-kf-item:hover .ind-kf-card {
+    --line: var(--ind-accent);
     --corner: var(--ind-accent);
 }
 
 /* The card selected is filled in the accent already: its corners are
    V-fin yellow, as is the one playback is on. */
-.ind-kf-item.active .ind-kf-card,
-.ind-kf-item[data-playing="at"] .ind-kf-card {
+.ind-kf-item.active .ind-kf-card {
+    --line: var(--ind-accent);
     --corner: var(--ind-accent-alt);
 }
 
-/* Fields are plates too, with smaller corners. A field with its unit after
-   it is one plate: the field has the bottom-left corner, the unit the
-   top-right. */
+.ind-kf-item[data-playing="at"] .ind-kf-card {
+    --line: var(--ind-accent-alt);
+    --line-w: 2px;
+    --corner: var(--ind-accent-alt);
+}
+
+/* ---- Fields ----
+   Plates too, with smaller corners in their outline's colour, blue while
+   typed in. A field with its unit after it is one plate: the field has the
+   bottom-left corner, the unit the top-right. */
+
 .form-control,
 .input-group-text,
 .dash-range-slider-input {
     --chamfer: 6px;
-    --corner: var(--ind-border-strong);
+    --line: var(--ind-border-strong);
+    --corner: var(--line);
 }
 
-.form-control:focus {
-    --corner: var(--ind-accent);
+.form-control:focus,
+.dash-range-slider-input:focus {
+    --line: var(--ind-accent);
 }
 
 .hud-panel .form-control,
 .hud-panel .input-group-text,
 .hud-panel .dash-range-slider-input {
+    --line: var(--hud-border);
     --corner: rgba(var(--hud-cyan-rgb), 0.45);
+    border-color: transparent !important;
 }
 
 .hud-panel .form-control:focus,
 .hud-panel .dash-range-slider-input:focus {
+    --line: rgba(var(--hud-cyan-rgb), 0.75);
     --corner: rgba(var(--hud-cyan-rgb), 0.85);
 }
 
 .input-group > .form-control:not(:last-child) {
-    background-size: 0 0, var(--chamfer) var(--chamfer);
+    --corner-tr: 0px;
 }
 
 .input-group > .input-group-text:last-child {
-    background-size: var(--chamfer) var(--chamfer), 0 0;
+    --corner-bl: 0px;
 }
 
 /* The units in a field's own small type, as a stamped label on the plate. */
