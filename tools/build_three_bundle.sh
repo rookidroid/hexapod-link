@@ -7,56 +7,24 @@
 # is a plain script that sets window.HexapodThree, because Dash loads the files
 # in assets/ as plain scripts, not as ES modules.
 #
-# Only what hexapod_view.js uses is exported, which keeps the file small. Using
-# another three.js class there means adding it to the list below and running
-# this again.
+# The three.js and esbuild versions are pinned in tools/three-bundle/package.json
+# (and its lockfile), where Dependabot finds and bumps them. What is exported
+# is listed in tools/three-bundle/entry.js. After changing either, run this and
+# commit the new bundle; CI checks that the checked-in bundle matches.
 #
 #   $ sh tools/build_three_bundle.sh
 
 set -eu
 
-THREE_VERSION=0.186.1
-ESBUILD_VERSION=0.28.2
-
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-WORK=$(mktemp -d)
-trap 'rm -rf "$WORK"' EXIT
+cd "$ROOT/tools/three-bundle"
 
-cd "$WORK"
-npm init -y >/dev/null
-npm install --silent --no-audit --no-fund "three@$THREE_VERSION" "esbuild@$ESBUILD_VERSION"
+npm ci --silent --no-audit --no-fund
 
-cat > entry.js <<'EOF'
-export {
-    BufferGeometry,
-    Color,
-    CylinderGeometry,
-    DirectionalLight,
-    DoubleSide,
-    Float32BufferAttribute,
-    Group,
-    HemisphereLight,
-    LineBasicMaterial,
-    LineLoop,
-    LineSegments,
-    Mesh,
-    MeshBasicMaterial,
-    MeshStandardMaterial,
-    PerspectiveCamera,
-    Raycaster,
-    Scene,
-    ShadowMaterial,
-    SphereGeometry,
-    Vector2,
-    Vector3,
-    WebGLRenderer,
-} from "three";
-export { OrbitControls } from "three/addons/controls/OrbitControls.js";
-export { TransformControls } from "three/addons/controls/TransformControls.js";
-EOF
+THREE_VERSION=$(node -p 'require("./node_modules/three/package.json").version')
 
 mkdir -p "$ROOT/assets/vendor"
-npx esbuild entry.js \
+npx --no-install esbuild entry.js \
     --bundle \
     --minify \
     --format=iife \
