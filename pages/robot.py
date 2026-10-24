@@ -5,11 +5,12 @@ in widgets/robot_link_ui.py and widgets/dimensions_ui.py.
 
 import json
 
-from dash import callback, no_update
+from dash import callback, ctx, no_update
 from dash.dependencies import Input, Output, State
 
 from hexapod.robot_config import describe, describe_firmware, get_simulator_dimensions
 from hexapod.robot_link import ROBOT_LINK
+from pages.last_session import saved_dimensions
 from widgets.dimensions_ui import (
     DIMENSION_CALLBACK_INPUTS,
     DIMENSION_WIDGET_IDS,
@@ -96,10 +97,15 @@ def follow_robot_config(_config_store):
 
     Runs on load as well as on connect: the layout is built once at import, so
     a browser refresh would otherwise show the dimensions of whichever robot
-    was known when the app started rather than the one connected since.
+    was known when the app started rather than the one connected since. On
+    load, measurements edited on this robot come back as they were left
+    (pages/last_session.py); a robot connecting brings its own.
     """
     robot_config = ROBOT_LINK.robot_config
     dimensions = get_simulator_dimensions(robot_config)
+    if ctx.triggered_id is None:
+        # Opening the page: as they were last left on this robot, if edited.
+        dimensions = {**dimensions, **(saved_dimensions(robot_config["name"]) or {})}
     return [
         dimensions["front"],
         dimensions["side"],

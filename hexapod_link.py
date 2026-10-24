@@ -21,6 +21,7 @@ from dash import Dash, html
 
 from hexapod.preferences import load_layout, load_theme
 from hexapod.robot_link import ROBOT_LINK
+from pages.last_session import restore, restore_robot_link
 from pages.drive import register_drive_route
 from pages.shell import make_topbar, make_window_edges
 from pages.workspace import workspace
@@ -108,10 +109,14 @@ register_drive_route(server)
 
 def serve_layout():
     """Built per page load, so the top bar's theme button matches the saved
-    theme (see HexapodDash above) and the view's overlays are folded as they
-    were left. There is one screen, served at any path."""
-    return html.Div(
-        [make_topbar(load_theme()), workspace(), make_window_edges()], className="app-shell"
+    theme (see HexapodDash above), the view's overlays are folded as they
+    were left, and the sequence, the pose and the controls are as the app
+    was last closed (pages/last_session.py). There is one screen, served at
+    any path."""
+    return restore(
+        html.Div(
+            [make_topbar(load_theme()), workspace(), make_window_edges()], className="app-shell"
+        )
     )
 
 
@@ -240,6 +245,7 @@ def main():
     )
     args = parser.parse_args()
 
+    restore_robot_link()
     url = start_server(args.port)
 
     if args.no_window:

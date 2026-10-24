@@ -538,7 +538,8 @@ USER_GAITS_EMPTY = html.Div(
     className="dock-empty",
 )
 
-# Which list shows is remembered for the session, as the tool is.
+# Which list shows is remembered for the session, as the tool is, and from
+# one launch to the next (pages/last_session.py).
 gait_source_toggle = dbc.RadioItems(
     id=POSE_GAIT_SOURCE_ID,
     options=[
@@ -820,7 +821,8 @@ PLAYBACK_HUD = html.Section(
 )
 
 # The pose and the sequence being built live in session storage, so they
-# survive a reload. Each store records which robot it was made on; see
+# survive a reload, and are kept from one launch to the next too
+# (pages/last_session.py). Each store records which robot it was made on; see
 # pages/pose.py.
 hidden_components = html.Div(
     [
