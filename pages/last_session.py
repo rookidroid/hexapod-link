@@ -31,6 +31,8 @@ from widgets.dimensions_ui import DIMENSION_WIDGET_IDS, WIDGET_NAMES
 from widgets.pose_ui import (
     BODY_MODE_MOVE,
     BODY_MODE_ROTATE,
+    EASE_OFF,
+    EASE_ON,
     GAIT_SOURCES,
     POSE_BODY_MODE_ID,
     POSE_DURATION_ID,
@@ -138,7 +140,7 @@ FIELDS = {
         "value",
         lambda v: _number(v, kf.MIN_DURATION_MS, kf.MAX_DURATION_MS),
     ),
-    "ease": (POSE_KF_EASE_ID, "value", _ticks(("ease",))),
+    "ease": (POSE_KF_EASE_ID, "value", _choice((EASE_ON, EASE_OFF))),
     "speed": (POSE_SPEED_ID, "value", lambda v: _number(v, SPEED_MIN_PCT, SPEED_MAX_PCT)),
     "loop": (POSE_LOOP_ID, "value", _ticks(("loop",))),
     "robot_ip": (ROBOT_IP_INPUT_ID, "value", _text(253)),

@@ -43,7 +43,7 @@ def test_usable_values_come_back(preferences_file):
         "gait_source": "mine",
         "gait_name": "my walk",
         "duration": 750,
-        "ease": [],
+        "ease": "linear",
         "speed": 120,
         "loop": ["loop"],
         "robot_ip": "10.0.0.7",
