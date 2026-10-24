@@ -10,8 +10,10 @@ window.pywebview.api.<method>.
 
 import sys
 
-# pywebview's FixPoint flags, repeated so this module imports without
-# pywebview: which corner of the window stays put as it is resized.
+# pywebview's FixPoint flags, by value, so this module imports without
+# pywebview: which corner of the window stays put as it is resized. They are
+# made into FixPoint itself when the window is resized, as the Windows
+# backend will not take a plain number.
 FIX_NORTH = 1
 FIX_WEST = 2
 FIX_EAST = 4
@@ -103,7 +105,9 @@ class WindowControls:
             fix |= FIX_NORTH
         width = max(int(width), self._min_width)
         height = max(int(height), self._min_height)
-        self._window.resize(width, height, fix_point=fix)
+        from webview.window import FixPoint  # pylint: disable=import-outside-toplevel
+
+        self._window.resize(width, height, fix_point=FixPoint(fix))
 
 
 def keep_taskbar_visible(window):
