@@ -13,7 +13,7 @@ from hexapod.preferences import save_layout, save_panels, save_theme
 from texts import APP_TITLE, APP_VERSION
 from widgets.components import make_splitter
 from widgets.dimensions_ui import DIMENSIONS_JSON
-from widgets.robot_link_ui import STATUS_PILL, TOPBAR_CONNECTION
+from widgets.robot_link_ui import LINK_MENU
 
 
 # ......................
@@ -177,9 +177,8 @@ def make_window_edges():
     )
 
 
-# The status pill is the app's link readout: whether the robot is reachable,
-# which one it is, and whether it is being streamed to. The state modifier
-# colours its LED (STATUS PILL in industrial.css); its tooltip has the detail.
+# The link's status pill, which opens to connect (LINK_MENU in
+# widgets/robot_link_ui.py), then the theme and the window's buttons.
 def make_topbar(theme):
     return html.Header(
         [
@@ -190,8 +189,7 @@ def make_topbar(theme):
                 ],
                 className=f"topbar-brand {DRAG_REGION}",
             ),
-            TOPBAR_CONNECTION,
-            STATUS_PILL,
+            LINK_MENU,
             make_theme_toggle(theme),
             make_window_buttons(),
         ],

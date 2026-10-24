@@ -2,8 +2,8 @@
 #
 # Split by where they sit in the workspace (pages/workspace.py):
 #
-# * TOPBAR_CONNECTION is the address and the connect button, in the top bar,
-#   and STATUS_PILL beside it the link's readout.
+# * LINK_MENU is the link's readout in the top bar, a status pill that opens
+#   a dropdown with the robot's address, the connect button and the detail.
 # * STREAM_OVERLAY switches streaming on and limits its speed, over the view.
 # * DRIVE_HUD is the controller over the view: hold a pad and the robot plays
 #   that one of its own gaits.
@@ -49,24 +49,61 @@ SECTION_CONTROLS_OFFLINE_CLASS = "robot-section-controls is-offline"
 #
 # There is no robot picker: connecting reads the robot's own config, and that
 # is what the simulator then models (hexapod/robot_config.py).
+#
+# The status pill is the app's link readout: whether the robot is reachable,
+# which one it is, and whether it is being streamed to. The state modifier
+# colours its LED (LINK MENU in industrial.css). It is also the button of a
+# dropdown (a <details>), which holds the robot's address, Connect, and the
+# link's detail; assets/link_menu.js closes it on a click outside it, or Esc.
 # ................................
 
-TOPBAR_CONNECTION = html.Div(
+STATUS_PILL_ID = "status-pill"
+LINK_MENU_ID = "link-menu"
+LINK_DETAIL_ID = "link-detail"
+
+
+def status_pill_class(state):
+    return f"status-pill {state}"
+
+
+LINK_MENU = html.Details(
     [
-        dbc.Input(
-            id=ROBOT_IP_INPUT_ID,
-            type="text",
-            value=ROBOT_DEFAULT_IP,
-            debounce=True,
-            placeholder=ROBOT_DEFAULT_IP,
-            size="sm",
-            className="topbar-ip",
+        html.Summary(
+            "Offline",
+            id=STATUS_PILL_ID,
+            className=status_pill_class("is-offline"),
+            title="Disconnected",
+            role="status",
         ),
-        dbc.Button(
-            "Connect",
-            id=ROBOT_CONNECT_BTN_ID,
-            color="primary",
-            size="sm",
+        html.Div(
+            [
+                field_label("Robot address"),
+                html.Div(
+                    [
+                        dbc.Input(
+                            id=ROBOT_IP_INPUT_ID,
+                            type="text",
+                            value=ROBOT_DEFAULT_IP,
+                            debounce=True,
+                            placeholder=ROBOT_DEFAULT_IP,
+                            size="sm",
+                            className="link-ip",
+                        ),
+                        dbc.Button(
+                            "Connect",
+                            id=ROBOT_CONNECT_BTN_ID,
+                            color="primary",
+                            size="sm",
+                            className="link-connect",
+                        ),
+                    ],
+                    className="link-row",
+                ),
+                # The address, mode and packet count, and the firmware: what
+                # the pill's tooltip says, kept in view here.
+                html.Div("Disconnected", id=LINK_DETAIL_ID, className="link-detail"),
+            ],
+            className="hud-panel link-panel",
         ),
         # Which robot config the simulator is on; written when a connect loads
         # one, and read by everything drawn from the robot's geometry.
@@ -79,25 +116,8 @@ TOPBAR_CONNECTION = html.Div(
         ),
         dcc.Interval(id=ROBOT_POLL_INTERVAL_ID, interval=STATUS_POLL_MS, n_intervals=0),
     ],
-    className="topbar-connection",
-)
-
-# The status pill is the app's link readout: whether the robot is reachable,
-# which one it is, and whether it is being streamed to. The state modifier
-# colours its LED (STATUS PILL in industrial.css); its tooltip has the detail.
-STATUS_PILL_ID = "status-pill"
-
-
-def status_pill_class(state):
-    return f"status-pill {state}"
-
-
-STATUS_PILL = html.Div(
-    "Offline",
-    id=STATUS_PILL_ID,
-    className=status_pill_class("is-offline"),
-    title="Disconnected",
-    role="status",
+    id=LINK_MENU_ID,
+    className="link-menu",
 )
 
 

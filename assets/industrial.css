@@ -243,8 +243,8 @@ body {
 
 /* ===========================================
    TOP BAR
-   Brand on the left; the connection, the status pill and the theme toggle
-   on the right.
+   Brand on the left; the link's status pill, which opens to connect, and the
+   theme toggle on the right.
    =========================================== */
 
 .topbar {
@@ -302,24 +302,96 @@ body {
     border: 1px solid var(--ind-border-strong);
 }
 
-.topbar-connection {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
+/* ---- Link menu ----
+   The status pill, whose LED takes the state's colour: grey offline, green
+   online, pulsing yellow while streaming, red on a fault. It is the button of
+   a dropdown, under it at the right, with the robot's address, Connect and
+   the link's detail. */
+
+.link-menu {
+    position: relative;
     margin-left: auto;
 }
 
-.topbar-connection .topbar-ip {
-    width: 9.5rem;
+.link-menu > summary {
+    list-style: none;
+    cursor: pointer;
 }
 
-.topbar-connection .btn {
+.link-menu > summary::-webkit-details-marker {
+    display: none;
+}
+
+/* A caret after the label, turned up while open. */
+.link-menu > summary::after {
+    content: '';
+    flex: 0 0 auto;
+    width: 6px;
+    height: 6px;
+    margin: -3px 0 0 0.1rem;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: rotate(45deg);
+    opacity: 0.7;
+    transition: transform 0.15s ease;
+}
+
+.link-menu[open] > summary::after {
+    margin-top: 3px;
+    transform: rotate(-135deg);
+}
+
+.link-menu > summary:hover,
+.link-menu[open] > summary {
+    border-color: var(--ind-accent);
+}
+
+.link-menu > summary:focus-visible {
+    outline: none;
+    box-shadow: var(--ind-glow-inset);
+}
+
+.link-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 10;
+    width: 19rem;
+    padding: 0.6rem 0.75rem 0.7rem;
+    cursor: default;
+}
+
+.link-panel .ind-field-label {
+    margin-bottom: 0.3rem;
+}
+
+.link-row {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.link-row .link-ip {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.link-row .btn {
     min-width: 6.5rem;
 }
 
-/* ---- Status pill ----
-   The LED takes the state's colour: grey offline, green online, pulsing
-   yellow while streaming, red on a fault. */
+/* The pill's tooltip, kept in view: the address, mode and packet count, and
+   the firmware, a line each. */
+.link-detail {
+    margin-top: 0.55rem;
+    padding-top: 0.45rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    line-height: 1.4;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+    color: var(--hud-muted);
+    border-top: 1px dashed var(--hud-border);
+}
 
 .status-pill {
     display: inline-flex;
@@ -735,20 +807,12 @@ body {
         display: none;
     }
 
-    .topbar-connection {
-        order: 3;
-        width: 100%;
-        margin-left: 0;
-    }
-
-    .topbar-connection .topbar-ip {
-        flex: 1 1 auto;
-        width: auto;
-    }
-
     .status-pill {
-        margin-left: auto;
         max-width: 11rem;
+    }
+
+    .link-panel {
+        width: min(19rem, calc(100vw - 24px));
     }
 }
 

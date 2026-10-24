@@ -40,7 +40,7 @@ Everything is on one screen:
 
 | Where | What it is for |
 |---|---|
-| **Top bar** | The robot's address, **Connect**, a status light, and the ☾ / ☀ button for the light or dark theme. |
+| **Top bar** | The robot's status light, which opens to the robot's address and **Connect**, and the ☾ / ☀ button for the light or dark theme. |
 | **3D view** | The robot. Drag with the left mouse button to look around it, turn the wheel to zoom, drag with the right button to slide the view. |
 | **Pose** (bottom left) | The angle of every joint, and the controls for whatever you have picked up. |
 | **Stream to robot** and **Dimensions** (top left) | Send the pose to the robot as you change it; see or edit the robot's measurements. |
@@ -113,8 +113,8 @@ a robot.
 2. On your computer, **join the robot's WiFi network**. The robot makes its
    own network, so there is no internet on it; that is expected. The robot
    stands up when your computer joins.
-3. In the app, press **Connect**. The address beside it is already the
-   robot's (`192.168.4.1`).
+3. In the app, click **Offline** in the top bar, then press **Connect**. The
+   address above it is already the robot's (`192.168.4.1`).
 
 The light in the top bar turns green and shows the robot's name, and the model
 on screen changes to match your robot.
