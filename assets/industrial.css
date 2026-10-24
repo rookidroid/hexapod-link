@@ -169,7 +169,7 @@
        <html> instead (assets/workspace_resize.js). */
     --dock-h: 15rem;
     --lib-w: clamp(14rem, 18%, 18rem);
-    --run-w: clamp(22rem, 28%, 28rem);
+    --run-w: clamp(17rem, 20%, 22rem);
     /* How much of the workspace's height the view always keeps, however tall
        the dock is set: a window made shorter shortens it, and it comes back
        with the window. */
@@ -1502,6 +1502,73 @@ body {
     padding: 0.35rem 0.6rem;
 }
 
+/* ---- Playback ----
+   Over the middle of the view's bottom edge, between the pose and the
+   controller: Play, the scrubber and where it is, then the speed and Loop,
+   on one line. Folded, the pose and the controller sit either side of it;
+   opened, either goes up above it, so it is never covered. */
+
+.hexapod-view-frame {
+    /* How far up a corner's panel goes when opened: clear of the bar. */
+    --playback-lift: calc(12px + 3rem + 8px);
+}
+
+.hexapod-view-frame:has(.pose-hud[open]) .hexapod-view-hud,
+.hexapod-view-frame:has(.drive-hud[open]) .hexapod-view-drive {
+    bottom: var(--playback-lift);
+}
+
+.hexapod-view-frame:has(.pose-hud[open]) .hexapod-view-hud {
+    max-height: calc(100% - var(--view-top) - 7.5rem - var(--playback-lift) + 12px);
+}
+
+.hexapod-view-playback {
+    position: absolute;
+    left: 50%;
+    bottom: 12px;
+    z-index: 2;
+    width: min(40rem, calc(100% - 24px));
+    transform: translateX(-50%);
+}
+
+.playback-hud {
+    --chamfer: 9px;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem 0.9rem;
+    padding: 0.4rem 0.75rem;
+}
+
+.playback-hud .dock-note,
+.playback-hud .ind-field-label {
+    color: var(--hud-muted);
+}
+
+.playback-hud .ind-duration-input .input-group-text {
+    color: var(--hud-muted);
+    background: rgba(var(--hud-cyan-rgb), 0.1);
+    border-color: var(--hud-border);
+}
+
+.playback-hud .dock-check label.dash-options-list-option {
+    color: var(--hud-text);
+}
+
+/* Too narrow for one line: the speed and Loop go under the transport. */
+@media (max-width: 767.98px) {
+    .hexapod-view-frame {
+        --playback-lift: calc(12px + 5.5rem + 8px);
+    }
+
+    .playback-hud {
+        flex-wrap: wrap;
+    }
+
+    .playback-hud .ind-dock-scrubber {
+        flex-basis: 6rem;
+    }
+}
+
 .drive-hud[open] {
     padding-bottom: 0.55rem;
 }
@@ -1670,7 +1737,8 @@ body {
    DOCK
    Three columns: on the left the Gaits library, the robot's and one's own;
    in the middle the sequence -- keyframes of poses and gaits -- and on the
-   right playing it, in the view and then on the robot. Each block is titled
+   right running it on the robot. Playing it in the view is over the view
+   (PLAYBACK). Each block is titled
    like a panel section, with what belongs to it on the same line. The columns
    stack below `lg`, with the rest of the workspace.
    =========================================== */

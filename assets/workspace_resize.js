@@ -25,7 +25,7 @@
     // dock (as capped in the stylesheet), and what the sequence always keeps.
     var LIB_MIN_W = 180;
     var LIB_MAX_SHARE = 0.35;
-    var RUN_MIN_W = 260;
+    var RUN_MIN_W = 240;
     var RUN_MAX_SHARE = 0.4;
     var SEQUENCE_MIN_W = 320;
     var KEY_STEP = 16;

@@ -45,7 +45,8 @@ Everything is on one screen:
 | **Pose** (bottom left) | The angle of every joint, and the controls for whatever you have picked up. |
 | **Stream to robot** and **Dimensions** (top left) | Send the pose to the robot as you change it; see or edit the robot's measurements. |
 | **Controller** (bottom right) | Pads that drive the robot. |
-| **Gaits · Sequence · Playback** (along the bottom) | Build a routine and play it. |
+| **Playback** (bottom middle) | Play the routine in the view, scrub through it, set its speed and loop it. |
+| **Gaits · Sequence · Robot** (along the bottom) | Build a routine and run it on the robot. |
 
 **Pose**, **Dimensions** and **Controller** fold away: click a heading to open
 or close it.

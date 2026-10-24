@@ -407,9 +407,9 @@ POSE_HUD = html.Details(
 # Three columns across the bottom of the window. On the left, the library of
 # gaits to put into the sequence: the robot's, and one's own. In the middle,
 # the sequence: the track of keyframes -- poses, and gaits put in as theirs --
-# and an editor for the one selected. On the right, playing it: in the view,
-# then on the robot. The side columns' widths can be dragged; the middle one
-# takes what is left.
+# and an editor for the one selected. On the right, running it on the robot;
+# playing it in the view is over the view itself (PLAYBACK below). The side
+# columns' widths can be dragged; the middle one takes what is left.
 # ................................
 
 
@@ -706,53 +706,16 @@ sequence_section = _section(
     class_name="dock-sequence",
 )
 
-# The transport beside its title, then how it plays; the robot's buttons
-# beside their title.
-playback_section = _section(
-    "Playback",
+# ................................
+# PLAYBACK
+#
+# Over the middle of the view's bottom edge, between the pose and the
+# controller: play the sequence in the view, or scrub through it, and how fast
+# and whether it loops. Running it on the robot stays in the dock.
+# ................................
+
+PLAYBACK_HUD = html.Section(
     [
-        html.Div(
-            [
-                html.Div(
-                    [
-                        field_label("Speed"),
-                        dbc.InputGroup(
-                            [
-                                dbc.Input(
-                                    id=POSE_SPEED_ID,
-                                    # No min, max or step: the browser hands
-                                    # a number outside them over as empty, so
-                                    # the range is kept by set_speed in
-                                    # pages/pose.py instead.
-                                    type="number",
-                                    value=SPEED_DEFAULT_PCT,
-                                    debounce=True,
-                                ),
-                                dbc.InputGroupText("%"),
-                            ],
-                            size="sm",
-                            className="ind-duration-input",
-                        ),
-                    ],
-                    className="dock-inline-field",
-                    title=(
-                        "How fast the whole sequence plays, in the preview and on "
-                        f"the robot, {SPEED_MIN_PCT} to {SPEED_MAX_PCT} %. At 100 % "
-                        "a gait plays at the robot's own speed."
-                    ),
-                ),
-                # Loops the preview and what is run on the robot alike.
-                dcc.Checklist(
-                    id=POSE_LOOP_ID,
-                    options=[{"label": "Loop", "value": "loop"}],
-                    value=[],
-                    className="dock-check",
-                ),
-            ],
-            className="dock-group dock-group-wide",
-        ),
-    ],
-    head=[
         _button("▶ Play", POSE_PLAY_BTN_ID, color="primary", class_name="ind-play-btn"),
         html.Div(
             dcc.Slider(
@@ -769,9 +732,46 @@ playback_section = _section(
             className="ind-dock-scrubber",
         ),
         html.Div("0/0 · 0.00 s", id=POSE_FRAME_DISPLAY_ID, className="dock-note text-nowrap"),
+        html.Div(
+            [
+                field_label("Speed"),
+                dbc.InputGroup(
+                    [
+                        dbc.Input(
+                            id=POSE_SPEED_ID,
+                            # No min, max or step: the browser hands a number
+                            # outside them over as empty, so the range is kept
+                            # by set_speed in pages/pose.py instead.
+                            type="number",
+                            value=SPEED_DEFAULT_PCT,
+                            debounce=True,
+                        ),
+                        dbc.InputGroupText("%"),
+                    ],
+                    size="sm",
+                    className="ind-duration-input",
+                ),
+            ],
+            className="dock-inline-field",
+            title=(
+                "How fast the whole sequence plays, in the preview and on "
+                f"the robot, {SPEED_MIN_PCT} to {SPEED_MAX_PCT} %. At 100 % "
+                "a gait plays at the robot's own speed."
+            ),
+        ),
+        # Loops the preview and what is run on the robot alike.
+        dcc.Checklist(
+            id=POSE_LOOP_ID,
+            options=[{"label": "Loop", "value": "loop"}],
+            value=[],
+            className="dock-check",
+        ),
     ],
+    className="hud-panel playback-hud",
+    **{"aria-label": "Playback"},
 )
 
+# The robot's buttons beside their title.
 robot_section = _section(
     "Robot",
     [
@@ -824,10 +824,10 @@ POSE_DOCK = html.Div(
     [
         html.Div(library_section, className="dock-col dock-col-library"),
         html.Div(sequence_section, className="dock-col dock-col-sequence"),
-        html.Div([playback_section, robot_section], className="dock-col dock-col-run"),
+        html.Div(robot_section, className="dock-col dock-col-run"),
         # On the lines between the columns; the sequence's takes what is left.
         make_splitter("lib", "vertical", "resize the Gaits library"),
-        make_splitter("run", "vertical", "resize Playback and Robot"),
+        make_splitter("run", "vertical", "resize Robot"),
         hidden_components,
     ],
     className="dock",
