@@ -1520,12 +1520,12 @@ body {
 
 .hud-panel .dock-seg-item:hover {
     color: var(--hud-text);
-    background: rgba(var(--hud-cyan-rgb), 0.12);
+    background-color: rgba(var(--hud-cyan-rgb), 0.12);
 }
 
 .hud-panel .dock-seg-item.active {
     color: #fff;
-    background: var(--ind-accent);
+    background-color: var(--ind-accent);
     border-color: var(--ind-accent);
 }
 
@@ -2356,12 +2356,12 @@ body {
 
 .dock-seg-item:hover {
     color: var(--ind-text);
-    background: var(--ind-hover);
+    background-color: var(--ind-hover);
 }
 
 .dock-seg-item.active {
     color: #fff;
-    background: var(--ind-accent);
+    background-color: var(--ind-accent);
     border-color: var(--ind-accent);
 }
 
@@ -2462,7 +2462,8 @@ body {
 .ind-kf-card,
 .form-control,
 .input-group-text,
-.dash-range-slider-input {
+.dash-range-slider-input,
+.dock-seg-item {
     background-image:
         linear-gradient(
             to bottom left,
@@ -2520,8 +2521,33 @@ body {
     --corner: var(--ind-accent);
 }
 
-.ind-kf-item.active .ind-kf-card {
-    --corner: var(--ind-accent);
+/* ---- Solid plates ----
+   Filled in their outline's colour, or near it, a corner in that colour
+   would not show: theirs is a light tint of the fill instead, a highlight
+   along the edge. */
+
+.btn.btn-primary,
+.btn.btn-primary:hover,
+.btn.btn-primary:active {
+    --corner: color-mix(in srgb, var(--ind-accent) 50%, #fff);
+}
+
+.btn.btn-success,
+.btn.btn-success:hover,
+.btn.btn-success:active {
+    --corner: color-mix(in srgb, var(--ind-ok) 50%, #fff);
+}
+
+.btn.btn-danger:not(:disabled):hover,
+.btn.btn-outline-danger:not(:disabled):hover,
+.btn.btn-danger:not(:disabled):active,
+.btn.btn-outline-danger:not(:disabled):active {
+    --corner: color-mix(in srgb, var(--ind-red) 45%, #fff);
+}
+
+.ind-kf-item.active .ind-kf-card,
+.dock-seg-item.active {
+    --corner: color-mix(in srgb, var(--ind-accent) 50%, #fff);
 }
 
 .ind-kf-item[data-playing="at"] .ind-kf-card {
@@ -2555,6 +2581,30 @@ body {
 
 .input-group > .form-control:not(:last-child) {
     background-size: 0 0, var(--chamfer) var(--chamfer);
+}
+
+/* A toggle (Built-in | Mine, Ease | Linear) is one plate too: its first
+   segment has the bottom-left corner, its last the top-right. */
+.dock-seg-item {
+    --chamfer: 6px;
+    --corner: var(--ind-border-strong);
+    background-size: 0 0;
+}
+
+.hud-panel .dock-seg-item {
+    --corner: var(--hud-border);
+}
+
+.hud-panel .dock-seg-item.active {
+    --corner: color-mix(in srgb, var(--ind-accent) 50%, #fff);
+}
+
+.dock-seg .form-check:first-child .dock-seg-item {
+    background-size: 0 0, var(--chamfer) var(--chamfer);
+}
+
+.dock-seg .form-check:last-child .dock-seg-item {
+    background-size: var(--chamfer) var(--chamfer), 0 0;
 }
 
 .input-group > .input-group-text:last-child {
