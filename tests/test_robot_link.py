@@ -18,24 +18,24 @@ import pytest
 
 from hexapod.path_generator import generate_poses
 from hexapod.robot_config import (
-    FIRMWARE_COMMANDS,
     DEFAULT_CONFIG,
+    FIRMWARE_COMMANDS,
     command_id,
     get_joint_limits,
     get_leg_signs,
     get_sequence_fps,
 )
 from hexapod.robot_link import (
-    MAGIC_MOTION,
-    MAGIC_POSE,
-    MAGIC_VERSION,
-    STANDBY_POSE,
-    RobotLink,
     _FMT_MOTION,
     _FMT_POSE,
     _FMT_SESSION,
     _FMT_VERSION_REPLY,
     _FMT_VERSION_REQUEST,
+    MAGIC_MOTION,
+    MAGIC_POSE,
+    MAGIC_VERSION,
+    STANDBY_POSE,
+    RobotLink,
     clamp_pose_angles,
     joint_angles_to_servo_angles,
     parse_version_reply,
@@ -169,9 +169,7 @@ def test_servo_angle_to_ticks_spans_the_firmware_range():
     """0-180deg maps onto SERVOMIN-SERVOMAX linearly, with 90deg at the midpoint."""
     assert servo_angle_to_ticks(0) == SERVO_MIN_TICKS
     assert servo_angle_to_ticks(180) == SERVO_MAX_TICKS
-    assert servo_angle_to_ticks(90) == pytest.approx(
-        (SERVO_MIN_TICKS + SERVO_MAX_TICKS) / 2, abs=1
-    )
+    assert servo_angle_to_ticks(90) == pytest.approx((SERVO_MIN_TICKS + SERVO_MAX_TICKS) / 2, abs=1)
 
 
 def test_servo_angle_to_ticks_follows_the_robots_range():
@@ -235,9 +233,9 @@ def test_pose_to_ticks_never_leaves_the_servo_range():
             for pose in generate_poses(motion_name, robot):
                 ticks = pose_to_ticks(pose, robot)
                 assert len(ticks) == 18
-                assert all(
-                    SERVO_MIN_TICKS <= t <= SERVO_MAX_TICKS for t in ticks
-                ), f"{name}/{motion_name} produced an out-of-range tick"
+                assert all(SERVO_MIN_TICKS <= t <= SERVO_MAX_TICKS for t in ticks), (
+                    f"{name}/{motion_name} produced an out-of-range tick"
+                )
 
 
 def test_streaming_a_gait_clips_it_against_the_joint_limits():
@@ -352,9 +350,7 @@ def test_the_speed_is_clamped_to_the_robots_range():
 def test_streamed_gaits_play_at_the_robots_speed():
     """The firmware stretches each frame to DELAY_MS * 100 / speed."""
     for robot in ROBOT_CONFIGS.values():
-        assert get_sequence_fps(robot, 50) == pytest.approx(
-            1000.0 / robot["delay_ms"] / 2
-        )
+        assert get_sequence_fps(robot, 50) == pytest.approx(1000.0 / robot["delay_ms"] / 2)
 
     link = _CapturingLink(ROBOT_CONFIGS["macaroon"])
     link.set_motion_speed(40)

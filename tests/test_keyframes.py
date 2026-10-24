@@ -196,16 +196,12 @@ def test_a_foot_out_of_reach_is_held_where_its_leg_can_put_it(robot):
 def test_a_held_foot_is_as_near_as_the_simulator_can_put_one(robot):
     # Every pose on a grid of joint angles within the limits, drawn by the
     # simulator's own model: none of their feet is nearer what was asked for.
-    limits = {
-        joint: limit - LIMIT_MARGIN_DEG for joint, limit in get_joint_limits(robot).items()
-    }
+    limits = {joint: limit - LIMIT_MARGIN_DEG for joint, limit in get_joint_limits(robot).items()}
     grid = []
     for coxia in np.linspace(-limits["coxia"], limits["coxia"], 7):
         for femur in np.linspace(-limits["femur"], limits["femur"], 9):
             for tibia in np.linspace(-limits["tibia"], limits["tibia"], 9):
-                pose = {
-                    leg: {"coxia": coxia, "femur": femur, "tibia": tibia} for leg in range(6)
-                }
+                pose = {leg: {"coxia": coxia, "femur": femur, "tibia": tibia} for leg in range(6)}
                 feet = pose_to_feet(pose, robot)
                 # Not those the solver would not hand back: a foot folded up
                 # behind its own femur.

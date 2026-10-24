@@ -119,7 +119,13 @@ def test_a_gait_stays_within_the_joint_limits_at_any_speed(robot, motion):
     keyframes = gait_keyframes(motion, robot)
     loop = motion not in ONE_SHOT
     robot_fps = get_sequence_fps(robot, 100)
-    for fps, speed in [(25, 1.0), (robot_fps, 1.0), (robot_fps, 0.33), (robot_fps, 0.75), (robot_fps, 2.0)]:
+    for fps, speed in [
+        (25, 1.0),
+        (robot_fps, 1.0),
+        (robot_fps, 0.33),
+        (robot_fps, 0.75),
+        (robot_fps, 2.0),
+    ]:
         _, _, _, bad = pl.sequence(keyframes, robot, fps, loop=loop, speed=speed)
         assert bad == [], (fps, speed)
 
@@ -137,7 +143,9 @@ def test_the_gait_menu_offers_every_gait_once():
     assert sorted(offered) == sorted(GAITS)
 
 
-@pytest.mark.parametrize("motion", ["rotate_x", "rotate_y", "rotate_z", "twist", "climb_forward", "walk_0"])
+@pytest.mark.parametrize(
+    "motion", ["rotate_x", "rotate_y", "rotate_z", "twist", "climb_forward", "walk_0"]
+)
 @pytest.mark.parametrize("robot", ROBOTS, ids=ROBOT_IDS)
 def test_a_gait_is_drawn_standing_on_the_floor(robot, motion):
     """Every frame the preview draws of a gait has no foot through the floor

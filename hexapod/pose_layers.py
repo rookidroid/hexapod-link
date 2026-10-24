@@ -179,9 +179,7 @@ def with_body_near(state, body, robot_config):
     """
     target = make_state(body, state["offsets"])
     margins = [
-        margin
-        for margin in (BODY_LIMIT_MARGIN_DEG, 0.0)
-        if _reaches(state, robot_config, margin)
+        margin for margin in (BODY_LIMIT_MARGIN_DEG, 0.0) if _reaches(state, robot_config, margin)
     ]
     if not margins or _reaches(target, robot_config, margins[0]):
         return target
@@ -200,7 +198,7 @@ def with_body_near(state, body, robot_config):
         back = step if start > goal else -step
 
         def stepped(count):
-            return start if count >= steps else goal + count * back
+            return start if count >= steps else goal + count * back  # noqa: B023
 
         fewest, most = 0, steps
         while fewest < most:

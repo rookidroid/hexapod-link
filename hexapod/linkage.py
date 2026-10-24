@@ -91,7 +91,7 @@ class Linkage:
         beta=0,
         gamma=0,
         coxia_axis=0,
-        new_origin=Vector(0, 0, 0),
+        new_origin=Vector(0, 0, 0),  # noqa: B008
         name=None,
         id_number=None,
     ):

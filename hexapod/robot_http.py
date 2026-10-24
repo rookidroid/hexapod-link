@@ -43,9 +43,7 @@ def _request(address, path, method="GET", timeout=None):
 
     request = urllib.request.Request(url, data=data, method=method)
     try:
-        with urllib.request.urlopen(
-            request, timeout=timeout or ROBOT_HTTP_TIMEOUT_S
-        ) as response:
+        with urllib.request.urlopen(request, timeout=timeout or ROBOT_HTTP_TIMEOUT_S) as response:
             return response.read().decode("utf-8", errors="replace")
     except urllib.error.HTTPError as error:
         # The firmware explains its refusals in the body, which is what the
@@ -62,9 +60,7 @@ def get_json(address, path, timeout=None):
     try:
         return json.loads(text)
     except ValueError as error:
-        raise RobotHttpError(
-            f"{robot_url(address, path)} did not return JSON"
-        ) from error
+        raise RobotHttpError(f"{robot_url(address, path)} did not return JSON") from error
 
 
 # ---------------------------------------------------------------- config

@@ -104,9 +104,11 @@ def test_a_transformed_scene_moves_every_point_rigidly():
     moved = transform_scene(scene, rotation, shift)
 
     def points(s):
-        return [s["head"], s["cog"], *s["body"], *s["feet"], *s["support"]] + [
-            p for leg in s["legs"] for p in leg
-        ] + [p for axis in s["axes"] for p in (axis["from"], axis["to"])]
+        return (
+            [s["head"], s["cog"], *s["body"], *s["feet"], *s["support"]]
+            + [p for leg in s["legs"] for p in leg]
+            + [p for axis in s["axes"] for p in (axis["from"], axis["to"])]
+        )
 
     for before, after in zip(points(scene), points(moved), strict=True):
         assert after == pytest.approx(np.asarray(rotation) @ before + shift, abs=1e-3)

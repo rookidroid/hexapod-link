@@ -1,7 +1,7 @@
 # Sliders that move and tilt the body over the planted feet: shown in the
 # overlay on the view while the body is picked (widgets/pose_ui.py,
 # pages/pose.py, hexapod/pose_layers.py).
-from settings import UPDATE_MODE, BODY_MAX_ANGLE, SLIDER_ANGLE_RESOLUTION
+from settings import BODY_MAX_ANGLE, SLIDER_ANGLE_RESOLUTION, UPDATE_MODE
 from widgets.components import group_header, make_slider_field
 
 # A fraction of the body's size along each axis: its middle width, its side

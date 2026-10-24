@@ -70,8 +70,7 @@ def make_joint_grid(rows, column_labels, make_cell, class_name="", corner=""):
     instead of under every input; `corner` goes over the rows' labels.
     """
     header = html.Tr(
-        [html.Th(corner)]
-        + [html.Th(label, className="text-center") for label in column_labels]
+        [html.Th(corner)] + [html.Th(label, className="text-center") for label in column_labels]
     )
     body = [
         html.Tr(

@@ -25,15 +25,14 @@ from PIL import Image, ImageDraw
 
 SUPERSAMPLE = 8
 MASTER = 512
-ICO_SIZES = [(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128),
-             (256, 256)]
+ICO_SIZES = [(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)]
 
 # The hexapod logo's palette, shared with its web UI
-INK = (27, 42, 74, 255)        # #1b2a4a navy outlines and badge
-ARMOR = (255, 255, 255, 255)   # #ffffff white armour
-BLUE = (29, 79, 163, 255)      # #1d4fa3 knees and deck
-RED = (214, 40, 40, 255)       # #d62828 feet
-YELLOW = (242, 183, 5, 255)    # #f2b705 signal
+INK = (27, 42, 74, 255)  # #1b2a4a navy outlines and badge
+ARMOR = (255, 255, 255, 255)  # #ffffff white armour
+BLUE = (29, 79, 163, 255)  # #1d4fa3 knees and deck
+RED = (214, 40, 40, 255)  # #d62828 feet
+YELLOW = (242, 183, 5, 255)  # #f2b705 signal
 
 # Everything below is in the SVG's 512-unit space; px() scales it to pixels.
 SCALE = MASTER * SUPERSAMPLE / 512
@@ -77,28 +76,24 @@ def rotate(point, degrees):
     """Rotate like SVG's rotate(): clockwise on screen, since y points down."""
     angle = math.radians(degrees)
     x, y = point
-    return (x * math.cos(angle) - y * math.sin(angle),
-            x * math.sin(angle) + y * math.cos(angle))
+    return (x * math.cos(angle) - y * math.sin(angle), x * math.sin(angle) + y * math.cos(angle))
 
 
 def to_badge(point):
     """Map a point from the robot's frame into pixels on the badge."""
     x, y = rotate(point, ROBOT_ROTATION)
-    return (px(ROBOT_CENTER[0] + ROBOT_SCALE * x),
-            px(ROBOT_CENTER[1] + ROBOT_SCALE * y))
+    return (px(ROBOT_CENTER[0] + ROBOT_SCALE * x), px(ROBOT_CENTER[1] + ROBOT_SCALE * y))
 
 
 def disc(draw, xy, radius, fill):
-    draw.ellipse([xy[0] - radius, xy[1] - radius,
-                  xy[0] + radius, xy[1] + radius], fill=fill)
+    draw.ellipse([xy[0] - radius, xy[1] - radius, xy[0] + radius, xy[1] + radius], fill=fill)
 
 
 def inked_polygon(draw, points, fill):
     """Fill a polygon, then stroke it in ink with round joins like the SVG."""
     width = px(INK_WIDTH * ROBOT_SCALE)
     draw.polygon(points, fill=fill)
-    draw.line(points + points[:1], fill=INK, width=round(width),
-              joint="curve")
+    draw.line(points + points[:1], fill=INK, width=round(width), joint="curve")
     # Pillow does not join the line's two ends, so round every corner here
     for point in points:
         disc(draw, point, width / 2, INK)
@@ -111,8 +106,10 @@ def inked_circle(draw, center, radius, fill):
 
 
 def hexagon(radius):
-    return [(radius * math.cos(math.radians(60 * i)),
-             radius * math.sin(math.radians(60 * i))) for i in range(6)]
+    return [
+        (radius * math.cos(math.radians(60 * i)), radius * math.sin(math.radians(60 * i)))
+        for i in range(6)
+    ]
 
 
 def draw_badge(draw):
@@ -121,6 +118,7 @@ def draw_badge(draw):
 
 def draw_legs(draw):
     for heading, bend in TIBIA_BEND.items():
+
         def place(points, knee_bend=None, heading=heading):
             """Leg frame to badge; with a knee_bend, from the knee's frame."""
             placed = []
@@ -153,13 +151,22 @@ def draw_link_signal(draw):
     for radius in SIGNAL_ARCS:
         # The box is the arc's outer edge; centre the stroke on the radius
         outer = px(radius) + width / 2
-        draw.arc([cx - outer, cy - outer, cx + outer, cy + outer],
-                 start=start, end=end, fill=YELLOW, width=round(width))
+        draw.arc(
+            [cx - outer, cy - outer, cx + outer, cy + outer],
+            start=start,
+            end=end,
+            fill=YELLOW,
+            width=round(width),
+        )
         # Round caps, to match the ink's round joins
         for degrees in (start, end):
             angle = math.radians(degrees)
-            disc(draw, (cx + px(radius) * math.cos(angle),
-                        cy + px(radius) * math.sin(angle)), width / 2, YELLOW)
+            disc(
+                draw,
+                (cx + px(radius) * math.cos(angle), cy + px(radius) * math.sin(angle)),
+                width / 2,
+                YELLOW,
+            )
     disc(draw, (cx, cy), px(SIGNAL_DOT_RADIUS), YELLOW)
 
 
@@ -186,8 +193,7 @@ def main():
     # keeps the small sizes noticeably crisper.
     frames = [icon.resize(size, Image.LANCZOS) for size in ICO_SIZES]
     for name in ("app.ico", "favicon.ico"):
-        icon.save(os.path.join(assets, name), format="ICO", sizes=ICO_SIZES,
-                  append_images=frames)
+        icon.save(os.path.join(assets, name), format="ICO", sizes=ICO_SIZES, append_images=frames)
 
     print(f"wrote {master_path}, assets/app.ico, assets/favicon.ico")
 

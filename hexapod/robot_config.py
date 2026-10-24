@@ -28,8 +28,8 @@ import os
 from copy import deepcopy
 from pathlib import Path
 
-from settings import ROBOT_CONFIG_CACHE_ENV, ROBOT_CONFIG_CACHE_PATH
 from hexapod.robot_http import RobotHttpError, get_robot_config
+from settings import ROBOT_CONFIG_CACHE_ENV, ROBOT_CONFIG_CACHE_PATH
 
 # Highest GET /robot_config protocol this app understands (PROTOCOL_VERSION in
 # the firmware's protocol.h).
@@ -83,8 +83,12 @@ _NOUGAT_GEOMETRY = {
     "legMountY": [74.82, 0, -74.82, 74.82, 0, -74.82],
     "legMountAngle": [45, 0, -45, -225, -180, -135],
     "legScale": [
-        [1, -1, -1], [1, 1, 1], [1, 1, 1],
-        [1, 1, 1], [1, -1, -1], [1, -1, -1],
+        [1, -1, -1],
+        [1, 1, 1],
+        [1, 1, 1],
+        [1, 1, 1],
+        [1, -1, -1],
+        [1, -1, -1],
     ],
     "legRootToJoint1": 0,
     "legJoint1ToJoint2": 38.0,
@@ -147,9 +151,7 @@ def _parse_geometry(geometry):
     config = deepcopy(geometry)
     config["legMountX"] = _six(_require(geometry, "legMountX", "geometry"), "legMountX")
     config["legMountY"] = _six(_require(geometry, "legMountY", "geometry"), "legMountY")
-    config["legMountAngle"] = _six(
-        _require(geometry, "legMountAngle", "geometry"), "legMountAngle"
-    )
+    config["legMountAngle"] = _six(_require(geometry, "legMountAngle", "geometry"), "legMountAngle")
 
     leg_scale = _require(geometry, "legScale", "geometry")
     if not (

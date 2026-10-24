@@ -9,7 +9,6 @@ import numpy as np
 from hexapod.naming import LEG_NAMES
 from hexapod.robot_config import DEFAULT_CONFIG, get_leg_signs
 
-
 # --- Path Library Functions (from path_tool/path_lib.py) ---
 
 
@@ -50,32 +49,38 @@ def semicircle2_generator(steps, y_radius, z_radius, x_radius, reverse=False):
 
 def get_rotate_x_matrix(angle):
     angle = angle * np.pi / 180
-    return np.array([
-        [1, 0, 0, 0],
-        [0, np.cos(angle), -np.sin(angle), 0],
-        [0, np.sin(angle), np.cos(angle), 0],
-        [0, 0, 0, 1],
-    ])
+    return np.array(
+        [
+            [1, 0, 0, 0],
+            [0, np.cos(angle), -np.sin(angle), 0],
+            [0, np.sin(angle), np.cos(angle), 0],
+            [0, 0, 0, 1],
+        ]
+    )
 
 
 def get_rotate_y_matrix(angle):
     angle = angle * np.pi / 180
-    return np.array([
-        [np.cos(angle), 0, np.sin(angle), 0],
-        [0, 1, 0, 0],
-        [-np.sin(angle), 0, np.cos(angle), 0],
-        [0, 0, 0, 1],
-    ])
+    return np.array(
+        [
+            [np.cos(angle), 0, np.sin(angle), 0],
+            [0, 1, 0, 0],
+            [-np.sin(angle), 0, np.cos(angle), 0],
+            [0, 0, 0, 1],
+        ]
+    )
 
 
 def get_rotate_z_matrix(angle):
     angle = angle * np.pi / 180
-    return np.array([
-        [np.cos(angle), -np.sin(angle), 0, 0],
-        [np.sin(angle), np.cos(angle), 0, 0],
-        [0, 0, 1, 0],
-        [0, 0, 0, 1],
-    ])
+    return np.array(
+        [
+            [np.cos(angle), -np.sin(angle), 0, 0],
+            [np.sin(angle), np.cos(angle), 0, 0],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1],
+        ]
+    )
 
 
 def path_rotate_z(path, angle):
@@ -134,8 +139,12 @@ def gen_posture(j2_angle, j3_angle, config):
     j3_rad = j3_angle / 180 * np.pi
     posture = np.zeros((6, 3))
 
-    posture[:, 0] = mount_x + (root_j1 + j1_j2 + (j2_j3 * np.sin(j2_rad)) + j3_tip * np.cos(j3_rad)) * np.cos(mount_angle)
-    posture[:, 1] = mount_y + (root_j1 + j1_j2 + (j2_j3 * np.sin(j2_rad)) + j3_tip * np.cos(j3_rad)) * np.sin(mount_angle)
+    posture[:, 0] = mount_x + (
+        root_j1 + j1_j2 + (j2_j3 * np.sin(j2_rad)) + j3_tip * np.cos(j3_rad)
+    ) * np.cos(mount_angle)
+    posture[:, 1] = mount_y + (
+        root_j1 + j1_j2 + (j2_j3 * np.sin(j2_rad)) + j3_tip * np.cos(j3_rad)
+    ) * np.sin(mount_angle)
     posture[:, 2] = j2_j3 * np.cos(j2_rad) - j3_tip * np.sin(j3_rad)
     return posture
 
@@ -151,7 +160,9 @@ def gen_walk_path(standby_coordinate, g_steps=28, g_radius=30, direction=0):
     return path + np.tile(standby_coordinate, (g_steps, 1, 1))
 
 
-def gen_fastwalk_path(standby_coordinate, g_steps=20, y_radius=50, z_radius=40, x_radius=15, reverse=False):
+def gen_fastwalk_path(
+    standby_coordinate, g_steps=20, y_radius=50, z_radius=40, x_radius=15, reverse=False
+):
     halfsteps = int(g_steps / 2)
     path = np.zeros((g_steps, 6, 3))
     semi_circle_r = semicircle2_generator(g_steps, y_radius, z_radius, x_radius, reverse=reverse)
@@ -159,7 +170,9 @@ def gen_fastwalk_path(standby_coordinate, g_steps=20, y_radius=50, z_radius=40, 
     path[:, [0, 2], :] = np.tile(semi_circle_r[:, np.newaxis, :], (1, 2, 1))
     path[:, 1, :] = np.roll(semi_circle_r, halfsteps, axis=0)
     path[:, 4, :] = semi_circle_l
-    path[:, [3, 5], :] = np.tile(np.roll(semi_circle_l[:, np.newaxis, :], halfsteps, axis=0), (1, 2, 1))
+    path[:, [3, 5], :] = np.tile(
+        np.roll(semi_circle_l[:, np.newaxis, :], halfsteps, axis=0), (1, 2, 1)
+    )
     return path + np.tile(standby_coordinate, (g_steps, 1, 1))
 
 
@@ -184,9 +197,7 @@ def gen_turn_path(standby_coordinate, g_steps=28, g_radius=35, direction="left")
     path = np.zeros((g_steps, 6, 3))
     semi_circle = semicircle_generator(g_radius, g_steps)
     mir_path = np.roll(semi_circle, halfsteps, axis=0)
-    azimuths = np.degrees(
-        np.arctan2(standby_coordinate[:, 1], standby_coordinate[:, 0])
-    )
+    azimuths = np.degrees(np.arctan2(standby_coordinate[:, 1], standby_coordinate[:, 0]))
     # An unrecognised direction leaves the path at zero, i.e. standing by.
     if direction in ("left", "right"):
         turn_offset = 0 if direction == "left" else 180
@@ -196,7 +207,15 @@ def gen_turn_path(standby_coordinate, g_steps=28, g_radius=35, direction="left")
     return path + np.tile(standby_coordinate, (g_steps, 1, 1))
 
 
-def gen_climb_path(standby_coordinate, g_steps=28, y_radius=20, z_radius=80, x_radius=30, z_shift=-30, reverse=False):
+def gen_climb_path(
+    standby_coordinate,
+    g_steps=28,
+    y_radius=20,
+    z_radius=80,
+    x_radius=30,
+    z_shift=-30,
+    reverse=False,
+):
     halfsteps = int(g_steps / 2)
     rpath = semicircle2_generator(g_steps, y_radius, z_radius, x_radius, reverse=reverse)
     rpath[:, 2] = rpath[:, 2] + z_shift
@@ -271,12 +290,16 @@ def gen_rotatez_path(standby_coordinate, g_steps=28, z_lift=4.5, xy_radius=1):
     for i in range(g_steps):
         x = xy_radius * np.cos(i * step_angle)
         y = xy_radius * np.sin(i * step_angle)
-        m = get_rotate_y_matrix(np.arctan2(x, z_lift) * 180 / np.pi) @ get_rotate_x_matrix(np.arctan2(y, z_lift) * 180 / np.pi)
+        m = get_rotate_y_matrix(np.arctan2(x, z_lift) * 180 / np.pi) @ get_rotate_x_matrix(
+            np.arctan2(y, z_lift) * 180 / np.pi
+        )
         path[i, :, :] = ((np.matmul(m, scx.T)).T)[:, :-1]
     return path
 
 
-def gen_twist_path(standby_coordinate, g_steps=28, raise_angle=3, twist_x_angle=20, twise_y_angle=12):
+def gen_twist_path(
+    standby_coordinate, g_steps=28, raise_angle=3, twist_x_angle=20, twise_y_angle=12
+):
     quarter = int(g_steps / 4)
     step_x_angle = twist_x_angle / quarter
     step_y_angle = twise_y_angle / quarter
@@ -287,13 +310,21 @@ def gen_twist_path(standby_coordinate, g_steps=28, raise_angle=3, twist_x_angle=
         temp = m @ get_rotate_z_matrix(i * step_x_angle) @ get_rotate_x_matrix(i * step_y_angle)
         path[i, :, :] = ((np.matmul(temp, scx.T)).T)[:, :-1]
     for i in range(quarter):
-        temp = m @ get_rotate_z_matrix((quarter - i) * step_x_angle) @ get_rotate_x_matrix((quarter - i) * step_y_angle)
+        temp = (
+            m
+            @ get_rotate_z_matrix((quarter - i) * step_x_angle)
+            @ get_rotate_x_matrix((quarter - i) * step_y_angle)
+        )
         path[i + quarter * 1, :, :] = ((np.matmul(temp, scx.T)).T)[:, :-1]
     for i in range(quarter):
         temp = m @ get_rotate_z_matrix(-i * step_x_angle) @ get_rotate_x_matrix(i * step_y_angle)
         path[i + quarter * 2, :, :] = ((np.matmul(temp, scx.T)).T)[:, :-1]
     for i in range(quarter):
-        temp = m @ get_rotate_z_matrix((-quarter + i) * step_x_angle) @ get_rotate_x_matrix((quarter - i) * step_y_angle)
+        temp = (
+            m
+            @ get_rotate_z_matrix((-quarter + i) * step_x_angle)
+            @ get_rotate_x_matrix((quarter - i) * step_y_angle)
+        )
         path[i + quarter * 3, :, :] = ((np.matmul(temp, scx.T)).T)[:, :-1]
     return path
 
@@ -331,9 +362,7 @@ def gen_standup_path(standby_coordinate, laydown_coordinate, steps=28):
     # laydown and standby differ by the same travel on all six.
     travel = laydown_coordinate[:, :2] - standby_coordinate[:, :2]
     azimuths = np.degrees(np.arctan2(travel[:, 1], travel[:, 0]))
-    leg_offset = np.array(
-        [path_rotate_z(center_offset, azimuth) for azimuth in azimuths]
-    )
+    leg_offset = np.array([path_rotate_z(center_offset, azimuth) for azimuth in azimuths])
     # The two tripods reposition in turn, each holding still while the other
     # moves, so a tripod's run starts from the pose the previous one left.
     start = lift_up_size

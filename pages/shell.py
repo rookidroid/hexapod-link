@@ -15,7 +15,6 @@ from widgets.components import make_splitter
 from widgets.dimensions_ui import DIMENSIONS_JSON
 from widgets.robot_link_ui import LINK_MENU
 
-
 # ......................
 # The 3D view
 #

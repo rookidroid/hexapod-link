@@ -22,7 +22,6 @@ from dash import dcc, html
 from hexapod.keyframes import DEFAULT_DURATION_MS, MAX_DURATION_MS, MIN_DURATION_MS
 from hexapod.naming import JOINT_NAMES, LEG_NAMES, joint_label, joint_number, leg_label
 from widgets.body_ui import ROTATE_WIDGETS, TRANSLATE_WIDGETS
-from widgets.robot_link_ui import SECTION_CONTROLS_OFFLINE_CLASS
 from widgets.components import (
     LEG_SIDES,
     field_label,
@@ -32,6 +31,7 @@ from widgets.components import (
     make_splitter,
     short_leg_name,
 )
+from widgets.robot_link_ui import SECTION_CONTROLS_OFFLINE_CLASS
 
 # --- Element IDs ---
 # Written by assets/hexapod_view.js through set_props; keep the two in step.
@@ -453,9 +453,7 @@ sequence_tools = [
                 id=POSE_UPLOAD_ID,
                 accept=".json,application/json",
             ),
-            _button(
-                "Save…", POSE_SAVE_BTN_ID, outline=True, title="Save the keyframes to a file"
-            ),
+            _button("Save…", POSE_SAVE_BTN_ID, outline=True, title="Save the keyframes to a file"),
             dcc.Download(id=POSE_DOWNLOAD_ID),
         ],
         className="dock-group dock-push",
@@ -599,6 +597,7 @@ library_section = _section(
 
 
 # ---- The sequence ----
+
 
 def ease_icon(eased):
     """A little graph of a move: an S for one that eases in and out, a

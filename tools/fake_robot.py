@@ -53,8 +53,9 @@ class FakeRobot:
     firmware that predates the version query.
     """
 
-    def __init__(self, payload, host="127.0.0.1", port=0, udp_port=None,
-                 on_packet=None, answer_version=True):
+    def __init__(
+        self, payload, host="127.0.0.1", port=0, udp_port=None, on_packet=None, answer_version=True
+    ):
         self.payload = payload
         self.speed = payload.get("speed", {}).get("current", 60)
         self.requests = []
@@ -190,8 +191,12 @@ def _describe_packet(data):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("robot", nargs="?", default="nougat",
-                        help="fixture name: " + ", ".join(p.stem for p in FIXTURES.glob("*.json")))
+    parser.add_argument(
+        "robot",
+        nargs="?",
+        default="nougat",
+        help="fixture name: " + ", ".join(p.stem for p in FIXTURES.glob("*.json")),
+    )
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8080)
     parser.add_argument("--quiet-pings", action="store_true", help="hide RT_PING packets")
@@ -203,12 +208,17 @@ def main():
             print(text, flush=True)
 
     robot = FakeRobot.from_fixture(
-        args.robot, host=args.host, port=args.port, udp_port=UDP_PORT,
+        args.robot,
+        host=args.host,
+        port=args.port,
+        udp_port=UDP_PORT,
         on_packet=print_packet,
     ).start()
     firmware = robot.payload.get("firmware", {}).get("version", "0.0.0")
-    print(f"Fake {args.robot} (firmware {firmware}) serving HTTP on {robot.address}, "
-          f"UDP on {args.host}:{UDP_PORT}")
+    print(
+        f"Fake {args.robot} (firmware {firmware}) serving HTTP on {robot.address}, "
+        f"UDP on {args.host}:{UDP_PORT}"
+    )
     try:
         threading.Event().wait()
     except KeyboardInterrupt:

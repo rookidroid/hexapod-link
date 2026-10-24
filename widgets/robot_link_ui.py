@@ -15,8 +15,8 @@ import json
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
-from settings import ROBOT_DEFAULT_IP, ROBOT_DEFAULT_MAX_STEP
 from hexapod.robot_link import ROBOT_LINK
+from settings import ROBOT_DEFAULT_IP, ROBOT_DEFAULT_MAX_STEP
 from widgets.components import field_label
 
 # --- Element IDs ---
@@ -255,8 +255,7 @@ DRIVE_HUD = html.Details(
         html.Summary(
             "Controller",
             title=(
-                "Runs the robot's own gaits, played from its flash, for as "
-                "long as a pad is held."
+                "Runs the robot's own gaits, played from its flash, for as long as a pad is held."
             ),
         ),
         html.Div(

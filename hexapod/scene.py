@@ -138,8 +138,7 @@ def transform_scene(scene, rotation, shift):
         "feet": [move(p) for p in scene["feet"]],
         "support": [move(p) for p in scene["support"]],
         "axes": [
-            {**axis, "from": move(axis["from"]), "to": move(axis["to"])}
-            for axis in scene["axes"]
+            {**axis, "from": move(axis["from"]), "to": move(axis["to"])} for axis in scene["axes"]
         ],
         "ground": round(scene["ground"] + float(shift[2]), 3) + 0.0,
     }
