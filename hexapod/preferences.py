@@ -9,7 +9,7 @@ from pathlib import Path
 from settings import PREFERENCES_ENV, PREFERENCES_PATH
 
 THEMES = ("light", "dark")
-DEFAULT_THEME = "light"
+DEFAULT_THEME = "dark"
 
 
 def preferences_path():

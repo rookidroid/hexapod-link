@@ -23,9 +23,9 @@ def preferences_file(tmp_path, monkeypatch):
     return path
 
 
-def test_theme_defaults_to_light_without_a_file(preferences_file):
-    assert DEFAULT_THEME == "light"
-    assert load_theme() == "light"
+def test_theme_defaults_to_dark_without_a_file(preferences_file):
+    assert DEFAULT_THEME == "dark"
+    assert load_theme() == "dark"
 
 
 def test_theme_round_trips(preferences_file):
@@ -51,9 +51,9 @@ def test_saving_keeps_other_preferences(preferences_file):
     "contents",
     ["not json", "[1, 2]", '{"theme": "purple"}', '{"theme": null}'],
 )
-def test_unusable_file_falls_back_to_light(preferences_file, contents):
+def test_unusable_file_falls_back_to_dark(preferences_file, contents):
     preferences_file.write_text(contents, encoding="utf-8")
-    assert load_theme() == "light"
+    assert load_theme() == "dark"
 
 
 def test_unknown_theme_is_rejected(preferences_file):
