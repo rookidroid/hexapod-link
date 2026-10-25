@@ -33,6 +33,7 @@ from widgets.pose_ui import (
     POSE_DOCK,
     POSE_HUD,
     POSE_VIEW_ID,
+    VIEW_HINT,
     VIEW_OVERLAY,
     VIEW_TOOL,
 )
@@ -58,6 +59,7 @@ WORKSPACE = make_workspace(
         drive=DRIVE_HUD,
         tool=VIEW_TOOL,
         playback=PLAYBACK_HUD,
+        hint=VIEW_HINT,
     ),
     POSE_DOCK,
 )

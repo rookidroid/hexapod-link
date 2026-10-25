@@ -1674,6 +1674,24 @@ body {
     white-space: normal;
 }
 
+/* How to work the view, in small print just above the bar. It is only
+   words: clicks go through it to the robot. */
+.hexapod-view-hint {
+    position: absolute;
+    left: 50%;
+    bottom: var(--playback-lift);
+    z-index: 1;
+    max-width: calc(100% - 19rem);
+    transform: translateX(-50%);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--hud-muted);
+    text-align: center;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    pointer-events: none;
+    user-select: none;
+}
+
 /* No room beside the folded corners: the bar takes the width, and they sit
    above it. */
 @media (max-width: 767.98px) {
@@ -1684,6 +1702,11 @@ body {
     .hexapod-view-hud,
     .hexapod-view-drive {
         bottom: var(--playback-lift);
+    }
+
+    /* The folded corners sit where it would go. */
+    .hexapod-view-hint {
+        display: none;
     }
 }
 

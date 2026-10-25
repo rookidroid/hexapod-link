@@ -43,6 +43,7 @@ def make_view(
     drive=None,
     tool=None,
     playback=None,
+    hint=None,
 ):
     """The element the view draws into, and the store its scene goes in.
 
@@ -52,7 +53,8 @@ def make_view(
     `drive` over its bottom-right, for driving the robot itself; and `tool`
     over the middle of its top edge, for how what is picked is dragged; and
     `playback` over the middle of its bottom edge, for playing what the view
-    shows.
+    shows. `hint`, a line of small print on how to use the view, goes just
+    above `playback`, in the middle.
     """
     children = [
         html.Div(id=view_id, className="hexapod-view"),
@@ -71,6 +73,8 @@ def make_view(
         children.append(html.Div(tool, className="hexapod-view-tool"))
     if playback:
         children.append(html.Div(playback, className="hexapod-view-playback"))
+    if hint:
+        children.append(html.Div(hint, className="hexapod-view-hint"))
     return html.Div(children, className="hexapod-view-frame")
 
 
