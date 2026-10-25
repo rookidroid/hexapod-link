@@ -526,7 +526,7 @@ class Recorder:
 def open_app(browser, robot, window, theme="light", panels=()):
     """A fresh page of the app in a window of the size given, connected to
     the stand-in robot, with the overlays named in `panels` open."""
-    from hexapod.preferences import PANELS, save_panels, save_theme
+    from hexapod.preferences import PANELS, save_panels, save_preference, save_theme
     from hexapod.robot_link import ROBOT_LINK
     from settings import ROBOT_DEFAULT_IP
     from widgets.robot_link_ui import ROBOT_CONNECT_BTN_ID, ROBOT_IP_INPUT_ID, STATUS_PILL_ID
@@ -536,6 +536,9 @@ def open_app(browser, robot, window, theme="light", panels=()):
     ROBOT_LINK.disconnect()
     save_theme(theme)
     save_panels({key: key in panels for key in PANELS})
+    # The page would open on the pose and sequence the last shot left
+    # (pages/last_session.py).
+    save_preference("workspace", {})
     browser.resize(*window)
     browser.open(URL)
 
