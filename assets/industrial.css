@@ -1681,6 +1681,8 @@ body {
     left: 50%;
     bottom: var(--playback-lift);
     z-index: 1;
+    /* Its own width, not the half of the view right of `left`. */
+    width: max-content;
     max-width: calc(100% - 19rem);
     transform: translateX(-50%);
     font-family: var(--font-mono);
@@ -1690,6 +1692,19 @@ body {
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
     pointer-events: none;
     user-select: none;
+}
+
+/* Too narrow for it on one line, it would wrap over the robot's feet; and
+   an opened pose or controller takes the room it is in. */
+.hexapod-view-frame:has(.pose-hud[open]) .hexapod-view-hint,
+.hexapod-view-frame:has(.drive-hud[open]) .hexapod-view-hint {
+    display: none;
+}
+
+@media (max-width: 1099.98px) {
+    .hexapod-view-hint {
+        display: none;
+    }
 }
 
 /* No room beside the folded corners: the bar takes the width, and they sit
@@ -1702,11 +1717,6 @@ body {
     .hexapod-view-hud,
     .hexapod-view-drive {
         bottom: var(--playback-lift);
-    }
-
-    /* The folded corners sit where it would go. */
-    .hexapod-view-hint {
-        display: none;
     }
 }
 
