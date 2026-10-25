@@ -8,10 +8,15 @@
 
 Pose, animate and drive a six-legged robot from your computer. 🕷️
 
-Hexapod Link shows your [rookidroid](https://rookidroid.com/) hexapod in 3D.
-Move its body and feet with the mouse, string poses and walks into a routine,
-then play it on the real robot over WiFi. No robot yet? Everything but the
-last step works without one.
+Hexapod Link shows your [rookidroid](https://rookidroid.com/) hexapod robot in
+3D on your screen. You can:
+
+- move the robot's body and feet with your mouse,
+- put moves together into a short dance or walk,
+- and play it on the real robot over WiFi.
+
+**No robot yet?** No problem. Everything works without one, except sending
+moves to the real robot.
 
 <p align="center">
   <img src="docs/images/walk.gif" width="760" alt="A hexapod walking in the 3D view">
@@ -19,126 +24,150 @@ last step works without one.
 
 ## What you can do
 
-- **Pose it.** Click the body or a foot and drag it where you want it. The app
-  works out every joint angle for you, and stops where a leg can no longer reach.
-  Or click a single joint and turn it by its ring.
-- **Choreograph it.** Collect your poses and the robot's ready-made gaits
-  (walk, turn, climb, twist, ...) into a sequence, set the timing, and watch it
-  play.
-- **Drive it.** Hold a pad on the on-screen controller and the robot walks,
-  turns or wobbles; let go and it stops.
-- **See it on the real thing.** Connect over WiFi and the robot follows what
-  is on screen: one pose, a whole sequence, or its own gaits.
-- **Use any robot in the family.** Nougat, Mochi, Macaroon, ...: the robot
-  tells the app its size and limits when it connects, so the model on screen
-  always matches.
+- **Pose it.** Click the robot's body or one of its feet, then drag it where
+  you want. The app works out how every joint has to bend. If a leg can't
+  reach any further, it stops there.
+- **Animate it.** Line up your own poses and the robot's ready-made moves
+  (walk, turn, climb, twist and more), choose how long each takes, and watch
+  them play.
+- **Drive it.** Hold a button on the on-screen controller and the robot walks
+  or turns. Let go and it stops.
+- **Run it on the real robot.** Connect over WiFi and the robot copies what
+  you see on screen.
+- **Use any robot in the family.** Nougat, Mochi, Macaroon and the others all
+  work. Your robot tells the app its size when it connects, so the 3D model
+  always matches it.
 
-## The window
+## A quick tour of the window
 
 <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/app-dark.png"><img src="docs/images/app.png" alt="The Hexapod Link window"></picture>
 
 Everything is on one screen:
 
-| Where | What it is for |
+| Where | What it does |
 |---|---|
-| **Top bar** | The robot's status light, which opens to the robot's address and **Connect**, and the ☾ / ☀ button for the light or dark theme. |
-| **3D view** | The robot. Drag with the left mouse button to look around it, turn the wheel to zoom, drag with the right button to slide the view. |
-| **Pose** (bottom left) | The angle of every joint, and the controls for whatever you have picked up. |
-| **Stream to robot** and **Dimensions** (top left) | Send the pose to the robot as you change it; see or edit the robot's measurements. |
-| **Controller** (bottom right) | Pads that drive the robot. |
-| **Playback** (bottom middle) | Play the routine in the view, scrub through it, set its speed and loop it. |
-| **Gaits · Sequence · Robot** (along the bottom) | Build a routine and run it on the robot. |
+| **Top bar** | Shows whether a robot is connected. Click it to connect. The ☾ / ☀ button switches between dark and light colours. |
+| **3D view** (the middle) | Shows the robot. Drag with the left mouse button to look around it, drag with the right button to slide the view, and use the scroll wheel to zoom. A short reminder of this sits at the bottom of the view. |
+| **Stream to robot** and **Dimensions** (top left) | Make the real robot follow the screen as you pose it. See or change the robot's measurements. |
+| **Pose** (bottom left) | Every joint's angle, plus the controls for the part you have clicked. |
+| **Controller** (bottom right) | Buttons that drive the robot around. |
+| **Playback bar** (bottom middle) | Play your animation, slow it down or speed it up, repeat it, or run it on the robot. |
+| **Gaits** and **Sequence** (the panel along the bottom) | Build your animation. |
 
-**Pose**, **Dimensions** and **Controller** fold away: click a heading to open
-or close it.
+**Pose**, **Dimensions** and **Controller** can be folded away. Click a
+panel's title to open or close it.
 
 ## Get started
 
-### 1. Install and start the app
+### Step 1: Install the app
 
-You need a Windows or Linux computer with [Python](https://www.python.org/downloads/)
-3.13 or newer. On Windows, tick **Add python.exe to PATH** in the Python
-installer.
+**The easy way: download it.** No other software needed.
 
-1. Download the app: on this page, **Code → Download ZIP**, then unzip it.
-2. Open a terminal in the unzipped folder. On Windows: open the folder in File
-   Explorer, type `cmd` in the address bar and press Enter.
-3. Install what the app needs. This is only needed the first time:
+1. Go to the [latest release](https://github.com/rookidroid/hexapod-link/releases/latest).
+2. Under **Assets**, download the file for your computer:
+   - Windows: `HexapodLink-…-windows-x64.zip`
+   - Linux: `HexapodLink-…-linux-x64.tar.gz`
+3. Unzip it. You get a folder called `HexapodLink`.
+4. Open the folder and double-click **HexapodLink** (`HexapodLink.exe` on
+   Windows).
+
+The window opens with a robot standing ready. Windows may warn you that the
+app comes from an unknown publisher. If it does, click **More info**, then
+**Run anyway**.
+
+<details>
+<summary>Prefer to run it with Python instead?</summary>
+
+You need [Python](https://www.python.org/downloads/) 3.13 or newer. On
+Windows, tick **Add python.exe to PATH** when you install Python.
+
+1. Get the code: at the top of this page, click **Code → Download ZIP**, then
+   unzip it.
+2. Open a terminal in the unzipped folder. On Windows, open the folder in
+   File Explorer, type `cmd` in the address bar, and press Enter.
+3. Install what the app needs. You only do this once:
 
    ```bash
    pip install -r requirements-desktop.txt
    ```
 
-4. Start it:
+4. Start the app:
 
    ```bash
    python hexapod_link.py
    ```
 
-The window opens showing a Nougat, standing by. From then on, step 4 is all it
-takes. (If your system says it cannot find `python` or `pip`, try `python3`
-and `pip3`.)
+Next time, step 4 is all you need. If your computer says it can't find
+`python` or `pip`, try `python3` and `pip3`.
+
+On Linux, the app's window needs a few system packages. Install them before
+step 3:
+
+```bash
+sudo apt install libgirepository1.0-dev libcairo2-dev pkg-config gir1.2-webkit2-4.1 libwebkit2gtk-4.1-0
+```
+
+</details>
 
 <details>
-<summary>Would rather use it in your web browser, or the window will not open?</summary>
+<summary>Window won't open, or you'd rather use your web browser?</summary>
 
-The app can run in a browser tab instead of its own window. That needs less
-installed, and works on any system Python does:
+The app can run in a browser tab instead of its own window. This needs fewer
+things installed, and works anywhere Python does. Follow the Python steps
+above, but use these two commands instead:
 
 ```bash
 pip install -r requirements.txt
 python hexapod_link.py --no-window --port 8050
 ```
 
-Then open <http://127.0.0.1:8050> in your browser. Leave the terminal open
-while you use it, and press Ctrl+C in it to quit.
+Then open <http://127.0.0.1:8050> in your browser. Keep the terminal open
+while you use the app. To quit, press Ctrl+C in the terminal.
 
-On Linux, the app's own window needs a few system packages before step 3:
-
-```bash
-sudo apt install libgirepository1.0-dev libcairo2-dev pkg-config gir1.2-webkit2-4.1 libwebkit2gtk-4.1-0
-```
-
-On Windows, the window uses Microsoft's WebView2, which Windows 10 and 11
-already have. If the window stays blank, install it from
+On Windows, the app's window uses Microsoft's WebView2, which Windows 10 and
+11 already include. If the window stays blank, install WebView2 from
 [Microsoft](https://developer.microsoft.com/microsoft-edge/webview2/).
 
 </details>
 
-### 2. Connect your robot
+### Step 2: Connect your robot
 
-Skip this if you just want to try the app: everything on screen works without
+Just want to try the app? Skip this step. Everything on screen works without
 a robot.
 
 1. Switch the robot on.
 2. On your computer, **join the robot's WiFi network**. The robot makes its
-   own network, so there is no internet on it; that is expected. The robot
-   stands up when your computer joins.
-3. In the app, click **Offline** in the top bar, then press **Connect**. The
-   address above it is already the robot's (`192.168.4.1`).
+   own network, so you won't have internet while you're on it. That's normal.
+   The robot stands up when your computer joins.
+3. In the app, click **Offline** in the top bar, then click **Connect**. The
+   address is already filled in for you (`192.168.4.1`).
 
-The light in the top bar turns green and shows the robot's name, and the model
-on screen changes to match your robot.
+The light in the top bar turns green and shows your robot's name. The 3D
+model changes to match your robot.
 
 > [!NOTE]
-> The robot needs a recent firmware, from
-> [rookidroid/hexapod](https://github.com/rookidroid/hexapod)
-> (`software/hexapod_esp32`). If **Connect** ends in **Fault** even though you
-> are on the robot's WiFi, update the robot's firmware.
+> Your robot needs up-to-date firmware (the software that runs on the robot
+> itself). You can find it in
+> [rookidroid/hexapod](https://github.com/rookidroid/hexapod), in the
+> `software/hexapod_esp32` folder. If **Connect** ends in **Fault** even
+> though you are on the robot's WiFi, update the firmware.
 
-### 3. Stay safe
+### Step 3: Stay safe
 
 > [!WARNING]
 > **Put the robot on a stand before you send it anything.** A pose that looks
-> stable on screen is not necessarily stable on the floor, and a leg can move
+> fine on screen might tip the robot over on the floor, and legs can move
 > faster than you expect.
 
-- The app never sends a joint further than the limits the robot reports.
-- If the connection drops, the robot goes back to standing on its own after
+The app helps keep things safe:
+
+- It never moves a joint further than your robot allows.
+- If the WiFi connection drops, the robot stands back up by itself after
   about a second.
-- A sequence starts from its first pose wherever the robot is at the time, so
-  the first move can be quick. Make the first pose close to standing, or press
-  **Standby** before **Run on robot**.
+
+One thing to watch: an animation always starts by moving to its first pose,
+wherever the robot happens to be. That first move can be quick. Make your
+first pose close to standing, or click **Standby** before **Run on robot**.
 
 ## Pose the robot
 
@@ -146,126 +175,144 @@ on screen changes to match your robot.
   <img src="docs/images/pose.gif" alt="Picking the body up to move and turn it, then lifting a foot">
 </p>
 
-1. **Pick something up.** Click the body, a foot or a joint in the 3D view, or its
-   button in the **Pose** panel: **Body**, or **L1** to **R3** for the left
-   and right legs, front to back. Click empty space, or the button again, to
-   let go.
-2. **Move the body.** With the body picked, drag its arrows to shift it. To
-   tilt and turn it instead, switch **Drag body to** from **Move** to
-   **Rotate** at the top of the view, and drag the rings. The feet stay
-   planted and the legs follow. The sliders in the **Pose** panel do the same
-   thing.
-3. **Move a foot.** With a foot picked, drag its arrows, or type where it
-   should go: **X**, **Y** and **Up** (its height off the floor), in
+1. **Pick a part.** Click the body, a foot or a joint in the 3D view. You can
+   also use the buttons in the **Pose** panel: **Body**, or **L1** to **R3**
+   for the legs (L for left, R for right, numbered front to back). To let go,
+   click empty space, or click the same button again.
+2. **Move the body.** With the body picked, drag its coloured arrows to slide
+   it. To tilt or turn it instead, switch **Drag body to** from **Move** to
+   **Rotate** (at the top of the view), then drag the rings. The feet stay
+   where they are and the legs bend to follow. The sliders in the **Pose**
+   panel do the same thing.
+3. **Move a foot.** With a foot picked, drag its arrows. Or type where it
+   should go: **X**, **Y**, and **Up** (its height off the floor), all in
    millimetres. **Put feet back** returns every foot to where it started.
-4. **Turn a joint.** With a joint picked, drag the ring around it to turn
-   just that joint; the rest of the leg follows. It stops at the joint's
-   limit.
-5. **Start over** with **Reset pose** at the top right. **Reset view** puts
-   the camera back.
+4. **Turn a joint.** With a joint picked, drag the ring around it. Only that
+   joint turns; the rest of the leg moves along with it. It stops at the
+   joint's limit.
+5. **Start over.** **Reset pose** (top right) puts the robot back to
+   standing. **Reset view** puts the camera back.
 
-The body and the feet do not undo each other: tilt the body, lift a foot, and
-both stay. If you drag something further than a leg can reach, it stops at the
-edge. You can also type a joint angle straight into the table.
+Good to know:
 
-To have the real robot follow along as you pose, turn on **Stream to robot**
-at the top left. **Max speed** beside it limits how fast the servos may move.
+- Moving the body and moving a foot don't cancel each other out. Tilt the
+  body, lift a foot, and both stay.
+- If you drag something further than a leg can reach, it stops at the edge.
+- You can also type a joint angle straight into the table.
 
-## Build a sequence
+**Want the real robot to copy you as you pose?** Turn on **Stream to robot**
+at the top left. **Max speed** next to it limits how fast the robot's motors
+may move.
+
+## Make an animation
 
 <p align="center">
   <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/sequence-dark.gif"><img src="docs/images/sequence.gif" alt="Adding three gaits to the sequence, then playing it"></picture>
 </p>
 
-A sequence is a row of **keyframes**: poses the robot moves through, one after
-another, each with the time it takes to get there.
+An animation is called a **sequence**. It is a row of **keyframes**: poses
+the robot moves through, one after another. Each keyframe also has a time:
+how long the robot takes to get to it.
 
-1. **Add a gait.** In **Gaits**, press **+** beside one to add a cycle of it
-   to the sequence. Press **+** again for another cycle; they join up
-   seamlessly. **⇄** replaces the whole sequence with that gait instead.
-2. **Add your own poses.** Pose the robot, then press **+ Add pose**.
-3. **Edit a keyframe.** Click it, or the arrow into it, in the row. The bar
-   underneath sets its **Transition** (how long the move into it takes) and
-   whether it moves with **Ease** (starts and stops gently) or **Linear**
-   (a steady speed); each arrow shows its time and a little curve for which.
-   **Save pose** overwrites it with the pose on screen, **◀ ▶** move it
-   earlier or later, and **Delete** removes it. Keyframes keep their number
-   wherever they move; **Renumber** numbers them 1, 2, 3… in order again.
-4. **Watch it.** Press **Play**, or drag the slider beside it. **Speed** plays
-   it all slower or faster, and **Loop** repeats it. Looping, the move from
-   the last keyframe back round to the first takes the first one's time: the
-   **↺** arrow in front of it, which is dimmed while Loop is off.
-5. **Run it on the robot** with **Run on robot**. **Standby** stops it and
-   stands the robot up.
+The robot's ready-made moves are called **gaits** (a gait is a way of
+walking, like a walk or a turn).
 
-Good to know:
+1. **Add a gait.** In **Gaits**, click **+** next to one to add it to your
+   sequence. Click **+** again to add it once more; the copies join up
+   smoothly. **⇄** replaces your whole sequence with that gait instead.
+2. **Add your own pose.** Pose the robot, then click **+ Add pose**. If a
+   keyframe in the middle is selected, the button says **+ Insert after #2**
+   (or whichever one it is), and the new pose goes right after it.
+3. **Change a keyframe.** Click it in the row. The bar underneath lets you
+   change it:
+   - **Transition**: how long the move into this keyframe takes, in
+     milliseconds (1000 ms = 1 second).
+   - **Ease** or **Linear**: Ease starts and stops gently; Linear moves at a
+     steady speed.
+   - **Save pose**: replaces the keyframe with the pose on screen.
+   - **◀ ▶**: move the keyframe earlier or later.
+   - **Delete**: removes it.
 
-- Wherever playback stops, that moment becomes the pose on screen. Adjust it
-  and press **+ Add pose** to slip a new keyframe in right there.
-- A foot travels in a straight line between two keyframes. To step *over*
-  something rather than drag the foot along the floor, add a keyframe in
-  between with the foot lifted.
-- **Save…** and **Load…** keep a sequence as a file. A sequence only loads for
-  the robot model it was made on.
-- To keep a sequence as a gait of your own, switch **Gaits** to **Mine**, give
-  it a name and press **Save sequence**. It stays in the list from then on,
-  with the same **+** and **⇄** buttons as a built-in one.
+   Keyframes keep their number when you move them around. **Renumber** puts
+   them back in order as 1, 2, 3…
+4. **Watch it.** Click **Play**, or drag the slider next to it. **Speed**
+   plays everything slower or faster, and **Loop** repeats it. When looping,
+   the move from the last keyframe back to the first uses the first
+   keyframe's time; that's the **↺** arrow in front of it (dimmed when Loop
+   is off).
+5. **Run it on the robot.** Click **Run on robot**. **Standby** stops it and
+   makes the robot stand.
 
-## Drive it with the controller
+Tips:
+
+- Pause playback anywhere and that moment becomes the pose on screen. Change
+  it, then click **+ Add pose at …** to add a new keyframe right there.
+- A foot moves in a straight line from one keyframe to the next. To step
+  *over* something, add a keyframe in between with the foot lifted.
+- **Save…** and **Load…** keep a sequence as a file on your computer. A file
+  only opens for the robot model it was made on.
+- To keep a sequence as your own gait, switch **Gaits** to **Mine**, give it
+  a name and click **Save sequence**. It stays in the list from then on, with
+  the same **+** and **⇄** buttons as the built-in gaits.
+
+## Drive with the controller
 
 <img src="docs/images/controller.png" align="right" width="300" alt="The controller: a pad of body moves and a circle of walking directions">
 
-Open **Controller** at the bottom right of the view. It is laid out like the
-control screen of the
+Click **Controller** at the bottom right of the view to open it. It looks
+like the control screen of the
 [Android app](https://play.google.com/store/apps/details?id=com.rookiedev.hexapod).
 
-- **The circle** walks: eight directions around the middle, with fast
-  forward, fast backward and the two turns around the outside. The middle
-  stands the robot still.
-- **The six pads** move the robot on the spot: roll, pitch, wobble and twist,
-  and climbing forward and back.
+- **The circle** makes the robot walk. The eight arrows around the middle are
+  the directions. The outer buttons are fast forward, fast backward, and
+  turning left or right. The middle button makes the robot stand still.
+- **The six buttons on the left** move the robot in place: roll, pitch,
+  wobble, twist, and climb forward or back.
 - **Speed** sets how fast it goes.
 
-Hold a pad and the robot moves; slide onto another to change; let go and it
-stands. These are the robot's own built-in moves, so they stay smooth even on
-a weak WiFi signal.
+Hold a button and the robot moves. Slide your finger or mouse onto another
+button to change move. Let go and it stands still. These are moves built into
+the robot, so they stay smooth even when the WiFi signal is weak.
 
-The controller needs a connected robot, and is greyed out until there is one.
+The controller only works when a robot is connected. Until then it is greyed
+out.
 
 ## Tips
 
-- The app remembers your theme, the size of the panels, which ones are folded
-  and the last robot you connected, so it opens the way you left it.
-- Drag the top edge of the bottom panel to make it taller or shorter, and the
-  lines between its columns to resize them. Double-click an edge to put it
-  back.
-- Under **Dimensions** you can change the body and leg measurements to try out
-  a different build. They go back to your robot's when it connects.
-- Servo offsets are trimmed on the robot's own calibration page, not here.
+- The app remembers your colour theme, panel sizes, which panels are folded,
+  your last robot, and your last pose and sequence. It opens just the way you
+  left it.
+- Drag the top edge of the bottom panel to make it taller or shorter. Drag
+  the lines between its columns to make them wider or narrower.
+  Double-click an edge to put it back.
+- Under **Dimensions** you can change the size of the body and legs to try
+  out a different robot design. They go back to your robot's real size when
+  it connects.
+- If a leg on the real robot points slightly differently from the screen,
+  adjust it on the robot's own calibration page, not in this app.
 
-## If something is not working
+## Something not working?
 
 | What you see | What to try |
 |---|---|
-| **Connect** ends in **Fault** | Check that your computer is on the robot's WiFi network, not your home one, and that the robot is on. Hover the status light for the reason. |
-| Controls are greyed out | They need a robot: **Stream to robot**, **Run on robot** and the **Controller** switch on once one is connected. |
-| A leg will not go where you drag it | It has reached as far as it can, or a joint is at its limit. The **Pose** panel says which leg. |
-| A sequence file will not load | It was made on a different robot model. |
-| The robot's legs are a little off from the screen | Trim the servos on the robot's own calibration page. |
-| The window is blank or does not open | Use the app in your browser instead: see the note under [Install and start the app](#1-install-and-start-the-app). |
+| **Connect** ends in **Fault** | Make sure your computer is on the robot's WiFi, not your home WiFi, and that the robot is switched on. Hover over the status light to see why it failed. |
+| Some buttons are greyed out | They need a connected robot. **Stream to robot**, **Run on robot** and the **Controller** turn on once a robot is connected. |
+| A leg won't go where you drag it | It is already reaching as far as it can, or a joint is at its limit. The **Pose** panel tells you which leg. |
+| A sequence file won't load | It was made for a different robot model. |
+| The real robot's legs are a little off from the screen | Adjust them on the robot's own calibration page. |
+| The window is blank or doesn't open | Use the app in your web browser instead. See [Step 1](#step-1-install-the-app). |
 
 ## For developers
 
-How to run from a checkout, change the look, build a standalone executable,
-run the tests and regenerate the images on this page is in
-[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md), along with how the app talks to
-the robot.
+Running from the source code, changing the look, building the desktop app,
+running the tests, regenerating the pictures on this page, and how the app
+talks to the robot are all covered in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
 ## Credits
 
-Hexapod Link is a fork of
-[mithi/hexapod-robot-simulator](https://github.com/mithi/hexapod-robot-simulator),
-whose [Wiki](https://github.com/mithi/hexapod-robot-simulator/wiki/Notes)
+Hexapod Link started as a fork of
+[mithi/hexapod-robot-simulator](https://github.com/mithi/hexapod-robot-simulator).
+Its [Wiki](https://github.com/mithi/hexapod-robot-simulator/wiki/Notes)
 explains the maths behind it.
 
 Original project: [@mithi](https://github.com/mithi/),
@@ -278,7 +325,7 @@ This fork ([rookidroid/hexapod-link](https://github.com/rookidroid/hexapod-link)
 
 ## License
 
-MIT — see [`LICENSE`](./LICENSE). Copyright (c) 2020 Mithi Sevilla, (c) 2026 rookidroid.com.
+MIT. See [`LICENSE`](./LICENSE). Copyright (c) 2020 Mithi Sevilla, (c) 2026 rookidroid.com.
 
 ![](https://img.shields.io/github/last-commit/rookidroid/hexapod-link)
 ![](https://img.shields.io/github/commit-activity/y/rookidroid/hexapod-link)
