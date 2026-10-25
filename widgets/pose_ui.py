@@ -259,7 +259,7 @@ def _button(label, button_id=None, color="secondary", outline=False, class_name=
 
 # How to work the view, in small print under the robot.
 VIEW_HINT = (
-    "Click a foot, a joint or the body to drag it · Drag: orbit · Right-drag: pan · Wheel: zoom"
+    "Click a foot, a joint or the body to move it · Drag: orbit · Right-drag: pan · Wheel: zoom"
 )
 
 VIEW_OVERLAY = [
