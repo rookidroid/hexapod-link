@@ -4,7 +4,7 @@
 
 # Hexapod Link
 
-<img src="assets/icon.png" align="right" width="120" alt="">
+<img src="resources/icon.png" align="right" width="120" alt="">
 
 Pose, animate and drive a six-legged robot from your computer. 🕷️
 
@@ -76,10 +76,9 @@ app comes from an unknown publisher. If it does, click **More info**, then
 **Run anyway**.
 
 <details>
-<summary>Prefer to run it with Python instead?</summary>
+<summary>Prefer to run it from the source code?</summary>
 
-You need [Python](https://www.python.org/downloads/) 3.13 or newer. On
-Windows, tick **Add python.exe to PATH** when you install Python.
+You need [Node.js](https://nodejs.org/) 22 or newer.
 
 1. Get the code: at the top of this page, click **Code → Download ZIP**, then
    unzip it.
@@ -88,45 +87,16 @@ Windows, tick **Add python.exe to PATH** when you install Python.
 3. Install what the app needs. You only do this once:
 
    ```bash
-   pip install -r requirements-desktop.txt
+   npm install
    ```
 
 4. Start the app:
 
    ```bash
-   python hexapod_link.py
+   npm start
    ```
 
-Next time, step 4 is all you need. If your computer says it can't find
-`python` or `pip`, try `python3` and `pip3`.
-
-On Linux, the app's window needs a few system packages. Install them before
-step 3:
-
-```bash
-sudo apt install libgirepository1.0-dev libcairo2-dev pkg-config gir1.2-webkit2-4.1 libwebkit2gtk-4.1-0
-```
-
-</details>
-
-<details>
-<summary>Window won't open, or you'd rather use your web browser?</summary>
-
-The app can run in a browser tab instead of its own window. This needs fewer
-things installed, and works anywhere Python does. Follow the Python steps
-above, but use these two commands instead:
-
-```bash
-pip install -r requirements.txt
-python hexapod_link.py --no-window --port 8050
-```
-
-Then open <http://127.0.0.1:8050> in your browser. Keep the terminal open
-while you use the app. To quit, press Ctrl+C in the terminal.
-
-On Windows, the app's window uses Microsoft's WebView2, which Windows 10 and
-11 already include. If the window stays blank, install WebView2 from
-[Microsoft](https://developer.microsoft.com/microsoft-edge/webview2/).
+Next time, step 4 is all you need.
 
 </details>
 

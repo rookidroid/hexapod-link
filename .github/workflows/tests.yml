@@ -12,65 +12,57 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  pytest:
-    name: pytest (${{ matrix.os }}, py${{ matrix.python-version }})
+  unit:
+    name: Unit tests (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
 
     strategy:
-      # One platform failing is worth knowing about even if the other is fine --
-      # this suite exists partly because a merge broke it silently.
+      # One platform failing is worth knowing about even if the other is fine.
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python-version: ["3.13", "3.14"]
 
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-node@v7
         with:
-          python-version: ${{ matrix.python-version }}
-          cache: pip
-          cache-dependency-path: |
-            requirements.txt
-            requirements-dev.txt
+          node-version: 22
+          cache: npm
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements-dev.txt
+        run: npm ci
 
-      # Nothing here needs a display or a robot: the tests drive the model and
-      # the pure conversion layer, not the Dash server or the UDP socket.
+      # Type errors anywhere -- the page, the main process, the tools -- fail
+      # here, including in code no test reaches.
+      - name: Typecheck
+        run: npm run typecheck
+
+      # The kinematics against what the Python version computed, the robot
+      # link against the stand-in robot over real UDP and HTTP, and what is
+      # kept on disk. Nothing here needs a display or a robot.
       - name: Run tests
-        run: pytest
+        run: npm test
 
-  syntax:
-    name: Byte-compile every module
+  app:
+    name: Drive the app
     runs-on: ubuntu-latest
 
-    # The tests import most of the package but not all of it -- the Dash pages
-    # and widgets are only reachable through the app. A merge once left an
-    # unterminated docstring in a file nothing imported, so compile the lot.
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-node@v7
         with:
-          python-version: "3.14"
-          cache: pip
-          cache-dependency-path: requirements.txt
+          node-version: 22
+          cache: npm
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+        run: npm ci
 
-      - name: Compile all sources
-        run: python -m compileall -q hexapod pages widgets tests tools *.py
+      - name: Build
+        run: npm run build
 
-      # Importing hexapod_link builds app.layout and registers every page callback,
-      # so this catches a broken widget or a duplicate Dash element id that
-      # compiling alone would not.
-      - name: Import the full app
-        run: python -c "import hexapod_link; assert hexapod_link.app.layout is not None"
+      # The app, driven as a person would against the stand-in robot: connect,
+      # pose, add a gait, play, run it on the robot, drive, close, reopen.
+      - name: Smoke test
+        run: xvfb-run -a -s "-screen 0 1600x1000x24" npm run smoke

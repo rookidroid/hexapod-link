@@ -1,22 +1,17 @@
 version: 2
 updates:
-  - package-ecosystem: "pip"
+  - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      # three.js and its types move together.
+      three:
+        patterns: ["three", "@types/three"]
+      react:
+        patterns: ["react", "react-dom", "@types/react", "@types/react-dom"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
-
-  # three.js and esbuild for tools/build_three_bundle.sh. A bump needs the
-  # bundle rebuilt and committed on its PR; the "three.js bundle" check fails
-  # until it is.
-  - package-ecosystem: "npm"
-    directory: "/tools/three-bundle"
-    schedule:
-      interval: "monthly"
-    groups:
-      three-bundle:
-        patterns: ["*"]

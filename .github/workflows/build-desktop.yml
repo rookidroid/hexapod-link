@@ -37,115 +37,48 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # A release is named after its tag, and the app shows APP_VERSION in its
-      # top bar. Fail before spending a build on a tag the two disagree on.
-      - name: Check the tag matches APP_VERSION
+      # A release is named after its tag, and the app shows its version (the
+      # one in package.json) in its top bar. Fail before spending a build on a
+      # tag the two disagree on.
+      - name: Check the tag matches the app's version
         if: startsWith(github.ref, 'refs/tags/')
         shell: bash
         run: |
-          APP_VERSION=$(sed -nE 's/^APP_VERSION = "([^"]+)"/\1/p' texts.py)
+          APP_VERSION=$(node -p "require('./package.json').version")
           if [ "v$APP_VERSION" != "$GITHUB_REF_NAME" ]; then
-            echo "::error file=texts.py::Tag $GITHUB_REF_NAME does not match APP_VERSION \"$APP_VERSION\" in texts.py."
+            echo "::error file=package.json::Tag $GITHUB_REF_NAME does not match version \"$APP_VERSION\" in package.json."
             exit 1
           fi
 
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-node@v7
         with:
-          python-version: "3.14"
+          node-version: 22
+          cache: npm
 
-      # pywebview's Linux backend is GTK/WebKit2 through PyGObject, which needs
-      # the system headers to build and the typelibs to import. PyInstaller
-      # imports `gi` during analysis, so these are build-time requirements, not
-      # just runtime ones.
-      - name: Install GTK/WebKit build dependencies
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          # 24.04 ships WebKit 4.1; on 22.04 these are the -4.0 packages, which
-          # pywebview also accepts.
-          sudo apt-get install -y --no-install-recommends \
-            libgirepository1.0-dev \
-            libcairo2-dev \
-            pkg-config \
-            libwebkit2gtk-4.1-0 \
-            gir1.2-webkit2-4.1
-
-      # A fresh runner is already the minimal environment the spec asks for --
-      # PyInstaller bundles whatever it finds installed, and building from a rich
-      # environment (a conda env with MKL, or anything that has pulled in polars,
-      # pyarrow or PySide6) takes the output from ~130 MB to ~1 GB. Installing
-      # only requirements-desktop.txt is what keeps that true here.
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements-desktop.txt
+        run: npm ci
 
+      # electron-builder writes the app as a folder, dist/<platform>-unpacked;
+      # it is renamed HexapodLink/, the folder the release archives unpack to.
       - name: Build
-        run: pyinstaller hexapod.spec --noconfirm --clean
-
-      # Stamp the bundle the way Windows stamps anything extracted from a
-      # downloaded .zip -- which is how everyone gets this artifact. A managed
-      # assembly carrying that stamp will not load, so without the runtime hook
-      # that clears it the app has no window at all; see rthook_clear_motw.py.
-      # The smoke test below then runs a marked bundle, and the step after it
-      # checks that the marks are gone.
-      - name: Mark the bundle with the Mark of the Web
-        if: runner.os == 'Windows'
-        shell: pwsh
+        shell: bash
         run: |
-          Get-ChildItem dist/HexapodLink -Recurse -Filter *.dll | ForEach-Object {
-            Set-Content -Path $_.FullName -Stream Zone.Identifier -Value "[ZoneTransfer]`r`nZoneId=3"
-          }
+          npm run dist
+          mv dist/*-unpacked dist/HexapodLink
 
-      # The binary starting is the only thing that proves the bundle is complete:
-      # a missing Dash data file or an unresolved hidden import shows up as a
-      # blank window at runtime, not as a build error. --no-window serves without
-      # opening a GUI, so this needs no display on either platform.
+      # The built app, driven as a person would against the stand-in robot:
+      # what proves the bundle is complete is that it runs. Linux has no
+      # display on the runner, so it gets a virtual one.
       - name: Smoke test the bundle
         shell: bash
         run: |
           if [ "$RUNNER_OS" == "Windows" ]; then
-            BINARY="dist/HexapodLink/HexapodLink.exe"
+            export HEXAPOD_LINK_EXECUTABLE="$PWD/dist/HexapodLink/HexapodLink.exe"
+            npm run smoke
           else
-            BINARY="dist/HexapodLink/HexapodLink"
+            export HEXAPOD_LINK_EXECUTABLE="$PWD/dist/HexapodLink/HexapodLink"
+            xvfb-run -a -s "-screen 0 1600x1000x24" npm run smoke
           fi
-
-          "$BINARY" --no-window --port 8050 > smoke.log 2>&1 &
-          PID=$!
-
-          for _ in $(seq 1 60); do
-            if curl -fsS --max-time 2 http://127.0.0.1:8050/ > /dev/null 2>&1; then
-              echo "app served a page"
-              kill $PID 2>/dev/null || true
-              exit 0
-            fi
-            # If the process died, there is nothing left to wait for.
-            kill -0 $PID 2>/dev/null || break
-            sleep 1
-          done
-
-          echo "the built app never served a page:"
-          cat smoke.log
-          kill $PID 2>/dev/null || true
-          exit 1
-
-      # Having started once, the app should have unblocked every DLL in the
-      # bundle. Checking the marks are gone is a proxy for the window opening,
-      # which needs a desktop session the runner cannot give us.
-      - name: Check the bundle unblocked itself
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $marked = Get-ChildItem dist/HexapodLink -Recurse -Filter *.dll |
-            Where-Object { Get-Item $_.FullName -Stream Zone.Identifier -ErrorAction SilentlyContinue }
-
-          if ($marked) {
-            Write-Output "still carrying the Mark of the Web:"
-            $marked | ForEach-Object { Write-Output "  $($_.FullName)" }
-            exit 1
-          }
-
-          Write-Output "all bundled DLLs unblocked"
 
       - name: Report bundle size
         shell: bash

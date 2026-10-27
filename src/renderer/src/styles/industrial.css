@@ -1,0 +1,2906 @@
+/* =============================================
+   HEXAPOD LINK — WORKSTATION THEME (LIGHT / DARK)
+
+   One screen built around the 3D view: a top bar, the view with the pose's
+   controls laid over it, and a dock along the bottom (App.tsx,
+   components/View.tsx).
+
+   Styled after the RX-78-2 Gundam: white armour plates framed in navy,
+   Federation blue as the accent, red and V-fin yellow as trim. Light is the
+   armour, dark is the cockpit, with a cyan HUD glow on focus. The markings are
+   kept to a few -- the chest trim under the top bar, filled-in corners on the
+   controls and the HUD cards, and the display face on headings -- so the view
+   is still what draws the eye.
+
+   Every colour that differs between the themes is a token on :root. The dark
+   values override them when <html> carries data-theme="dark"; the attribute is
+   set by the preload script before the first paint, and by the top bar's
+   theme toggle (components/TopBar.tsx).
+   ============================================= */
+
+/* Fonts are bundled locally (styles/fonts) rather than pulled from Google
+   Fonts, so the desktop build renders correctly with no network. All three
+   families are SIL Open Font License 1.1. Latin subset only.
+   Paths are relative to this file; the build bundles them. */
+
+@font-face {
+    font-family: 'Chakra Petch';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('fonts/chakra-petch-400-latin.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Chakra Petch';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('fonts/chakra-petch-500-latin.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Chakra Petch';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('fonts/chakra-petch-600-latin.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Chakra Petch';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('fonts/chakra-petch-700-latin.woff2') format('woff2');
+}
+
+/* Wide and squared, in the Microgramma / Eurostile line: the brand only. It
+   has one weight, so it stays at 400 rather than be faux-bolded. */
+@font-face {
+    font-family: 'Michroma';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('fonts/michroma-400-latin.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'IBM Plex Mono';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('fonts/ibm-plex-mono-400-latin.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'IBM Plex Mono';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('fonts/ibm-plex-mono-500-latin.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'IBM Plex Mono';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('fonts/ibm-plex-mono-600-latin.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'IBM Plex Mono';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('fonts/ibm-plex-mono-700-latin.woff2') format('woff2');
+}
+
+/* ===========================================
+   TOKENS
+   =========================================== */
+
+:root {
+    --ind-bg: #dde3ec;             /* Panel-line grey */
+    --ind-surface: #f3f5f9;        /* White armour: panels, top bar, dock */
+    --ind-surface-alt: #ffffff;    /* Buttons, chips */
+    --ind-border: #c9d2e0;         /* Hairlines inside a panel */
+    --ind-border-strong: #a9b6cc;  /* Input outlines */
+    --ind-frame: #1b2a4a;          /* Navy frame between areas and on buttons */
+    --ind-accent: #1d4fa3;         /* Federation blue */
+    --ind-accent-hover: #163f84;
+    --ind-accent-active: #10306a;
+    --ind-accent-rgb: 29, 79, 163;
+    --ind-accent-alt: #f2b705;     /* V-fin yellow: trim, streaming */
+    --ind-red: #d62828;            /* Chest red: trim, faults */
+    --ind-ok: #16a34a;             /* Online */
+    --ind-outline: #0f1a30;        /* Outline on the solid buttons */
+    --ind-text: #0f1a30;           /* Navy black */
+    --ind-text-muted: #4a5875;
+    --ind-hover: #e8eef8;
+    --ind-input-bg: #eef2f8;
+    --ind-alert-text: #9b1c1c;
+    --ind-alert-bg: #fdecec;
+    --ind-track: #c9d2e0;          /* Slider tracks */
+
+    /* Focus ring: a plain blue halo on the armour, a HUD glow in the cockpit.
+       The inset one is drawn inside a control, for the buttons and fields,
+       which sit edge to edge with their neighbours. */
+    --ind-glow: 0 0 0 2px rgba(29, 79, 163, 0.28);
+    --ind-glow-inset: inset 0 0 0 2px rgba(29, 79, 163, 0.55);
+    --shadow-soft: 0 2px 10px rgba(15, 26, 48, 0.12);
+    --radius: 0;
+
+    /* Mecha corners: the top-right and bottom-left filled in at 45 degrees,
+       as armour plates are (CORNERS, at the end). */
+    --chamfer: 7px;
+
+    /* The 3D view is the cockpit's panoramic monitor in both themes, and so
+       is what is laid over it: navy plates edged in HUD cyan. */
+    --view-bg: #0a1428;
+    --hud-cyan-rgb: 76, 201, 240;
+    --hud-bg: rgba(8, 16, 34, 0.84);
+    --hud-border: rgba(var(--hud-cyan-rgb), 0.28);
+    --hud-text: #e4eeff;
+    --hud-muted: #8aa2c8;
+    /* What is picked, as the view marks it (HEAD_COLOR in shared/style.ts). */
+    --hud-picked: #f7c600;
+
+    --font-ui: 'Chakra Petch', system-ui, sans-serif;
+    --font-display: 'Michroma', 'Chakra Petch', sans-serif;
+    --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
+
+    --topbar-h: 52px;
+    /* How far down the view the top bar reaches, where it lies over the view
+       (TOP BAR below); the view's top overlays start under it. */
+    --view-top: 0px;
+    /* The red block that starts the top bar's trim. */
+    --trim-w: 68px;
+    /* The dock's height and the width of its Gaits library (a percentage
+       there is of the dock); dragging the workspace's splitters sets them on
+       <html> instead (components/Splitter.tsx). */
+    --dock-h: 15rem;
+    --lib-w: clamp(14rem, 18%, 18rem);
+    /* How much of the workspace's height the view always keeps, however tall
+       the dock is set: a window made shorter shortens it, and it comes back
+       with the window. */
+    --view-min-h: 180px;
+}
+
+:root[data-theme="dark"] {
+    color-scheme: dark;
+
+    --ind-bg: #060c18;
+    --ind-surface: #0c1730;
+    --ind-surface-alt: #11203f;
+    --ind-border: #1a2b4d;
+    --ind-border-strong: #2c4475;
+    --ind-frame: #2f5fb3;
+    --ind-accent: #3d7cf0;
+    --ind-accent-hover: #2f68d6;
+    --ind-accent-active: #2455b4;
+    --ind-accent-rgb: 61, 124, 240;
+    --ind-accent-alt: #ffd23f;
+    --ind-red: #ff4d4d;
+    --ind-ok: #22c55e;
+    --ind-outline: #02060f;
+    --ind-text: #e4eeff;
+    --ind-text-muted: #8aa2c8;
+    --ind-hover: #18294d;
+    --ind-input-bg: #08122a;
+    --ind-alert-text: #ffb4b4;
+    --ind-alert-bg: rgba(255, 77, 77, 0.12);
+    --ind-track: #24396a;
+
+    --ind-glow: 0 0 0 1px rgba(76, 201, 240, 0.45), 0 0 14px rgba(76, 201, 240, 0.25);
+    --ind-glow-inset: inset 0 0 0 2px rgba(76, 201, 240, 0.7);
+    --shadow-soft: 0 2px 10px rgba(0, 0, 0, 0.55);
+}
+
+/* ===========================================
+   BASE
+   =========================================== */
+
+html,
+body {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    font-family: var(--font-ui);
+    background: var(--ind-bg);
+    color: var(--ind-text);
+    overflow: hidden;
+}
+
+/* The sliders and checkboxes (WIDGETS below) read their colours from these. */
+.app-shell {
+    --widget-spacing: 4px;
+    --widget-accent: var(--ind-accent);
+    --widget-border: var(--ind-border-strong);
+    --widget-text: var(--ind-text);
+    --widget-surface: var(--ind-surface-alt);
+    --widget-track: var(--ind-track);
+
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* ===========================================
+   WIDGETS
+   The base look of the sliders, their value boxes and the checkboxes
+   (components/widgets.tsx): a slider is a track with the range filled in up
+   to a round thumb, and a box beside it to type the value in. Coloured by the
+   --widget-* tokens above; the panels and the dock restyle them further down.
+   =========================================== */
+
+.ind-check {
+    padding: var(--widget-spacing) 0;
+    color: var(--widget-text);
+    cursor: pointer;
+    display: flex;
+    align-items: baseline;
+    user-select: none;
+}
+
+.ind-check:not(:has(input[disabled])):hover,
+.ind-check:not(:has(input[disabled])):focus-within {
+    color: var(--widget-accent);
+}
+
+.ind-check:has(input[disabled]) {
+    cursor: not-allowed;
+}
+
+.ind-check-box,
+.ind-check-text {
+    display: flex;
+    align-items: center;
+}
+
+.ind-check-input {
+    display: inline-block;
+    margin: 0 calc(var(--widget-spacing) * 2) 0 0;
+    box-sizing: border-box;
+    border: 1px solid var(--widget-border);
+    accent-color: var(--widget-accent);
+    outline-color: var(--widget-accent);
+}
+
+.ind-slider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    container-type: inline-size;
+}
+
+.ind-slider-wrapper {
+    flex: 1 1 0%;
+    min-width: 0px;
+}
+
+.ind-slider-root {
+    position: relative;
+    z-index: 0;
+    display: flex;
+    align-items: center;
+    user-select: none;
+    touch-action: none;
+    width: 100%;
+    height: 14px;
+    padding: 17px 0px;
+    box-sizing: border-box;
+}
+
+.ind-slider-track {
+    position: relative;
+    flex-grow: 1;
+    border-radius: 9999px;
+    height: 4px;
+    background-color: var(--widget-track);
+}
+
+.ind-slider-range {
+    position: absolute;
+    border-radius: 9999px;
+    height: 100%;
+    background-color: var(--widget-accent);
+}
+
+.ind-slider-thumb {
+    position: relative;
+    z-index: 1;
+    display: block;
+    width: 16px;
+    height: 16px;
+    background-color: var(--widget-accent);
+    border: 2px solid var(--widget-surface);
+    border-radius: 50%;
+    cursor: pointer;
+    outline: none;
+    transition: 0.15s ease-in-out;
+}
+
+.ind-slider-thumb:focus,
+.ind-slider-thumb:hover {
+    transform: scale(1.125);
+}
+
+.ind-slider-thumb:focus {
+    outline: 2px solid var(--widget-accent);
+}
+
+.ind-slider-thumb[data-disabled],
+.ind-slider-input:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.ind-slider-root[data-disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.ind-slider-root[data-disabled] .ind-slider-range {
+    background-color: var(--widget-track);
+}
+
+.ind-slider-root[data-disabled] .ind-slider-thumb {
+    cursor: not-allowed;
+    border-color: var(--widget-track);
+}
+
+/* The value box, after the track; it goes when the slider is too narrow for
+   it. */
+.ind-slider-input {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    background: var(--widget-surface);
+    border-radius: var(--widget-spacing);
+    border: 1px solid var(--widget-border);
+    container-type: inline-size;
+    vertical-align: middle;
+    color: inherit;
+    overflow: hidden;
+    order: 1;
+    min-width: 5cqw;
+    max-width: 33cqw;
+    text-align: center;
+    appearance: textfield;
+    font-family: inherit;
+    font-size: inherit;
+    box-sizing: content-box;
+    height: 30px;
+}
+
+.ind-slider-input:focus-within {
+    border: 1px solid var(--widget-accent);
+}
+
+.ind-slider-input::selection {
+    color: var(--widget-surface);
+    background: var(--widget-accent);
+}
+
+.ind-slider-input:focus {
+    outline: 1px solid var(--widget-accent);
+}
+
+.ind-slider-input::-webkit-inner-spin-button,
+.ind-slider-input::-webkit-outer-spin-button {
+    appearance: none;
+    margin: 0px;
+}
+
+@container (max-width: 300px) {
+    .ind-slider .ind-slider-input {
+        display: none;
+    }
+}
+
+/* ===========================================
+   TOP BAR
+   Brand on the left; the link's status pill, which opens to connect, and the
+   theme toggle on the right.
+   =========================================== */
+
+.topbar {
+    flex: 0 0 var(--topbar-h);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0 0.75rem 4px 1rem;
+    background: var(--ind-surface);
+    box-shadow: var(--shadow-soft);
+    position: relative;
+    z-index: 5;
+}
+
+/* Chest trim along the bottom edge: a red block, a few yellow vent slats,
+   then Federation blue, the way the colours sit on the RX-78's torso. */
+.topbar::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 4px;
+    pointer-events: none;
+    background:
+        linear-gradient(90deg, var(--ind-red) 0 var(--trim-w), transparent var(--trim-w)),
+        repeating-linear-gradient(90deg, var(--ind-accent-alt) 0 10px, transparent 10px 16px)
+            calc(var(--trim-w) + 6px) 0 / 76px 100% no-repeat,
+        var(--ind-accent);
+}
+
+.topbar-brand {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    min-width: 0;
+    white-space: nowrap;
+}
+
+.topbar-title {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-synthesis: none;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+/* Release stamp beside the brand: a small stencilled plate. */
+.topbar-version {
+    padding: 0.05rem 0.35rem;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--ind-text-muted);
+    border: 1px solid var(--ind-border-strong);
+}
+
+/* ---- Link menu ----
+   The status pill, whose LED takes the state's colour: grey offline, green
+   online, pulsing yellow while streaming, red on a fault. It is the button of
+   a dropdown, under it at the right, with the robot's address, Connect and
+   the link's detail. */
+
+.link-menu {
+    position: relative;
+    margin-left: auto;
+}
+
+.link-menu > summary {
+    list-style: none;
+    cursor: pointer;
+}
+
+.link-menu > summary::-webkit-details-marker {
+    display: none;
+}
+
+/* A caret after the label, turned up while open. */
+.link-menu > summary::after {
+    content: '';
+    flex: 0 0 auto;
+    width: 6px;
+    height: 6px;
+    margin: -3px 0 0 0.1rem;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: rotate(45deg);
+    opacity: 0.7;
+    transition: transform 0.15s ease;
+}
+
+.link-menu[open] > summary::after {
+    margin-top: 3px;
+    transform: rotate(-135deg);
+}
+
+.link-menu > summary:hover,
+.link-menu[open] > summary {
+    border-color: var(--ind-accent);
+}
+
+.link-menu > summary:focus-visible {
+    outline: none;
+    box-shadow: var(--ind-glow-inset);
+}
+
+.link-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 10;
+    width: 19rem;
+    padding: 0.6rem 0.75rem 0.7rem;
+    cursor: default;
+}
+
+.link-panel .ind-field-label {
+    margin-bottom: 0.3rem;
+}
+
+.link-row {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.link-row .link-ip {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.link-row .btn {
+    min-width: 6.5rem;
+}
+
+/* The pill's tooltip, kept in view: the address, mode and packet count, and
+   the firmware, a line each. */
+.link-detail {
+    margin-top: 0.55rem;
+    padding-top: 0.45rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    line-height: 1.4;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+    color: var(--hud-muted);
+    border-top: 1px dashed var(--hud-border);
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 31px;
+    max-width: 18rem;
+    padding: 0 0.8rem 0 0.7rem;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--ind-text);
+    background-color: var(--ind-surface-alt);
+    border: 1px solid var(--ind-frame);
+    cursor: default;
+    transition: border-color 0.15s ease;
+}
+
+.status-pill::before {
+    content: '';
+    flex: 0 0 auto;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--ind-text-muted);
+}
+
+.status-pill.is-online::before { background: var(--ind-ok); }
+.status-pill.is-fault::before { background: var(--ind-red); }
+.status-pill.is-fault { border-color: var(--ind-red); }
+
+.status-pill.is-streaming::before {
+    background: var(--ind-accent-alt);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ind-accent-alt) 30%, transparent);
+    animation: status-led-pulse 1s ease-in-out infinite;
+}
+
+@keyframes status-led-pulse {
+    50% { opacity: 0.35; }
+}
+
+.icon-btn {
+    width: 31px;
+    height: 31px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    line-height: 1;
+    color: var(--ind-text);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    transition: background-color 0.15s ease;
+}
+
+.icon-btn:hover {
+    background: var(--ind-hover);
+}
+
+/* ---- Over the view ----
+   Above `lg` the top bar is laid over the top of the 3D view rather than
+   above it, and is see-through, with only a faint shade so its text reads:
+   the view, and the robot in it, run up to the window's top edge. Being on
+   the dark monitor, it takes the HUD's colours in either theme. In the
+   desktop app it is the window's title bar too (WINDOW below). */
+
+@media (min-width: 992px) {
+    :root {
+        --view-top: var(--topbar-h);
+    }
+
+    .app-shell {
+        position: relative;
+    }
+
+    .topbar {
+        color-scheme: dark;
+        --ind-surface-alt: var(--hud-bg);
+        --ind-border: var(--hud-border);
+        --ind-border-strong: rgba(var(--hud-cyan-rgb), 0.45);
+        --ind-frame: rgba(var(--hud-cyan-rgb), 0.45);
+        --ind-accent: #3d7cf0;
+        --ind-accent-hover: #2f68d6;
+        --ind-accent-active: #2455b4;
+        --ind-accent-rgb: 61, 124, 240;
+        --ind-accent-alt: #ffd23f;
+        --ind-red: #ff4d4d;
+        --ind-ok: #22c55e;
+        --ind-outline: #02060f;
+        --ind-text: var(--hud-text);
+        --ind-text-muted: var(--hud-muted);
+        --ind-hover: rgba(var(--hud-cyan-rgb), 0.14);
+        --ind-input-bg: rgba(8, 16, 34, 0.6);
+        --ind-glow: 0 0 0 1px rgba(var(--hud-cyan-rgb), 0.45), 0 0 14px rgba(var(--hud-cyan-rgb), 0.25);
+        --ind-glow-inset: inset 0 0 0 2px rgba(var(--hud-cyan-rgb), 0.7);
+
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: var(--topbar-h);
+        color: var(--ind-text);
+        background: linear-gradient(to bottom, rgba(6, 12, 24, 0.62), rgba(6, 12, 24, 0));
+        box-shadow: none;
+        user-select: none;
+    }
+
+    .topbar-title {
+        text-shadow: 0 0 12px rgba(var(--hud-cyan-rgb), 0.35);
+    }
+
+    /* The trim stays as a decal under the brand: red, then the yellow vents,
+       without the blue run across the view. */
+    .topbar::after {
+        right: auto;
+        width: calc(var(--trim-w) + 82px);
+        height: 3px;
+        background:
+            linear-gradient(90deg, var(--ind-red) 0 var(--trim-w), transparent var(--trim-w)),
+            repeating-linear-gradient(90deg, var(--ind-accent-alt) 0 10px, transparent 10px 16px)
+                calc(var(--trim-w) + 6px) 0 / 76px 100% no-repeat;
+    }
+
+    .topbar .status-pill {
+        backdrop-filter: blur(6px);
+    }
+}
+
+/* ===========================================
+   WINDOW
+   The window has no frame of its own (src/main/index.ts): the top bar drags
+   it -- the system does, so it snaps to the screen's edges like any title
+   bar -- and ends in its buttons. Shown only with data-window="frameless" on
+   <html>; the buttons are drawn by components/WindowButtons.tsx. On macOS the
+   system's own traffic lights stay, so the bar leaves room for them.
+   =========================================== */
+
+.window-buttons {
+    display: none;
+}
+
+[data-window="frameless"] .topbar {
+    padding-right: 0;
+    -webkit-app-region: drag;
+}
+
+[data-window="frameless"] .topbar :is(button, input, summary, details, a) {
+    -webkit-app-region: no-drag;
+}
+
+[data-window="frameless"] .window-buttons {
+    display: flex;
+    align-self: stretch;
+    margin-left: 0.25rem;
+    margin-bottom: -4px;
+}
+
+[data-window="frameless"][data-platform="darwin"] .window-buttons {
+    display: none;
+}
+
+[data-window="frameless"][data-platform="darwin"] .topbar {
+    padding-left: 80px;
+    padding-right: 0.75rem;
+}
+
+.window-btn {
+    width: 46px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ind-text);
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    transition: background-color 0.15s ease;
+}
+
+.window-btn:hover {
+    background: var(--ind-hover);
+}
+
+.window-btn-close:hover {
+    color: #fff;
+    background: #e81123;
+}
+
+.window-btn:focus-visible {
+    outline: none;
+    box-shadow: var(--ind-glow-inset);
+}
+
+/* The icons, drawn in the bar's text colour: a dash, a square (two, when
+   maximized), a cross. */
+.window-btn-icon {
+    position: relative;
+    width: 10px;
+    height: 10px;
+    pointer-events: none;
+}
+
+.window-btn-minimize .window-btn-icon::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    border-top: 1px solid currentColor;
+}
+
+.window-btn-maximize .window-btn-icon::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1px solid currentColor;
+}
+
+.is-maximized .window-btn-maximize .window-btn-icon::before {
+    inset: 2px 2px 0 0;
+}
+
+.is-maximized .window-btn-maximize .window-btn-icon::after {
+    content: '';
+    position: absolute;
+    inset: 0 0 2px 2px;
+    border-top: 1px solid currentColor;
+    border-right: 1px solid currentColor;
+}
+
+.window-btn-close .window-btn-icon::before,
+.window-btn-close .window-btn-icon::after {
+    content: '';
+    position: absolute;
+    left: -2px;
+    right: -2px;
+    top: 50%;
+    border-top: 1px solid currentColor;
+    transform: rotate(45deg);
+}
+
+.window-btn-close .window-btn-icon::after {
+    transform: rotate(-45deg);
+}
+
+/* The resize strips: invisible, just inside the window's edges, over
+   everything. None while maximized. */
+
+/* ===========================================
+   WORKSPACE
+   The view, over the dock along the bottom. Above `lg` it is one screenful:
+   the dock is --dock-h tall, scrolling what does not fit, and the view takes
+   the room that is left. A splitter on the dock's top edge resizes it.
+   =========================================== */
+
+.workspace {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) min(var(--dock-h), calc(100% - var(--view-min-h)));
+    grid-template-areas:
+        "view"
+        "dock";
+}
+
+.ws-view {
+    grid-area: view;
+    min-height: 0;
+    min-width: 0;
+    position: relative;
+    background: var(--view-bg);
+}
+
+/* As tall as --dock-h, scrolling what does not fit; its columns fill it, and
+   the Gaits library scrolls within its own. The navy frame runs along its
+   top, under the view. */
+.ws-dock {
+    grid-area: dock;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    background: var(--ind-surface);
+    border-top: 1px solid var(--ind-frame);
+}
+
+/* ---- Splitters ----
+   A strip over the dock's top edge, and one on each line between its
+   columns, showing the accent while hovered, focused or dragged. They
+   overlap the areas they resize, so take no room. */
+
+.ws-splitter {
+    position: relative;
+    z-index: 6;
+    touch-action: none;
+    outline: none;
+}
+
+.ws-splitter::after {
+    content: '';
+    position: absolute;
+    background: var(--ind-accent);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.ws-splitter:hover::after,
+.ws-splitter:focus-visible::after,
+.is-resizing .ws-splitter::after {
+    opacity: 1;
+}
+
+.ws-splitter[aria-orientation="vertical"] {
+    width: 8px;
+    cursor: col-resize;
+}
+
+.ws-splitter[aria-orientation="vertical"]::after {
+    top: 0;
+    bottom: 0;
+    left: 2px;
+    width: 3px;
+}
+
+/* The dock's: on the line between the Gaits library and the sequence. */
+.ws-splitter-lib {
+    grid-row: 1;
+    grid-column: 1;
+    justify-self: end;
+    margin-right: -4px;
+}
+
+.ws-splitter-dock {
+    grid-area: dock;
+    align-self: start;
+    height: 8px;
+    margin-top: -5px;
+    cursor: row-resize;
+}
+
+.ws-splitter-dock::after {
+    left: 0;
+    right: 0;
+    top: 2px;
+    height: 3px;
+}
+
+/* While dragging: the splitter's cursor everywhere, and no text selected on
+   the way. */
+.is-resizing,
+.is-resizing * {
+    cursor: var(--resize-cursor) !important;
+    user-select: none !important;
+}
+
+/* Below `lg` there is no height to share: the view and the dock stack, with
+   the page scrolling as a whole. */
+@media (max-width: 991.98px) {
+    body {
+        overflow: auto;
+    }
+
+    .app-shell {
+        height: auto;
+        min-height: 100vh;
+    }
+
+    .topbar {
+        flex: 0 0 auto;
+        flex-wrap: wrap;
+        row-gap: 0.4rem;
+        padding-block: 0.5rem;
+    }
+
+    .workspace {
+        grid-template-rows: 70vh auto;
+    }
+
+    .ws-view {
+        min-height: 320px;
+    }
+
+    .ws-dock {
+        overflow: visible;
+    }
+
+    .ws-splitter {
+        display: none;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .topbar {
+        column-gap: 0.4rem;
+    }
+
+    .topbar-title {
+        font-size: 0.82rem;
+        letter-spacing: 1px;
+    }
+
+    .topbar-version {
+        display: none;
+    }
+
+    .status-pill {
+        max-width: 11rem;
+    }
+
+    .link-panel {
+        width: min(19rem, calc(100vw - 24px));
+    }
+}
+
+/* ===========================================
+   CONTROLS
+   =========================================== */
+
+/* Buttons are armour plates: a navy border, and two corners filled in
+   (CORNERS, at the end). The focus ring is drawn inside, as the buttons sit
+   edge to edge in their groups. */
+.btn {
+    --bs-btn-font-family: var(--font-ui);
+    --bs-btn-font-weight: 700;
+    --bs-btn-border-width: 1px;
+    --bs-btn-border-radius: 0;
+    --bs-btn-padding-x: 0.75rem;
+    --bs-btn-padding-y: 0.3rem;
+    --bs-btn-focus-box-shadow: var(--ind-glow-inset);
+    --chamfer: 10px;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+    transition: filter 0.1s ease, background-color 0.1s ease, border-color 0.1s ease;
+}
+
+.btn:not(:disabled):not(.disabled):hover {
+    filter: brightness(1.06);
+}
+
+.btn-sm {
+    --chamfer: 8px;
+    --bs-btn-border-radius: 0;
+    --bs-btn-padding-x: 0.65rem;
+    --bs-btn-padding-y: 0.25rem;
+    --bs-btn-font-size: 0.82rem;
+}
+
+.btn-primary {
+    --bs-btn-color: #fff;
+    --bs-btn-bg: var(--ind-accent);
+    --bs-btn-border-color: var(--ind-outline);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--ind-accent-hover);
+    --bs-btn-hover-border-color: var(--ind-outline);
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: var(--ind-accent-active);
+    --bs-btn-active-border-color: var(--ind-outline);
+    --bs-btn-disabled-color: #fff;
+    --bs-btn-disabled-bg: var(--ind-accent);
+    --bs-btn-disabled-border-color: var(--ind-outline);
+}
+
+.btn-secondary,
+.btn-outline-secondary {
+    --bs-btn-color: var(--ind-text);
+    --bs-btn-bg: var(--ind-surface-alt);
+    --bs-btn-border-color: var(--ind-frame);
+    --bs-btn-hover-color: var(--ind-text);
+    --bs-btn-hover-bg: var(--ind-hover);
+    --bs-btn-hover-border-color: var(--ind-frame);
+    --bs-btn-active-color: var(--ind-text);
+    --bs-btn-active-bg: var(--ind-hover);
+    --bs-btn-active-border-color: var(--ind-frame);
+    --bs-btn-disabled-color: var(--ind-text-muted);
+    --bs-btn-disabled-bg: var(--ind-surface-alt);
+    --bs-btn-disabled-border-color: var(--ind-border-strong);
+}
+
+.btn-success {
+    --bs-btn-color: #fff;
+    --bs-btn-bg: #16a34a;
+    --bs-btn-border-color: var(--ind-outline);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: #15803d;
+    --bs-btn-hover-border-color: var(--ind-outline);
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: #166534;
+    --bs-btn-active-border-color: var(--ind-outline);
+    --bs-btn-disabled-color: #fff;
+    --bs-btn-disabled-bg: #16a34a;
+    --bs-btn-disabled-border-color: var(--ind-outline);
+}
+
+.btn-danger,
+.btn-outline-danger {
+    --bs-btn-color: var(--ind-red);
+    --bs-btn-bg: transparent;
+    --bs-btn-border-color: color-mix(in srgb, var(--ind-red) 55%, transparent);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--ind-red);
+    --bs-btn-hover-border-color: var(--ind-red);
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: var(--ind-red);
+    --bs-btn-active-border-color: var(--ind-red);
+    --bs-btn-disabled-color: var(--ind-red);
+    --bs-btn-disabled-bg: transparent;
+    --bs-btn-disabled-border-color: color-mix(in srgb, var(--ind-red) 55%, transparent);
+}
+
+.form-control,
+.form-select {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--ind-text);
+    background-color: var(--ind-input-bg);
+    border: 1px solid var(--ind-border-strong);
+    border-radius: var(--radius);
+}
+
+.form-control-sm,
+.form-select-sm {
+    border-radius: var(--radius);
+    font-size: 0.82rem;
+}
+
+.form-control:focus,
+.form-select:focus {
+    color: var(--ind-text);
+    background-color: var(--ind-input-bg);
+    border-color: var(--ind-accent);
+    box-shadow: var(--ind-glow-inset);
+}
+
+.form-control:disabled {
+    background-color: var(--ind-surface);
+    color: var(--ind-text-muted);
+}
+
+.form-check-input:checked {
+    background-color: var(--ind-accent);
+    border-color: var(--ind-accent);
+}
+
+.form-check-input:focus {
+    box-shadow: var(--ind-glow);
+}
+
+.form-switch .form-check-label {
+    font-size: 0.88rem;
+    font-weight: 600;
+}
+
+.input-group-sm > .form-control,
+.input-group-sm > .input-group-text {
+    border-radius: var(--radius);
+}
+
+/* Controls that need a robot: dimmed and inert while there is none. The
+   status line above them stays at full strength, since it says why. The
+   widgets keep their own `disabled` flags too; this also catches the
+   checklists, which have no single switch of their own. */
+.robot-section-controls {
+    transition: opacity 0.15s ease;
+}
+
+.robot-section-controls.is-offline {
+    opacity: 0.45;
+    filter: grayscale(1);
+    pointer-events: none;
+    user-select: none;
+}
+
+/* ---- Fields ---- */
+
+.ind-field-label {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--ind-text-muted);
+    margin-bottom: 0.2rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* A run of fields inside one section, e.g. Translate / Rotate. */
+.ind-group-header {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--ind-text-muted);
+    margin: 0.5rem 0 0.6rem;
+    padding-bottom: 0.25rem;
+    border-bottom: 1px dashed var(--ind-border);
+}
+
+/* A slider's value box. WIDGETS hides it once the slider is under 300px
+   wide, which over the view is most of the time; the value is half of what
+   the field shows, so it stays. A fixed width -- room for "-178.5" -- keeps
+   the track from changing length as the value changes. */
+.ind-inline-slider .ind-slider .ind-slider-input {
+    display: block;
+    box-sizing: border-box;
+    height: auto;
+    max-width: none;
+    width: 6.5ch !important;
+    flex: 0 0 auto;
+    font-family: var(--font-mono) !important;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    font-size: 0.8rem;
+    padding: 0.15rem 0.35rem;
+    border-radius: var(--radius);
+}
+
+/* Label-above number inputs, as many to a row as fit. */
+.ind-field-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+    gap: 0.25rem 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+/* A few fields that belong together, e.g. a foot's x, y and height: always
+   side by side, sharing the width. */
+.ind-field-grid.ind-field-row {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+}
+
+.ind-field-row input,
+.ind-joint-grid input {
+    padding-inline: 0.35rem;
+    -moz-appearance: textfield;
+}
+
+/* Spinner arrows would hide the value in inputs this narrow. */
+.ind-field-row input::-webkit-outer-spin-button,
+.ind-field-row input::-webkit-inner-spin-button,
+.ind-joint-grid input::-webkit-outer-spin-button,
+.ind-joint-grid input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    display: none;
+    margin: 0;
+}
+
+/* ---- Joint grids ----
+   One input per leg and joint; the columns named once, in the header. */
+
+.ind-joint-grid {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--ind-text);
+    table-layout: fixed;
+    width: 100%;
+}
+
+.ind-joint-grid th,
+.ind-joint-grid td {
+    padding: 0.12rem 0.15rem;
+}
+
+.ind-joint-grid thead th {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 600;
+    line-height: 1.15;
+    color: var(--ind-text-muted);
+    vertical-align: bottom;
+}
+
+.ind-joint-grid tr > th:first-child {
+    width: 1.9rem;
+}
+
+.ind-joint-grid tbody th {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    vertical-align: middle;
+}
+
+.ind-joint-grid input {
+    width: 100%;
+    min-width: 0;
+    font-size: 0.78rem;
+    text-align: right;
+}
+
+.ind-alert {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--ind-alert-text);
+    background: var(--ind-alert-bg);
+    border-left: 3px solid var(--ind-red);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 0.45rem 0.7rem;
+    /* Solver messages put their list of legs on a line of its own. */
+    white-space: pre-line;
+}
+
+/* Checklists (Loop, Ease in) as a checkbox and its word. */
+.dock-check label.ind-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+/* A square plate, ticked in white on the accent when on. */
+.dock-check .ind-check-input {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 0 0 auto;
+    width: 15px;
+    height: 15px;
+    margin: 0;
+    background-color: var(--ind-input-bg);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 11px 11px;
+    border: 1px solid var(--ind-border-strong);
+    cursor: pointer;
+    transition: background-color 0.1s ease, border-color 0.1s ease;
+}
+
+.dock-check .ind-check-input:hover {
+    border-color: var(--ind-accent);
+}
+
+.dock-check .ind-check-input:checked {
+    background-color: var(--ind-accent);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 6.3l2.6 2.6L10 3.4' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='square'/%3E%3C/svg%3E");
+    border-color: var(--ind-accent);
+}
+
+.dock-check .ind-check-input:focus-visible {
+    outline: none;
+    box-shadow: var(--ind-glow);
+}
+
+.hud-panel .dock-check .ind-check-input:not(:checked) {
+    background-color: rgba(var(--hud-cyan-rgb), 0.06);
+    border-color: rgba(var(--hud-cyan-rgb), 0.45);
+}
+
+/* ===========================================
+   VIEW
+   The three.js view (view/hexapodView.js) fills its area; buttons sit in
+   the top-right corner, how the body picked is dragged over the top edge, and
+   the pose -- its joint angles, and the controls of what is picked -- in the
+   bottom-left, all drawn for the dark monitor in either theme.
+   =========================================== */
+
+.hexapod-view-frame,
+.hexapod-view {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    position: relative;
+}
+
+.hexapod-view-overlay {
+    position: absolute;
+    top: calc(var(--view-top) + 12px);
+    right: 12px;
+    z-index: 3;
+    display: flex;
+    gap: 0.4rem;
+}
+
+/* The robot's own controls, on the view's top-left corner: streaming, with
+   its speed limit, and under it the robot's dimensions, folded away. */
+.hexapod-view-controls {
+    position: absolute;
+    top: calc(var(--view-top) + 12px);
+    left: 12px;
+    z-index: 3;
+    max-width: calc(100% - 24px);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+}
+
+/* A card over the dark view, in either theme: the stream controls, the
+   dimensions and the pose. The sliders and the inputs inside one are
+   redrawn for it. */
+.hud-panel {
+    --widget-track: rgba(var(--hud-cyan-rgb), 0.2);
+    --widget-surface: var(--view-bg);
+    --widget-text: var(--hud-text);
+    --widget-border: var(--hud-border);
+    --chamfer: 9px;
+    color: var(--hud-text);
+    background-color: var(--hud-bg);
+    border: 1px solid var(--hud-border);
+    backdrop-filter: blur(6px);
+}
+
+.hud-panel .ind-field-label,
+.hud-panel .ind-group-header {
+    color: var(--hud-muted);
+}
+
+.hud-panel .ind-group-header {
+    border-bottom-color: var(--hud-border);
+}
+
+.hud-panel .form-control,
+.hud-panel .ind-slider-input {
+    color: var(--hud-text) !important;
+    background-color: rgba(var(--hud-cyan-rgb), 0.06) !important;
+    border: 1px solid var(--hud-border) !important;
+}
+
+.hud-panel .form-control:focus {
+    border-color: rgba(var(--hud-cyan-rgb), 0.75) !important;
+    box-shadow: inset 0 0 8px rgba(var(--hud-cyan-rgb), 0.3);
+}
+
+.stream-hud > div {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 1rem;
+    padding: 0.35rem 0.75rem;
+}
+
+.stream-hud .form-switch .form-check-label {
+    font-size: 0.82rem;
+    white-space: nowrap;
+}
+
+.stream-hud .form-check-input:not(:checked) {
+    background-color: rgba(var(--hud-cyan-rgb), 0.1);
+    border-color: var(--hud-border);
+}
+
+.stream-hud .ind-inline-slider {
+    min-width: 0;
+    width: 12rem;
+}
+
+.dims-hud {
+    padding: 0.35rem 0.75rem;
+}
+
+.dims-hud[open] {
+    width: 17rem;
+    padding-bottom: 0.6rem;
+}
+
+.dims-robot {
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin: 0.1rem 0 0.2rem;
+}
+
+.dims-hud .ind-field-grid {
+    margin-bottom: 0.4rem;
+}
+
+.dims-note {
+    font-size: 0.72rem;
+    line-height: 1.35;
+    color: var(--hud-muted);
+}
+
+/* Too narrow for it beside the reset buttons: it goes under them. */
+@media (max-width: 575.98px) {
+    .hexapod-view-controls {
+        top: 52px;
+    }
+}
+
+/* How the body picked is dragged, by arrows or by rings: over the middle of
+   the view's top edge, above the handles it changes. */
+.hexapod-view-tool {
+    position: absolute;
+    top: calc(var(--view-top) + 12px);
+    left: 50%;
+    z-index: 3;
+    transform: translateX(-50%);
+}
+
+.view-tool {
+    --chamfer: 7px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0.6rem;
+}
+
+.view-tool .ind-field-label {
+    margin: 0;
+}
+
+/* No room between the corners: it goes under the reset buttons. */
+@media (max-width: 991.98px) {
+    .hexapod-view-tool {
+        top: 48px;
+        left: auto;
+        right: 12px;
+        transform: none;
+    }
+}
+
+/* The robot's controls have left the top-left corner: it goes there, bare. */
+@media (max-width: 575.98px) {
+    .hexapod-view-tool {
+        top: 12px;
+        left: 12px;
+        right: auto;
+    }
+
+    .view-tool {
+        padding: 0;
+        border: none;
+    }
+
+    .view-tool .ind-field-label {
+        display: none;
+    }
+}
+
+.view-btn.btn {
+    --bs-btn-color: var(--hud-text);
+    --bs-btn-bg: var(--hud-bg);
+    --bs-btn-border-color: var(--hud-border);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: rgba(29, 79, 163, 0.9);
+    --bs-btn-hover-border-color: rgba(var(--hud-cyan-rgb), 0.6);
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: rgba(29, 79, 163, 0.9);
+    --bs-btn-active-border-color: rgba(var(--hud-cyan-rgb), 0.6);
+    --bs-btn-border-width: 1px;
+    backdrop-filter: blur(6px);
+}
+
+.hexapod-view-hud {
+    position: absolute;
+    left: 12px;
+    bottom: 12px;
+    z-index: 3;
+    max-width: calc(100% - 24px);
+    /* Up to the robot's controls in the corner above: taller than the room
+       under them, it scrolls. */
+    max-height: calc(100% - var(--view-top) - 7.5rem);
+    overflow: auto;
+}
+
+/* ---- The pose ----
+   The joint angles, a column per leg under the button that picks its foot,
+   then the controls of what is picked: the body's, or that foot's. Kept
+   narrow: it is the angles' fields that set how wide it is, and the view is
+   what it sits over. */
+
+.pose-hud {
+    padding: 0.35rem 0.5rem;
+}
+
+.pose-hud[open] {
+    padding-bottom: 0.55rem;
+}
+
+.pose-hud > summary,
+.dims-hud > summary,
+.drive-hud > summary {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--hud-muted);
+    cursor: pointer;
+    user-select: none;
+}
+
+/* Folded away while a leg is out of reach: the warning inside it cannot be
+   seen, so the folded overlay turns red instead. */
+.pose-hud.is-bad:not([open]) {
+    background: rgba(140, 24, 24, 0.88);
+    border-color: rgba(255, 92, 92, 0.85);
+}
+
+.pose-hud.is-bad:not([open]) > summary {
+    color: #ffd6d6;
+}
+
+.pose-hud.is-bad:not([open]) > summary::after {
+    content: ' ⚠';
+}
+
+.pose-hud[open] > summary,
+.dims-hud[open] > summary,
+.drive-hud[open] > summary {
+    margin-bottom: 0.3rem;
+}
+
+.pose-hud .ind-joint-grid {
+    --bs-table-color: var(--hud-text);
+}
+
+.pose-hud .ind-joint-grid thead th,
+.pose-hud .ind-joint-grid tbody th {
+    color: var(--hud-muted);
+}
+
+.pose-hud .ind-joint-grid th,
+.pose-hud .ind-joint-grid td {
+    padding: 0.1rem;
+}
+
+/* Room for "-74.9": no joint turns as far as three digits. */
+.pose-hud .ind-joint-grid input {
+    width: 3.1rem;
+    min-height: 0;
+    height: 1.5rem;
+    padding: 0 0.3rem;
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    font-variant-numeric: tabular-nums;
+}
+
+/* A leg out of reach has no angles: a dash in their place. */
+.pose-hud .ind-joint-grid input::placeholder {
+    color: #ffb4b4;
+    opacity: 1;
+    text-align: center;
+}
+
+/* Picks the body, or a leg's foot; lit in the yellow the view marks what is
+   picked with. */
+.hud-pick {
+    display: block;
+    width: 100%;
+    padding: 0.05rem 0.25rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--hud-muted);
+    background: rgba(var(--hud-cyan-rgb), 0.06);
+    border: 1px solid var(--hud-border);
+    cursor: pointer;
+    transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.hud-pick:hover {
+    color: var(--hud-text);
+    border-color: rgba(var(--hud-cyan-rgb), 0.6);
+}
+
+.hud-pick:focus-visible {
+    outline: none;
+    box-shadow: 0 0 10px rgba(var(--hud-cyan-rgb), 0.3);
+}
+
+.hud-pick.is-picked {
+    color: var(--view-bg);
+    background: var(--hud-picked);
+    border-color: var(--hud-picked);
+}
+
+/* Messages and the controls under the angles are only as wide as the angles
+   are: zero width of their own, so what they say never resizes the overlay. */
+.hud-message,
+.hud-adjust {
+    width: 0;
+    min-width: 100%;
+}
+
+.hud-message:empty {
+    display: none;
+}
+
+.pose-hud .ind-alert {
+    color: #ffb4b4;
+    background: rgba(255, 92, 92, 0.12);
+    margin-top: 0.4rem;
+}
+
+.hud-adjust {
+    margin-top: 0.5rem;
+    padding-top: 0.45rem;
+    border-top: 1px dashed var(--hud-border);
+}
+
+.hud-hint {
+    font-size: 0.74rem;
+    line-height: 1.35;
+    color: var(--hud-muted);
+}
+
+.hud-adjust-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-height: 1.7rem;
+    margin-bottom: 0.3rem;
+}
+
+.hud-adjust-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--hud-picked);
+}
+
+.hud-panel .dock-seg-item {
+    color: var(--hud-muted);
+    border-color: var(--hud-border);
+}
+
+.hud-panel .dock-seg-item:hover {
+    color: var(--hud-text);
+    background-color: rgba(var(--hud-cyan-rgb), 0.12);
+}
+
+.hud-panel .dock-seg-item.active {
+    color: #fff;
+    background-color: var(--ind-accent);
+    border-color: var(--ind-accent);
+}
+
+/* The body's sliders: moving it beside turning it. */
+.hud-body-sliders {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 1rem;
+}
+
+.hud-body-sliders .ind-group-header {
+    margin: 0.1rem 0 0.35rem;
+}
+
+.hud-body-sliders .ind-inline-slider {
+    min-width: 0;
+    margin-bottom: 0.2rem;
+}
+
+/* A slider is padded to 34px tall; these are stacked three deep. */
+.hud-body-sliders .ind-slider-root {
+    padding-block: 13px;
+}
+
+.hud-adjust .ind-field-grid {
+    margin-bottom: 0;
+}
+
+.hud-adjust .view-btn.btn {
+    --bs-btn-padding-y: 0.1rem;
+}
+
+@media (max-width: 575.98px) {
+    .hud-body-sliders {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* ---- Controller ----
+   On the view's bottom-right corner: the body pad and the move pad, drawn by
+   components/RobotHuds.tsx, over the readout and the speed. A held zone lights
+   in the accent, as a pressed button does. */
+
+.hexapod-view-drive {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    z-index: 3;
+    max-width: calc(100% - 24px);
+}
+
+.drive-hud {
+    padding: 0.35rem 0.6rem;
+}
+
+/* ---- Playback ----
+   Over the middle of the view's bottom edge, between the pose and the
+   controller: Play, the scrubber and where it is, the speed and Loop, then
+   running it on the robot; what came of that on a line under them. Where
+   there is not room for one line, the robot's buttons go on the next.
+   Folded, the pose and the controller sit either side of it; opened, either
+   goes up above it, so it is never covered. How tall it is, --playback-h,
+   is kept up to date by components/View.tsx. */
+
+.hexapod-view-frame {
+    /* How far up a corner's panel goes when opened: clear of the bar. */
+    --playback-lift: calc(12px + var(--playback-h, 3rem) + 8px);
+}
+
+.hexapod-view-frame:has(.pose-hud[open]) .hexapod-view-hud,
+.hexapod-view-frame:has(.drive-hud[open]) .hexapod-view-drive {
+    bottom: var(--playback-lift);
+}
+
+.hexapod-view-frame:has(.pose-hud[open]) .hexapod-view-hud {
+    max-height: calc(100% - var(--view-top) - 7.5rem - var(--playback-lift) + 12px);
+}
+
+/* Clear of the folded pose and controller either side. */
+.hexapod-view-playback {
+    position: absolute;
+    left: 50%;
+    bottom: 12px;
+    z-index: 2;
+    width: min(60rem, calc(100% - 19rem));
+    transform: translateX(-50%);
+}
+
+.playback-hud {
+    --chamfer: 9px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.9rem;
+    padding: 0.4rem 0.75rem;
+}
+
+.playback-hud .ind-dock-scrubber {
+    flex-basis: 6rem;
+}
+
+.playback-hud .dock-note,
+.playback-hud .ind-field-label {
+    color: var(--hud-muted);
+}
+
+.playback-hud .ind-duration-input {
+    width: 5.5rem;
+}
+
+.playback-hud .ind-duration-input .input-group-text {
+    color: var(--hud-muted);
+    background-color: rgba(var(--hud-cyan-rgb), 0.1);
+    border-color: var(--hud-border);
+}
+
+.playback-hud .dock-check label.ind-check {
+    color: var(--hud-text);
+}
+
+/* Set off from playing in the view by a rule; on a line of its own, at the
+   end of it. */
+.playback-robot {
+    margin-left: auto;
+    padding-left: 0.9rem;
+    border-left: 1px solid var(--hud-border);
+}
+
+.playback-message {
+    flex-basis: 100%;
+    white-space: normal;
+}
+
+/* How to work the view, in small print just above the bar. It is only
+   words: clicks go through it to the robot. */
+.hexapod-view-hint {
+    position: absolute;
+    left: 50%;
+    bottom: var(--playback-lift);
+    z-index: 1;
+    /* Its own width, not the half of the view right of `left`. */
+    width: max-content;
+    max-width: calc(100% - 19rem);
+    transform: translateX(-50%);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--hud-muted);
+    text-align: center;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    pointer-events: none;
+    user-select: none;
+}
+
+/* Too narrow for it on one line, it would wrap over the robot's feet; and
+   an opened pose or controller takes the room it is in. */
+.hexapod-view-frame:has(.pose-hud[open]) .hexapod-view-hint,
+.hexapod-view-frame:has(.drive-hud[open]) .hexapod-view-hint {
+    display: none;
+}
+
+@media (max-width: 1099.98px) {
+    .hexapod-view-hint {
+        display: none;
+    }
+}
+
+/* No room beside the folded corners: the bar takes the width, and they sit
+   above it. */
+@media (max-width: 767.98px) {
+    .hexapod-view-playback {
+        width: calc(100% - 24px);
+    }
+
+    .hexapod-view-hud,
+    .hexapod-view-drive {
+        bottom: var(--playback-lift);
+    }
+}
+
+.drive-hud[open] {
+    padding-bottom: 0.55rem;
+}
+
+.drive-body {
+    display: grid;
+    grid-template-columns: auto auto;
+    align-items: center;
+    gap: 0.55rem 0.9rem;
+}
+
+.drive-pad {
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.drive-svg {
+    display: block;
+    overflow: visible;
+}
+
+.drive-pad-body .drive-svg {
+    width: 6.4rem;
+    height: 9.6rem;
+}
+
+.drive-pad-move .drive-svg {
+    width: 9.6rem;
+    height: 9.6rem;
+}
+
+.drive-zone {
+    cursor: pointer;
+}
+
+.drive-face {
+    fill: rgba(var(--hud-cyan-rgb), 0.08);
+    stroke: var(--view-bg);
+    stroke-width: 1.5;
+    transition: fill 0.12s ease;
+}
+
+.drive-face-outer {
+    fill: rgba(var(--hud-cyan-rgb), 0.05);
+}
+
+.drive-face-walk {
+    fill: rgba(var(--hud-cyan-rgb), 0.12);
+}
+
+/* Standby, in the middle: lit, as the Android app's button is. */
+.drive-face-centre {
+    fill: rgba(var(--ind-accent-rgb), 0.85);
+    stroke: rgba(var(--hud-cyan-rgb), 0.4);
+}
+
+.drive-zone:hover .drive-face {
+    fill: rgba(var(--hud-cyan-rgb), 0.2);
+}
+
+.drive-zone.is-active .drive-face {
+    fill: rgba(var(--ind-accent-rgb), 0.95);
+    stroke: rgba(var(--hud-cyan-rgb), 0.7);
+}
+
+.drive-icon,
+.drive-icon path {
+    fill: var(--hud-text);
+}
+
+.drive-icon .drive-stroke {
+    fill: none;
+    stroke: var(--hud-text);
+    stroke-width: 3;
+    stroke-linecap: round;
+}
+
+.drive-glyph {
+    fill: var(--hud-text);
+    font-family: var(--font-ui);
+    font-weight: 600;
+    pointer-events: none;
+}
+
+.drive-name {
+    fill: var(--hud-muted);
+    font-family: var(--font-mono);
+    letter-spacing: 0.06em;
+}
+
+.drive-zone.is-active .drive-name {
+    fill: #fff;
+}
+
+/* Under the pads, and only as wide as they are: zero width of its own, so
+   the readout changing as pads are pressed never resizes the panel. */
+.drive-footer {
+    grid-column: 1 / -1;
+    width: 0;
+    min-width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.75rem;
+}
+
+/* One line, cut short if it is too long, so its height stays put too. */
+.drive-readout {
+    flex: 1 1 100%;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    line-height: 1.1rem;
+    color: var(--hud-text);
+}
+
+.drive-speed.ind-inline-slider {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+/* Short windows: smaller pads, so they leave the robot in sight. */
+@media (max-height: 820px) {
+    .drive-pad-body .drive-svg {
+        width: 5.2rem;
+        height: 7.8rem;
+    }
+
+    .drive-pad-move .drive-svg {
+        width: 7.8rem;
+        height: 7.8rem;
+    }
+}
+
+/* The angle table: only as wide as its values. */
+.ind-joint-grid.ind-angle-strip {
+    width: auto;
+    table-layout: auto;
+}
+
+.ind-angle-strip tr > th:first-child {
+    width: auto;
+    padding-right: 0.35rem;
+}
+
+/* The name of the leg under the pointer. */
+.hexapod-view-label {
+    position: absolute;
+    z-index: 2;
+    pointer-events: none;
+    padding: 0.15rem 0.45rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--hud-text);
+    background: var(--hud-bg);
+    border: 1px solid var(--hud-border);
+    white-space: nowrap;
+}
+
+/* ===========================================
+   DOCK
+   Two columns: on the left the Gaits library, the robot's and one's own;
+   on the right the sequence -- keyframes of poses and gaits. Playing it, in
+   the view and on the robot, is over the view (PLAYBACK). Each block is
+   titled like a panel section, with what belongs to it on the same line. The columns
+   stack below `lg`, with the rest of the workspace.
+   =========================================== */
+
+.dock {
+    display: grid;
+    flex: 1 0 auto;
+    /* The library as set, but never so wide the sequence is squeezed out. */
+    grid-template-columns: min(var(--lib-w), 35%) minmax(0, 1fr);
+}
+
+.dock-col {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.dock-col-library {
+    border-right: 1px solid var(--ind-border);
+}
+
+/* Each in its own column, placed rather than flowed: the splitters between
+   them are placed on those columns too, and would push them along. */
+.dock-col-library {
+    grid-area: 1 / 1;
+}
+
+.dock-col-sequence {
+    grid-area: 1 / 2;
+}
+
+.dock-section + .dock-section {
+    border-top: 1px solid var(--ind-border);
+}
+
+.dock-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.5rem 0.9rem 0.6rem;
+}
+
+.dock-section-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.6rem;
+    min-height: 2rem;
+}
+
+/* A section's title, in the display face, underlined in V-fin yellow. */
+.dock-section-title {
+    flex: 0 0 auto;
+    margin: 0;
+    padding-bottom: 0.15rem;
+    font-family: var(--font-display);
+    font-size: 0.66rem;
+    font-weight: 400;
+    font-synthesis: none;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ind-text);
+    border-bottom: 2px solid var(--ind-accent-alt);
+}
+
+.dock-part {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.9rem;
+}
+
+/* The keyframes part: the track, then the editor under it. */
+.dock-part-stack {
+    min-height: 0;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 0.5rem;
+}
+
+.dock-group {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.dock-group-wide {
+    gap: 0.4rem 1.2rem;
+}
+
+.dock-push {
+    margin-left: auto;
+}
+
+.dock-note {
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    color: var(--ind-text-muted);
+    white-space: nowrap;
+}
+
+.dock-note:empty,
+.dock-message:empty {
+    display: none;
+}
+
+.ind-duration-input {
+    width: 6.5rem;
+    flex-wrap: nowrap;
+}
+
+.ind-duration-input .input-group-text {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--ind-text-muted);
+    background-color: var(--ind-surface);
+    border: 1px solid var(--ind-border-strong);
+}
+
+.ind-play-btn {
+    min-width: 5.5rem;
+}
+
+.ind-dock-scrubber {
+    flex: 1 1 3rem;
+    min-width: 3rem;
+}
+
+.ind-dock-scrubber .ind-slider {
+    width: 100%;
+}
+
+/* A slider with its label on the same line (the gait speed). */
+.ind-inline-slider {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 12rem;
+}
+
+.ind-inline-slider .ind-field-label {
+    margin: 0;
+    flex: 0 0 auto;
+    overflow: visible;
+}
+
+.ind-inline-slider > :last-child {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.ind-inline-slider .ind-slider {
+    width: 100%;
+    gap: 0.5rem;
+}
+
+/* ---- Keyframe track ----
+   The keyframes in order, each a card behind the arrow into it: the time the
+   move takes over a line ending in an arrowhead, beside a little graph of how
+   it moves (eased or linear). The first one's arrow is the move back round to
+   it, used when looping. They wrap onto as many rows as the dock is tall and
+   scroll down past that: like the library's list, the track takes no height
+   of its own (contain: size), only what the dock leaves it. */
+
+.dock-sequence {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.ind-kf-strip {
+    position: relative;
+    flex: 1 1 0;
+    min-height: 4.4rem;
+    contain: size;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    align-items: stretch;
+    gap: 0.45rem 0;
+    overflow-y: auto;
+    padding: 0.45rem 0.6rem;
+    border: 1px solid var(--ind-border-strong);
+}
+
+/* Inside the lane, which is outlined already. */
+.ind-kf-strip .dock-empty {
+    align-self: center;
+    padding: 0;
+    border: none;
+}
+
+.dock-add-btn {
+    flex: 0 0 auto;
+}
+
+.dock-empty {
+    flex: 1 1 auto;
+    padding: 0.45rem 0.7rem;
+    font-size: 0.82rem;
+    color: var(--ind-text-muted);
+    border: 1px dashed var(--ind-border-strong);
+}
+
+/* One keyframe: its arrow, then its card; clicking either selects it. */
+.ind-kf-item {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: stretch;
+    padding: 0;
+    margin: 0;
+    font-family: var(--font-mono);
+    color: var(--ind-text);
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.ind-kf-item:focus-visible {
+    outline: none;
+}
+
+.ind-kf-item:focus-visible .ind-kf-card {
+    box-shadow: var(--ind-glow);
+}
+
+.ind-kf-card {
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    min-width: 4.4rem;
+    padding: 0.3rem 0.7rem 0.34rem;
+    line-height: 1.25;
+    text-align: left;
+    background-color: var(--ind-surface-alt);
+    border: 1px solid var(--ind-frame);
+    --chamfer: 8px;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.ind-kf-item:hover .ind-kf-card {
+    border-color: var(--ind-accent);
+    background-color: var(--ind-hover);
+}
+
+.ind-kf-item.active .ind-kf-card {
+    color: #fff;
+    background-color: var(--ind-accent);
+    border-color: var(--ind-accent);
+}
+
+/* The keyframe playback is on, in the view: edged in V-fin yellow. */
+.ind-kf-item[data-playing="at"] .ind-kf-card {
+    border-color: var(--ind-accent-alt);
+}
+
+.ind-kf-index {
+    font-size: 0.86rem;
+    font-weight: 700;
+}
+
+.ind-kf-time {
+    font-size: 0.66rem;
+    color: var(--ind-text-muted);
+}
+
+.ind-kf-item.active .ind-kf-time {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* The arrow into a keyframe: the time over a line, the graph beside it. */
+.ind-kf-link {
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: stretch;
+    gap: 0.1rem;
+    min-width: 4.6rem;
+    padding: 0 0.3rem 0 0.4rem;
+    text-align: center;
+    white-space: nowrap;
+    color: var(--ind-text-muted);
+}
+
+.ind-kf-link-label {
+    font-size: 0.68rem;
+}
+
+.ind-kf-loop {
+    margin-right: 0.2rem;
+    font-weight: 700;
+}
+
+.ind-kf-link-line {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* A line and its arrowhead, filled from the left as playback goes through
+   the move (--kf-progress, set by components/Dock.tsx). */
+.ind-kf-arrow {
+    position: relative;
+    flex: 1 1 auto;
+    height: 2px;
+    min-width: 1.2rem;
+    margin-right: 5px;
+    background: var(--ind-border-strong);
+}
+
+.ind-kf-arrow::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: calc(var(--kf-progress, 0) * 100%);
+    background: var(--ind-accent-alt);
+}
+
+.ind-kf-arrow::after {
+    content: '';
+    position: absolute;
+    right: -6px;
+    top: 50%;
+    border-left: 6px solid var(--ind-border-strong);
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    transform: translateY(-50%);
+}
+
+.ind-kf-item[data-playing] .ind-kf-arrow::after {
+    border-left-color: var(--ind-accent-alt);
+}
+
+/* The arrow of the keyframe selected is what its Transition field sets. */
+.ind-kf-item.active .ind-kf-link,
+.ind-kf-item:hover .ind-kf-link {
+    color: var(--ind-accent);
+}
+
+.ind-kf-item.active .ind-kf-arrow {
+    background: var(--ind-accent);
+}
+
+.ind-kf-item.active .ind-kf-arrow::after {
+    border-left-color: var(--ind-accent);
+}
+
+/* The move back round to the first keyframe, while the sequence does not
+   loop: there, but not used. */
+.ind-kf-link.is-idle {
+    opacity: 0.45;
+}
+
+.ind-kf-link.is-idle .ind-kf-arrow {
+    background: repeating-linear-gradient(
+        90deg, var(--ind-border-strong) 0 4px, transparent 4px 7px
+    );
+}
+
+/* How a move goes, as a graph of where against when: an S that starts and
+   stops gently, or a straight line. Drawn in the text's colour. */
+.ind-ease-icon {
+    flex: 0 0 auto;
+    display: inline-block;
+    width: 1.3rem;
+    height: 0.95rem;
+    background: currentColor;
+    -webkit-mask: var(--ease-curve) center / contain no-repeat;
+    mask: var(--ease-curve) center / contain no-repeat;
+}
+
+.ind-ease-icon.is-eased {
+    --ease-curve: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 12'%3E%3Cpath d='M1 1v10h14' fill='none' stroke='%23000' stroke-opacity='.35' stroke-width='1'/%3E%3Cpath d='M1.5 10.5C7 10.5 9 1.5 14.5 1.5' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+.ind-ease-icon.is-linear {
+    --ease-curve: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 12'%3E%3Cpath d='M1 1v10h14' fill='none' stroke='%23000' stroke-opacity='.35' stroke-width='1'/%3E%3Cpath d='M1.5 10.5L14.5 1.5' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+
+/* ---- Gaits library ----
+   A list of gaits, each with + to put it into the sequence, in groups for
+   the robot's; for one's own, a row to save the sequence as one over it. The
+   list scrolls inside the dock rather than making the dock taller: it takes
+   no height of its own (contain: size), only what the other columns leave. */
+
+.dock-library {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.dock-gait-list,
+.dock-gait-mine {
+    flex: 1 1 0;
+    min-height: 7rem;
+    contain: size;
+    overflow-y: auto;
+}
+
+.dock-gait-mine {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.dock-gait-mine .dock-gait-list {
+    contain: none;
+    min-height: 0;
+}
+
+.dock-gait-group {
+    padding: 0.35rem 0 0.15rem;
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ind-text-muted);
+}
+
+.dock-gait-group:first-child {
+    padding-top: 0;
+}
+
+.dock-gait-row {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.12rem 0.1rem 0.12rem 0.4rem;
+    border-radius: var(--radius);
+}
+
+.dock-gait-row:hover {
+    background: var(--ind-hover);
+}
+
+.dock-gait-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+
+.dock-gait-name {
+    font-size: 0.82rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dock-gait-note {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    color: var(--ind-text-muted);
+}
+
+.btn.dock-gait-btn {
+    flex: 0 0 auto;
+    width: 1.7rem;
+    padding: 0.05rem 0;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.dock-gait-save {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.dock-gait-save .form-control {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.dock-gait-save .btn {
+    flex: 0 0 auto;
+}
+
+/* Built-in | Mine: two segments, the one picked filled in the accent. */
+.dock-seg {
+    display: flex;
+}
+
+.dock-seg .form-check {
+    padding: 0;
+    margin: 0;
+    min-height: 0;
+}
+
+.dock-seg-item {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.12rem 0.6rem;
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--ind-text-muted);
+    border: 1px solid var(--ind-border-strong);
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.dock-seg .form-check + .form-check .dock-seg-item {
+    border-left: none;
+}
+
+.dock-seg-item:hover {
+    color: var(--ind-text);
+    background-color: var(--ind-hover);
+}
+
+.dock-seg-item.active {
+    color: #fff;
+    background-color: var(--ind-accent);
+    border-color: var(--ind-accent);
+}
+
+.btn-check:focus-visible + .dock-seg-item {
+    box-shadow: var(--ind-glow);
+}
+
+/* ---- Keyframe editor ----
+   A bar under the track, about the card selected: tinted and edged in the
+   accent so it reads as belonging to it. It wraps when the dock is narrow. */
+
+.dock-kf-editor {
+    flex: 0 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.9rem;
+    padding: 0.4rem 0.6rem;
+    background: var(--ind-input-bg);
+    border-left: 3px solid var(--ind-accent);
+}
+
+.dock-kf-title {
+    display: flex;
+    flex-direction: column;
+    min-width: 7.5rem;
+    line-height: 1.2;
+}
+
+.dock-kf-label {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.dock-kf-title .dock-note {
+    font-size: 0.66rem;
+}
+
+.dock-inline-field {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.dock-inline-field .ind-field-label {
+    margin: 0;
+    overflow: visible;
+}
+
+@media (max-width: 991.98px) {
+    .dock {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .dock-col-library,
+    .dock-col-sequence {
+        grid-area: auto;
+    }
+
+    .dock-col-library {
+        border-right: none;
+        border-bottom: 1px solid var(--ind-border);
+    }
+
+    /* Stacked, the dock sets no height to fit into: the lists get their own. */
+    .dock-gait-list,
+    .dock-gait-mine {
+        flex: 0 0 auto;
+        height: 13rem;
+    }
+
+    .ind-kf-strip {
+        flex: 0 0 auto;
+        height: 9rem;
+    }
+
+    .dock-gait-mine .dock-gait-list {
+        flex: 1 1 0;
+        height: auto;
+    }
+}
+
+/* ===========================================
+   CORNERS
+   The top-right and bottom-left corners of the plates -- buttons, panels,
+   fields, keyframe cards -- are filled in at 45 degrees with --corner, in
+   the plate's border colour, kept in step with its hover, focus and
+   disabled states. Each is a gradient across the corner's square, solid up
+   to the diagonal. Laid as background images, so the plates set
+   background-color, never the background shorthand.
+   =========================================== */
+
+.btn,
+.status-pill,
+.hud-panel,
+.ind-kf-card,
+.form-control,
+.input-group-text,
+.ind-slider-input,
+.dock-seg-item {
+    background-image:
+        linear-gradient(
+            to bottom left,
+            var(--corner, transparent) 50%,
+            transparent calc(50% + 0.75px)
+        ),
+        linear-gradient(
+            to top right,
+            var(--corner, transparent) 50%,
+            transparent calc(50% + 0.75px)
+        );
+    background-size: var(--chamfer) var(--chamfer);
+    background-position: top right, bottom left;
+    background-repeat: no-repeat;
+    background-origin: border-box;
+}
+
+.btn {
+    --corner: var(--bs-btn-border-color);
+}
+
+.btn:hover {
+    --corner: var(--bs-btn-hover-border-color);
+}
+
+.btn:active,
+.btn.active,
+.btn.show,
+.btn-check:checked + .btn {
+    --corner: var(--bs-btn-active-border-color);
+}
+
+.btn:disabled,
+.btn.disabled {
+    --corner: var(--bs-btn-disabled-border-color);
+}
+
+.status-pill {
+    --corner: var(--ind-frame);
+}
+
+.status-pill.is-fault {
+    --corner: var(--ind-red);
+}
+
+.hud-panel {
+    --corner: var(--hud-border);
+}
+
+.ind-kf-card {
+    --corner: var(--ind-frame);
+}
+
+.ind-kf-item:hover .ind-kf-card {
+    --corner: var(--ind-accent);
+}
+
+/* ---- Solid plates ----
+   Filled in their outline's colour, or near it, a corner in that colour
+   would not show: theirs is a light tint of the fill instead, a highlight
+   along the edge. */
+
+.btn.btn-primary,
+.btn.btn-primary:hover,
+.btn.btn-primary:active {
+    --corner: color-mix(in srgb, var(--ind-accent) 50%, #fff);
+}
+
+.btn.btn-success,
+.btn.btn-success:hover,
+.btn.btn-success:active {
+    --corner: color-mix(in srgb, var(--ind-ok) 50%, #fff);
+}
+
+.btn.btn-danger:not(:disabled):hover,
+.btn.btn-outline-danger:not(:disabled):hover,
+.btn.btn-danger:not(:disabled):active,
+.btn.btn-outline-danger:not(:disabled):active {
+    --corner: color-mix(in srgb, var(--ind-red) 45%, #fff);
+}
+
+.ind-kf-item.active .ind-kf-card,
+.dock-seg-item.active {
+    --corner: color-mix(in srgb, var(--ind-accent) 50%, #fff);
+}
+
+.ind-kf-item[data-playing="at"] .ind-kf-card {
+    --corner: var(--ind-accent-alt);
+}
+
+/* Fields are plates too, with smaller corners. A field with its unit after
+   it is one plate: the field has the bottom-left corner, the unit the
+   top-right. */
+.form-control,
+.input-group-text,
+.ind-slider-input {
+    --chamfer: 6px;
+    --corner: var(--ind-border-strong);
+}
+
+.form-control:focus {
+    --corner: var(--ind-accent);
+}
+
+.hud-panel .form-control,
+.hud-panel .input-group-text,
+.hud-panel .ind-slider-input {
+    --corner: var(--hud-border);
+}
+
+.hud-panel .form-control:focus,
+.hud-panel .ind-slider-input:focus {
+    --corner: rgba(var(--hud-cyan-rgb), 0.75);
+}
+
+.input-group > .form-control:not(:last-child) {
+    background-size: 0 0, var(--chamfer) var(--chamfer);
+}
+
+/* A toggle (Built-in | Mine, Ease | Linear) is one plate too: its first
+   segment has the bottom-left corner, its last the top-right. */
+.dock-seg-item {
+    --chamfer: 6px;
+    --corner: var(--ind-border-strong);
+    background-size: 0 0;
+}
+
+.hud-panel .dock-seg-item {
+    --corner: var(--hud-border);
+}
+
+.hud-panel .dock-seg-item.active {
+    --corner: color-mix(in srgb, var(--ind-accent) 50%, #fff);
+}
+
+.dock-seg .form-check:first-child .dock-seg-item {
+    background-size: 0 0, var(--chamfer) var(--chamfer);
+}
+
+.dock-seg .form-check:last-child .dock-seg-item {
+    background-size: var(--chamfer) var(--chamfer), 0 0;
+}
+
+.input-group > .input-group-text:last-child {
+    background-size: var(--chamfer) var(--chamfer), 0 0;
+}
+
+/* The units in a field's own small type, as a stamped label on the plate. */
+.input-group-text {
+    padding-inline: 0.45rem 0.55rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+}
+
+/* ---- Number fields' step arrows ----
+   The browser's own are a grey OS widget. These are two small chevrons in
+   the field's colour, at its right edge, shown only while the field is
+   pointed at or being typed in; they step the value as the browser's did.
+   Fields too narrow for them hide them (Fields, above). */
+
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 0.8rem;
+    height: 1.35rem;
+    margin: 0 -0.2rem 0 0.3rem;
+    align-self: center;
+    background-color: var(--ind-text-muted);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 18'%3E%3Cpath d='M2 7l3-3 3 3M2 11l3 3 3-3' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='square'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 18'%3E%3Cpath d='M2 7l3-3 3 3M2 11l3 3 3-3' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='square'/%3E%3C/svg%3E") center / contain no-repeat;
+    opacity: 0;
+    cursor: pointer;
+    transition: opacity 0.1s ease;
+}
+
+input[type="number"]:hover::-webkit-inner-spin-button,
+input[type="number"]:focus::-webkit-inner-spin-button {
+    opacity: 1;
+}
+
+input[type="number"]::-webkit-inner-spin-button:hover {
+    background-color: var(--ind-accent);
+}
+
+.hud-panel input[type="number"]::-webkit-inner-spin-button {
+    background-color: var(--hud-muted);
+}
+
+.hud-panel input[type="number"]::-webkit-inner-spin-button:hover {
+    background-color: rgb(var(--hud-cyan-rgb));
+}
+
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* ===========================================
+   SCROLLBARS
+   =========================================== */
+
+/* A thin line out of the way, that widens to a grip under the pointer and
+   while it is dragged, lit in the accent. The thumb is drawn inside a
+   transparent border (background-clip), and the border is what narrows: a
+   scrollbar's own width cannot change on hover. Chromium and WebKit, which
+   the desktop window is; Firefox has no such hooks, so it gets its thin
+   scrollbar instead. */
+
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+    background: transparent;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    min-height: 24px;
+    min-width: 24px;
+    background-color: var(--ind-border-strong);
+    background-clip: padding-box;
+    border: 3.5px solid transparent;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    border-width: 1px;
+}
+
+::-webkit-scrollbar-thumb:active {
+    border-width: 1px;
+    background-color: var(--ind-accent);
+}
+
+::-webkit-scrollbar-button {
+    display: none;
+}
+
+@supports not selector(::-webkit-scrollbar) {
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: var(--ind-border-strong) transparent;
+    }
+}

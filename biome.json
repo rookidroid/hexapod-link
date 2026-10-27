@@ -1,0 +1,56 @@
+{
+    "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+    "files": {
+        "includes": [
+            "src/**",
+            "tests/**/*.ts",
+            "tools/**/*.ts",
+            "*.ts",
+            "*.json",
+            "!tests/fixtures",
+            "!package-lock.json",
+            "!src/renderer/src/view/hexapodView.js"
+        ]
+    },
+    "formatter": {
+        "indentStyle": "space",
+        "indentWidth": 4,
+        "lineWidth": 100
+    },
+    "javascript": {
+        "formatter": {
+            "quoteStyle": "double"
+        }
+    },
+    "linter": {
+        "rules": {
+            "style": {
+                "noNonNullAssertion": "off",
+                "noParameterAssign": "off"
+            },
+            "suspicious": {
+                "noExplicitAny": "off"
+            },
+            "a11y": {
+                "noStaticElementInteractions": "off",
+                "useKeyWithClickEvents": "off",
+                "noLabelWithoutControl": "off",
+                "useSemanticElements": "off",
+                "noNoninteractiveTabindex": "off",
+                "useFocusableInteractive": "off",
+                "useAriaPropsForRole": "off"
+            },
+            "complexity": {
+                "noForEach": "off"
+            }
+        }
+    },
+    "css": {
+        "linter": {
+            "enabled": false
+        },
+        "formatter": {
+            "enabled": false
+        }
+    }
+}
