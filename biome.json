@@ -9,7 +9,8 @@
             "*.json",
             "!tests/fixtures",
             "!src/renderer/src/styles/vendor",
-            "!package-lock.json"
+            "!package-lock.json",
+            "!src/renderer/src/view/hexapodView.js"
         ]
     },
     "formatter": {
@@ -37,7 +38,8 @@
                 "noLabelWithoutControl": "off",
                 "useSemanticElements": "off",
                 "noNoninteractiveTabindex": "off",
-                "useFocusableInteractive": "off"
+                "useFocusableInteractive": "off",
+                "useAriaPropsForRole": "off"
             },
             "complexity": {
                 "noForEach": "off"

@@ -7,7 +7,9 @@
 // Nothing here runs outside the frameless window: in a browser, or in a window
 // with its own frame, <html> has no data-window="frameless" and the buttons and
 // edges are not shown.
-(() => {
+(function () {
+    "use strict";
+
     function frameless() {
         return document.documentElement.getAttribute("data-window") === "frameless";
     }
@@ -18,7 +20,7 @@
 
     // Called from Python as the window is maximized or restored, however
     // that came about (the button, a double-click, the keyboard).
-    window.hexapodWindowMaximized = (maximized) => {
+    window.hexapodWindowMaximized = function (maximized) {
         document.documentElement.classList.toggle("is-maximized", !!maximized);
         var button = document.querySelector(".window-btn-maximize");
         if (button) {
@@ -28,7 +30,7 @@
         }
     };
 
-    window.addEventListener("pywebviewready", () => {
+    window.addEventListener("pywebviewready", function () {
         var controls = api();
         if (frameless() && controls && controls.is_maximized) {
             controls.is_maximized().then(window.hexapodWindowMaximized);
@@ -37,7 +39,7 @@
 
     // ---- The buttons ----
 
-    document.addEventListener("click", (event) => {
+    document.addEventListener("click", function (event) {
         var button = event.target.closest && event.target.closest("[data-window-action]");
         var controls = api();
         if (!button || !controls || !frameless()) {
@@ -55,7 +57,7 @@
 
     // Double-clicking the bar itself, not something on it, maximizes or
     // restores, as a native title bar does.
-    document.addEventListener("dblclick", (event) => {
+    document.addEventListener("dblclick", function (event) {
         var controls = api();
         if (controls && frameless() && event.target.classList.contains("pywebview-drag-region")) {
             controls.toggle_maximize();
@@ -82,12 +84,10 @@
     var nativeDrag = false;
     var bar = null;
 
-    window.addEventListener("pywebviewready", () => {
+    window.addEventListener("pywebviewready", function () {
         var controls = api();
         if (frameless() && controls && controls.native_drag) {
-            controls.native_drag().then((native) => {
-                nativeDrag = !!native;
-            });
+            controls.native_drag().then(function (native) { nativeDrag = !!native; });
         }
     });
 
@@ -103,45 +103,34 @@
         bar.pending = null;
         bar.busy = true;
         var current = bar;
-        var done = () => {
+        var done = function () {
             current.busy = false;
             sendMove();
         };
-        api()
-            .move_to(to.x - bar.grab[0], to.y - bar.grab[1])
-            .then(done, done);
+        api().move_to(to.x - bar.grab[0], to.y - bar.grab[1]).then(done, done);
     }
 
     // Captured, and stopped, before pywebview's own drag hears of it.
-    document.addEventListener(
-        "mousedown",
-        (event) => {
-            var controls = api();
-            if (
-                !controls ||
-                !frameless() ||
-                event.button !== 0 ||
-                !event.target.classList ||
-                !event.target.classList.contains(DRAG_REGION)
-            ) {
-                return;
-            }
-            if (!nativeDrag && !(maximized() && controls.restore_for_drag)) {
-                return;
-            }
-            event.stopPropagation();
-            bar = {
-                start: { x: event.screenX, y: event.screenY },
-                client: { x: event.clientX, y: event.clientY },
-                width: window.innerWidth,
-                started: false,
-                grab: null,
-                busy: false,
-                pending: null,
-            };
-        },
-        true,
-    );
+    document.addEventListener("mousedown", function (event) {
+        var controls = api();
+        if (!controls || !frameless() || event.button !== 0 || !event.target.classList
+                || !event.target.classList.contains(DRAG_REGION)) {
+            return;
+        }
+        if (!nativeDrag && !(maximized() && controls.restore_for_drag)) {
+            return;
+        }
+        event.stopPropagation();
+        bar = {
+            start: {x: event.screenX, y: event.screenY},
+            client: {x: event.clientX, y: event.clientY},
+            width: window.innerWidth,
+            started: false,
+            grab: null,
+            busy: false,
+            pending: null,
+        };
+    }, true);
 
     function startDrag(event) {
         bar.started = true;
@@ -153,7 +142,7 @@
         }
         bar.busy = true;
         var current = bar;
-        var settle = (grab) => {
+        var settle = function (grab) {
             current.grab = grab || null;
             current.busy = false;
             if (!current.grab && bar === current) {
@@ -161,14 +150,11 @@
             }
             sendMove();
         };
-        api()
-            .restore_for_drag(event.screenX, event.screenY, bar.client.x, bar.client.y, bar.width)
-            .then(settle, () => {
-                settle(null);
-            });
+        api().restore_for_drag(event.screenX, event.screenY, bar.client.x, bar.client.y,
+            bar.width).then(settle, function () { settle(null); });
     }
 
-    window.addEventListener("mousemove", (event) => {
+    window.addEventListener("mousemove", function (event) {
         if (!bar) {
             return;
         }
@@ -177,18 +163,17 @@
             return;
         }
         if (!bar.started) {
-            var dx = event.screenX - bar.start.x,
-                dy = event.screenY - bar.start.y;
+            var dx = event.screenX - bar.start.x, dy = event.screenY - bar.start.y;
             if (Math.abs(dx) >= DRAG_THRESHOLD || Math.abs(dy) >= DRAG_THRESHOLD) {
                 startDrag(event);
             }
             return;
         }
-        bar.pending = { x: event.screenX, y: event.screenY };
+        bar.pending = {x: event.screenX, y: event.screenY};
         sendMove();
     });
 
-    window.addEventListener("mouseup", () => {
+    window.addEventListener("mouseup", function () {
         bar = null;
     });
 
@@ -211,7 +196,7 @@
         }
         drag.busy = true;
         drag.pending = false;
-        var done = () => {
+        var done = function () {
             drag.busy = false;
             sendResize();
         };
@@ -225,7 +210,7 @@
         sendResize();
     }
 
-    document.addEventListener("pointerdown", (event) => {
+    document.addEventListener("pointerdown", function (event) {
         var edge = event.target.closest && event.target.closest(".window-edge");
         var controls = api();
         if (drag || !edge || !controls || !frameless() || event.button !== 0) {
@@ -235,7 +220,7 @@
         edge.setPointerCapture(event.pointerId);
         drag = {
             edge: edge.getAttribute("data-edge"),
-            started: { x: event.screenX, y: event.screenY },
+            started: {x: event.screenX, y: event.screenY},
             dx: 0,
             dy: 0,
             busy: true,
@@ -243,14 +228,14 @@
             released: false,
         };
         var current = drag;
-        var ready = () => {
+        var ready = function () {
             current.busy = false;
             sendResize();
         };
         controls.begin_resize().then(ready, ready);
     });
 
-    document.addEventListener("pointermove", (event) => {
+    document.addEventListener("pointermove", function (event) {
         if (drag && !drag.released) {
             follow(event);
         }

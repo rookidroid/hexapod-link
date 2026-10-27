@@ -6,44 +6,44 @@ name: three.js bundle
 # committed.
 
 on:
-    push:
-        branches: [master]
-        paths:
-            - "assets/vendor/**"
-            - "tools/three-bundle/**"
-            - "tools/build_three_bundle.sh"
-            - ".github/workflows/three-bundle.yml"
-    pull_request:
-        paths:
-            - "assets/vendor/**"
-            - "tools/three-bundle/**"
-            - "tools/build_three_bundle.sh"
-            - ".github/workflows/three-bundle.yml"
-    workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - "assets/vendor/**"
+      - "tools/three-bundle/**"
+      - "tools/build_three_bundle.sh"
+      - ".github/workflows/three-bundle.yml"
+  pull_request:
+    paths:
+      - "assets/vendor/**"
+      - "tools/three-bundle/**"
+      - "tools/build_three_bundle.sh"
+      - ".github/workflows/three-bundle.yml"
+  workflow_dispatch:
 
 concurrency:
-    group: three-bundle-${{ github.ref }}
-    cancel-in-progress: true
+  group: three-bundle-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-    check:
-        name: Bundle matches its sources
-        runs-on: ubuntu-latest
+  check:
+    name: Bundle matches its sources
+    runs-on: ubuntu-latest
 
-        steps:
-            - uses: actions/checkout@v7
+    steps:
+      - uses: actions/checkout@v7
 
-            - uses: actions/setup-node@v7
-              with:
-                  node-version: "22"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
 
-            - name: Rebuild the bundle
-              run: sh tools/build_three_bundle.sh
+      - name: Rebuild the bundle
+        run: sh tools/build_three_bundle.sh
 
-            - name: Check it matches the checked-in copy
-              run: |
-                  if ! git diff --quiet -- assets/vendor/; then
-                    git diff --stat -- assets/vendor/
-                    echo "::error::assets/vendor/ is out of date. Run 'sh tools/build_three_bundle.sh' and commit the result."
-                    exit 1
-                  fi
+      - name: Check it matches the checked-in copy
+        run: |
+          if ! git diff --quiet -- assets/vendor/; then
+            git diff --stat -- assets/vendor/
+            echo "::error::assets/vendor/ is out of date. Run 'sh tools/build_three_bundle.sh' and commit the result."
+            exit 1
+          fi

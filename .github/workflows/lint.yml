@@ -1,39 +1,39 @@
 name: Lint
 
 on:
-    push:
-        branches: [master]
-    pull_request:
-    workflow_dispatch:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
 
 concurrency:
-    group: lint-${{ github.ref }}
-    cancel-in-progress: true
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-    ruff:
-        name: Ruff lint and format check
-        runs-on: ubuntu-latest
+  ruff:
+    name: Ruff lint and format check
+    runs-on: ubuntu-latest
 
-        steps:
-            - uses: actions/checkout@v7
+    steps:
+      - uses: actions/checkout@v7
 
-            - uses: actions/setup-python@v7
-              with:
-                  python-version: "3.14"
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
 
-            # Ruff is pinned in requirements-dev.txt; install only that line so this
-            # job does not pull in the whole app. The same pin locally means the
-            # formatter gives the same output here as on a contributor's machine.
-            - name: Install Ruff
-              run: |
-                  python -m pip install --upgrade pip
-                  pip install "$(grep -E '^ruff==' requirements-dev.txt)"
+      # Ruff is pinned in requirements-dev.txt; install only that line so this
+      # job does not pull in the whole app. The same pin locally means the
+      # formatter gives the same output here as on a contributor's machine.
+      - name: Install Ruff
+        run: |
+          python -m pip install --upgrade pip
+          pip install "$(grep -E '^ruff==' requirements-dev.txt)"
 
-            # GitHub output format turns each finding into an annotation on the diff.
-            - name: Lint
-              run: ruff check --output-format=github .
+      # GitHub output format turns each finding into an annotation on the diff.
+      - name: Lint
+        run: ruff check --output-format=github .
 
-            - name: Check formatting
-              if: ${{ !cancelled() }}
-              run: ruff format --check --diff .
+      - name: Check formatting
+        if: ${{ !cancelled() }}
+        run: ruff format --check --diff .

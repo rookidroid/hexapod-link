@@ -174,7 +174,7 @@ function isObject(value: unknown): value is Json {
     return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function require(mapping: unknown, key: string, where: string): any {
+function required(mapping: unknown, key: string, where: string): any {
     if (!isObject(mapping) || !(key in mapping)) {
         throw new RobotConfigError(`Robot config is missing '${key}' in ${where}`);
     }
@@ -197,11 +197,11 @@ function six(values: unknown, what: string): number[] {
 
 function parseGeometry(geometry: Json): Geometry {
     const config = structuredClone(geometry) as Geometry;
-    config.legMountX = six(require(geometry, "legMountX", "geometry"), "legMountX");
-    config.legMountY = six(require(geometry, "legMountY", "geometry"), "legMountY");
-    config.legMountAngle = six(require(geometry, "legMountAngle", "geometry"), "legMountAngle");
+    config.legMountX = six(required(geometry, "legMountX", "geometry"), "legMountX");
+    config.legMountY = six(required(geometry, "legMountY", "geometry"), "legMountY");
+    config.legMountAngle = six(required(geometry, "legMountAngle", "geometry"), "legMountAngle");
 
-    const legScale = require(geometry, "legScale", "geometry");
+    const legScale = required(geometry, "legScale", "geometry");
     if (
         !(
             Array.isArray(legScale) &&
@@ -220,7 +220,7 @@ function parseGeometry(geometry: Json): Geometry {
     }
 
     for (const key of ["legJoint1ToJoint2", "legJoint2ToJoint3", "legJoint3ToTip"]) {
-        if (number(require(geometry, key, "geometry"), key) <= 0) {
+        if (number(required(geometry, key, "geometry"), key) <= 0) {
             throw new RobotConfigError(`Robot config: ${key} must be positive`);
         }
     }
@@ -229,17 +229,17 @@ function parseGeometry(geometry: Json): Geometry {
 }
 
 function parseGait(geometry: Json): Gait {
-    const gait = require(geometry, "gait", "geometry");
+    const gait = required(geometry, "gait", "geometry");
     return {
-        standby_posture: [...require(geometry, "standbyPosture", "geometry")] as [number, number],
-        laydown_posture: [...require(geometry, "laydownPosture", "geometry")] as [number, number],
-        walk_radius: number(require(gait, "walk_radius", "gait"), "walk_radius"),
-        turn_radius: number(require(gait, "turn_radius", "gait"), "turn_radius"),
+        standby_posture: [...required(geometry, "standbyPosture", "geometry")] as [number, number],
+        laydown_posture: [...required(geometry, "laydownPosture", "geometry")] as [number, number],
+        walk_radius: number(required(gait, "walk_radius", "gait"), "walk_radius"),
+        turn_radius: number(required(gait, "turn_radius", "gait"), "turn_radius"),
         fastwalk: {
             g_steps: FIXED_GAIT.fastwalk_g_steps,
-            y_radius: number(require(gait, "fastwalk_y_radius", "gait"), "fastwalk_y_radius"),
-            z_radius: number(require(gait, "fastwalk_z_radius", "gait"), "fastwalk_z_radius"),
-            x_radius: number(require(gait, "fastwalk_x_radius", "gait"), "fastwalk_x_radius"),
+            y_radius: number(required(gait, "fastwalk_y_radius", "gait"), "fastwalk_y_radius"),
+            z_radius: number(required(gait, "fastwalk_z_radius", "gait"), "fastwalk_z_radius"),
+            x_radius: number(required(gait, "fastwalk_x_radius", "gait"), "fastwalk_x_radius"),
         },
         standup_steps: FIXED_GAIT.standup_steps,
         rotate_x: { ...FIXED_GAIT.rotate_x },
@@ -271,7 +271,7 @@ export function parseRobotConfig(
         throw new RobotConfigError("Robot config is not a JSON object");
     }
 
-    const protocol = require(payload, "protocol", "the payload");
+    const protocol = required(payload, "protocol", "the payload");
     if (!Number.isInteger(protocol)) {
         throw new RobotConfigError("Robot config: protocol must be an integer");
     }
@@ -282,14 +282,14 @@ export function parseRobotConfig(
         );
     }
 
-    const geometry = require(payload, "geometry", "the payload");
+    const geometry = required(payload, "geometry", "the payload");
     if (!isObject(geometry)) {
         throw new RobotConfigError("Robot config is missing 'legMountX' in geometry");
     }
     const name = String(payload.name || geometry.name || "robot");
     const label = String(geometry.label || capitalize(name));
 
-    const delayMs = number(require(payload, "delay_ms", "the payload"), "delay_ms");
+    const delayMs = number(required(payload, "delay_ms", "the payload"), "delay_ms");
     if (delayMs <= 0) {
         throw new RobotConfigError("Robot config: delay_ms must be positive");
     }

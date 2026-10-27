@@ -3,7 +3,9 @@
 // controller, opened, go up above it by that much (Playback in
 // assets/industrial.css). It changes as the bar wraps onto a second line, or
 // shows a message under its buttons.
-(() => {
+(function () {
+    "use strict";
+
     var observed = null;
 
     function watch() {
@@ -12,7 +14,7 @@
             return;
         }
         observed = bar;
-        new ResizeObserver(() => {
+        new ResizeObserver(function () {
             var frame = bar.closest(".hexapod-view-frame");
             if (frame) {
                 frame.style.setProperty("--playback-h", bar.offsetHeight + "px");

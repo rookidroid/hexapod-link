@@ -215,23 +215,10 @@ body {
     overflow: hidden;
 }
 
-/* Dash's "Loading..." placeholder, shown until the layout first renders:
-   centred in the window rather than left in the top-left corner. */
-._dash-loading {
-    position: fixed;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: var(--font-mono);
-    font-size: 0.85rem;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--ind-text-muted);
-}
-
-/* Dash's own components (sliders, checklists) read their colours from these. */
+/* The sliders and checklists (styles/vendor/dash-widgets.css, the look the
+   app had under Dash) read their colours from these. */
 .app-shell {
+    --Dash-Spacing: 4px;
     --Dash-Fill-Interactive-Strong: var(--ind-accent);
     --Dash-Fill-Interactive-Weak: rgba(var(--ind-accent-rgb), 0.15);
     --Dash-Fill-Primary-Hover: var(--ind-accent-hover);
@@ -534,19 +521,24 @@ body {
 
 /* ===========================================
    WINDOW
-   In the desktop app the window has no frame of its own (hexapod_link.py):
-   the top bar drags it and ends in its buttons, and strips along its edges
-   resize it. Shown only there, with data-window="frameless" on <html>;
-   assets/window_frame.js drives them.
+   The window has no frame of its own (src/main/index.ts): the top bar drags
+   it -- the system does, so it snaps to the screen's edges like any title
+   bar -- and ends in its buttons. Shown only with data-window="frameless" on
+   <html>; the buttons are drawn by components/WindowButtons.tsx. On macOS the
+   system's own traffic lights stay, so the bar leaves room for them.
    =========================================== */
 
-.window-buttons,
-.window-edges {
+.window-buttons {
     display: none;
 }
 
 [data-window="frameless"] .topbar {
     padding-right: 0;
+    -webkit-app-region: drag;
+}
+
+[data-window="frameless"] .topbar :is(button, input, summary, details, a) {
+    -webkit-app-region: no-drag;
 }
 
 [data-window="frameless"] .window-buttons {
@@ -554,6 +546,15 @@ body {
     align-self: stretch;
     margin-left: 0.25rem;
     margin-bottom: -4px;
+}
+
+[data-window="frameless"][data-platform="darwin"] .window-buttons {
+    display: none;
+}
+
+[data-window="frameless"][data-platform="darwin"] .topbar {
+    padding-left: 80px;
+    padding-right: 0.75rem;
 }
 
 .window-btn {
@@ -636,25 +637,6 @@ body {
 
 /* The resize strips: invisible, just inside the window's edges, over
    everything. None while maximized. */
-[data-window="frameless"]:not(.is-maximized) .window-edges {
-    display: block;
-}
-
-.window-edge {
-    --edge: 5px;
-    position: fixed;
-    z-index: 20;
-    touch-action: none;
-}
-
-.window-edge[data-edge="n"] { top: 0; left: var(--edge); right: var(--edge); height: var(--edge); cursor: ns-resize; }
-.window-edge[data-edge="s"] { bottom: 0; left: var(--edge); right: var(--edge); height: var(--edge); cursor: ns-resize; }
-.window-edge[data-edge="e"] { right: 0; top: var(--edge); bottom: var(--edge); width: var(--edge); cursor: ew-resize; }
-.window-edge[data-edge="w"] { left: 0; top: var(--edge); bottom: var(--edge); width: var(--edge); cursor: ew-resize; }
-.window-edge[data-edge="ne"] { top: 0; right: 0; width: calc(2 * var(--edge)); height: calc(2 * var(--edge)); cursor: nesw-resize; }
-.window-edge[data-edge="sw"] { bottom: 0; left: 0; width: calc(2 * var(--edge)); height: calc(2 * var(--edge)); cursor: nesw-resize; }
-.window-edge[data-edge="nw"] { top: 0; left: 0; width: calc(2 * var(--edge)); height: calc(2 * var(--edge)); cursor: nwse-resize; }
-.window-edge[data-edge="se"] { bottom: 0; right: 0; width: calc(2 * var(--edge)); height: calc(2 * var(--edge)); cursor: nwse-resize; }
 
 /* ===========================================
    WORKSPACE

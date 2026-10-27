@@ -2,7 +2,7 @@
 
 Notes for working on the app itself: running it from a checkout, changing how
 it looks, building the standalone executable, and how it talks to a robot. To
-_use_ the app, see the [README](../README.md).
+*use* the app, see the [README](../README.md).
 
 Hexapod Link is a fork of
 [mithi/hexapod-robot-simulator](https://github.com/mithi/hexapod-robot-simulator),
@@ -77,11 +77,11 @@ server only.
 Everything is under `~/.hexapod-link/`, each with an environment variable that
 moves it:
 
-| File                | What                                                                                                                                                     | Variable                    |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
-| `preferences.json`  | theme, dock sizes, which overlays are folded, and the workspace as it was closed (sequence, pose, dock and playback controls, dimensions, robot address) | `HEXAPOD_LINK_PREFERENCES`  |
-| `robot_config.json` | the last robot's config                                                                                                                                  | `HEXAPOD_LINK_CONFIG_CACHE` |
-| `gaits/`            | gaits saved under **Mine**, one keyframe file each                                                                                                       | `HEXAPOD_LINK_GAITS`        |
+| File | What | Variable |
+|---|---|---|
+| `preferences.json` | theme, dock sizes, which overlays are folded, and the workspace as it was closed (sequence, pose, dock and playback controls, dimensions, robot address) | `HEXAPOD_LINK_PREFERENCES` |
+| `robot_config.json` | the last robot's config | `HEXAPOD_LINK_CONFIG_CACHE` |
+| `gaits/` | gaits saved under **Mine**, one keyframe file each | `HEXAPOD_LINK_GAITS` |
 
 The theme is applied before the first paint on the next launch, so the app
 opens in whichever one it was left in. Light is the default.
@@ -155,20 +155,20 @@ picked out in the 3D view is the leg the robot's own calibration page calls by
 that name. Legs are numbered per side, front to back; joints are numbered
 outward from the body.
 
-| Leg index | 0             | 1              | 2            | 3            | 4             | 5           |
-| --------- | ------------- | -------------- | ------------ | ------------ | ------------- | ----------- |
-| Shown as  | Right Leg 1   | Right Leg 2    | Right Leg 3  | Left Leg 1   | Left Leg 2    | Left Leg 3  |
-| In code   | `right-front` | `right-middle` | `right-back` | `left-front` | `left-middle` | `left-back` |
+| Leg index | 0 | 1 | 2 | 3 | 4 | 5 |
+|---|---|---|---|---|---|---|
+| Shown as | Right Leg 1 | Right Leg 2 | Right Leg 3 | Left Leg 1 | Left Leg 2 | Left Leg 3 |
+| In code | `right-front` | `right-middle` | `right-back` | `left-front` | `left-middle` | `left-back` |
 
-| Joint   | 1                 | 2                | 3                 |
-| ------- | ----------------- | ---------------- | ----------------- |
+| Joint | 1 | 2 | 3 |
+|---|---|---|---|
 | In code | `coxia` / `alpha` | `femur` / `beta` | `tibia` / `gamma` |
 
 Code keeps the descriptive identifiers — they say which leg is meant without a
 diagram, and the pose dicts, widget ids and point names key off them. Anything a
 person reads is built from the label tables in
 [`hexapod/naming.py`](../hexapod/naming.py), which is the only place the two
-vocabularies meet. The joint _angles_ still follow the simulator's own sign
+vocabularies meet. The joint *angles* still follow the simulator's own sign
 convention; `hexapod/robot_link.py` converts them to servo angles when streaming.
 
 ### Poses, sequences and gaits
@@ -216,12 +216,12 @@ $ python tools/make_screenshots.py              # all of them
 $ python tools/make_screenshots.py app pose     # only those
 ```
 
-| Name       | Writes                                      | Shows                                                            |
-| ---------- | ------------------------------------------- | ---------------------------------------------------------------- |
-| `app`      | `app.png`, `app-dark.png`, `controller.png` | the whole window in each theme, and the controller cut out of it |
-| `walk`     | `walk.gif`                                  | a walk cycle, in the 3D view alone                               |
-| `pose`     | `pose.gif`                                  | posing the body and a foot                                       |
-| `sequence` | `sequence.gif`, `sequence-dark.gif`         | building a sequence and playing it, in each theme                |
+| Name | Writes | Shows |
+|---|---|---|
+| `app` | `app.png`, `app-dark.png`, `controller.png` | the whole window in each theme, and the controller cut out of it |
+| `walk` | `walk.gif` | a walk cycle, in the 3D view alone |
+| `pose` | `pose.gif` | posing the body and a foot |
+| `sequence` | `sequence.gif`, `sequence-dark.gif` | building a sequence and playing it, in each theme |
 
 The app icon is drawn by [`tools/make_icon.py`](../tools/make_icon.py). Rerun
 these after a UI or theme change rather than editing the images by hand.
