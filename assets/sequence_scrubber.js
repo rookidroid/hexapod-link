@@ -6,9 +6,7 @@
 // Done here rather than in a callback on the slider's value: the app moves
 // the scrubber too -- back to the start whenever the keyframes change -- and
 // that must neither take the view off the pose nor replace it.
-(function () {
-    "use strict";
-
+(() => {
     var SCRUBBER_ID = "pose-frame-slider";
     var MODE_STORE_ID = "pose-view-mode";
     var PLAYHEAD_STORE_ID = "pose-playhead";
@@ -37,7 +35,7 @@
             return;
         }
         grabbed = true;
-        setProps(MODE_STORE_ID, {data: MODE_PREVIEW});
+        setProps(MODE_STORE_ID, { data: MODE_PREVIEW });
     }
 
     function letGo() {
@@ -46,10 +44,10 @@
         }
         grabbed = false;
         // After the slider has taken its last step.
-        setTimeout(function () {
+        setTimeout(() => {
             var frame = frameShown();
             if (frame !== null) {
-                setProps(PLAYHEAD_STORE_ID, {data: {frame: frame, n: Date.now()}});
+                setProps(PLAYHEAD_STORE_ID, { data: { frame: frame, n: Date.now() } });
             }
         }, 0);
     }

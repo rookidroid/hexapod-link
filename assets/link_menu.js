@@ -1,9 +1,7 @@
 // The top bar's link menu (LINK_MENU in widgets/robot_link_ui.py), a native
 // <details> opened by its status pill. A click anywhere outside it, or Esc,
 // closes it, as a dropdown menu does; on Esc the pill gets the focus back.
-(function () {
-    "use strict";
-
+(() => {
     var MENU_ID = "link-menu";
 
     function openMenu() {
@@ -11,14 +9,14 @@
         return menu && menu.open ? menu : null;
     }
 
-    document.addEventListener("pointerdown", function (event) {
+    document.addEventListener("pointerdown", (event) => {
         var menu = openMenu();
         if (menu && !menu.contains(event.target)) {
             menu.open = false;
         }
     });
 
-    document.addEventListener("keydown", function (event) {
+    document.addEventListener("keydown", (event) => {
         var menu = openMenu();
         if (menu && event.key === "Escape") {
             menu.open = false;
@@ -29,7 +27,7 @@
     // Opened, the address is ready to type into.
     document.addEventListener(
         "toggle",
-        function (event) {
+        (event) => {
             var menu = event.target;
             if (menu.id === MENU_ID && menu.open) {
                 var input = menu.querySelector("input");
@@ -39,6 +37,6 @@
                 }
             }
         },
-        true
+        true,
     );
 })();

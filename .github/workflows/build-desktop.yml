@@ -1,228 +1,228 @@
 name: Build desktop app
 
 on:
-  push:
-    branches: [master]
-    tags: ["v*"]
-  pull_request:
-  workflow_dispatch:
+    push:
+        branches: [master]
+        tags: ["v*"]
+    pull_request:
+    workflow_dispatch:
 
 # A newer push to a branch makes the older build irrelevant, but a tag build
 # is a release in progress: never cancel one halfway through publishing.
 concurrency:
-  group: build-${{ github.ref }}
-  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+    group: build-${{ github.ref }}
+    cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 permissions:
-  contents: read
+    contents: read
 
 jobs:
-  build:
-    name: ${{ matrix.name }}
-    runs-on: ${{ matrix.os }}
+    build:
+        name: ${{ matrix.name }}
+        runs-on: ${{ matrix.os }}
 
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            name: Windows
-            artifact: HexapodLink-windows
-            platform: windows-x64
-          - os: ubuntu-latest
-            name: Linux
-            artifact: HexapodLink-linux
-            platform: linux-x64
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - os: windows-latest
+                      name: Windows
+                      artifact: HexapodLink-windows
+                      platform: windows-x64
+                    - os: ubuntu-latest
+                      name: Linux
+                      artifact: HexapodLink-linux
+                      platform: linux-x64
 
-    steps:
-      - uses: actions/checkout@v7
+        steps:
+            - uses: actions/checkout@v7
 
-      # A release is named after its tag, and the app shows APP_VERSION in its
-      # top bar. Fail before spending a build on a tag the two disagree on.
-      - name: Check the tag matches APP_VERSION
+            # A release is named after its tag, and the app shows APP_VERSION in its
+            # top bar. Fail before spending a build on a tag the two disagree on.
+            - name: Check the tag matches APP_VERSION
+              if: startsWith(github.ref, 'refs/tags/')
+              shell: bash
+              run: |
+                  APP_VERSION=$(sed -nE 's/^APP_VERSION = "([^"]+)"/\1/p' texts.py)
+                  if [ "v$APP_VERSION" != "$GITHUB_REF_NAME" ]; then
+                    echo "::error file=texts.py::Tag $GITHUB_REF_NAME does not match APP_VERSION \"$APP_VERSION\" in texts.py."
+                    exit 1
+                  fi
+
+            - uses: actions/setup-python@v7
+              with:
+                  python-version: "3.14"
+
+            # pywebview's Linux backend is GTK/WebKit2 through PyGObject, which needs
+            # the system headers to build and the typelibs to import. PyInstaller
+            # imports `gi` during analysis, so these are build-time requirements, not
+            # just runtime ones.
+            - name: Install GTK/WebKit build dependencies
+              if: runner.os == 'Linux'
+              run: |
+                  sudo apt-get update
+                  # 24.04 ships WebKit 4.1; on 22.04 these are the -4.0 packages, which
+                  # pywebview also accepts.
+                  sudo apt-get install -y --no-install-recommends \
+                    libgirepository1.0-dev \
+                    libcairo2-dev \
+                    pkg-config \
+                    libwebkit2gtk-4.1-0 \
+                    gir1.2-webkit2-4.1
+
+            # A fresh runner is already the minimal environment the spec asks for --
+            # PyInstaller bundles whatever it finds installed, and building from a rich
+            # environment (a conda env with MKL, or anything that has pulled in polars,
+            # pyarrow or PySide6) takes the output from ~130 MB to ~1 GB. Installing
+            # only requirements-desktop.txt is what keeps that true here.
+            - name: Install dependencies
+              run: |
+                  python -m pip install --upgrade pip
+                  pip install -r requirements-desktop.txt
+
+            - name: Build
+              run: pyinstaller hexapod.spec --noconfirm --clean
+
+            # Stamp the bundle the way Windows stamps anything extracted from a
+            # downloaded .zip -- which is how everyone gets this artifact. A managed
+            # assembly carrying that stamp will not load, so without the runtime hook
+            # that clears it the app has no window at all; see rthook_clear_motw.py.
+            # The smoke test below then runs a marked bundle, and the step after it
+            # checks that the marks are gone.
+            - name: Mark the bundle with the Mark of the Web
+              if: runner.os == 'Windows'
+              shell: pwsh
+              run: |
+                  Get-ChildItem dist/HexapodLink -Recurse -Filter *.dll | ForEach-Object {
+                    Set-Content -Path $_.FullName -Stream Zone.Identifier -Value "[ZoneTransfer]`r`nZoneId=3"
+                  }
+
+            # The binary starting is the only thing that proves the bundle is complete:
+            # a missing Dash data file or an unresolved hidden import shows up as a
+            # blank window at runtime, not as a build error. --no-window serves without
+            # opening a GUI, so this needs no display on either platform.
+            - name: Smoke test the bundle
+              shell: bash
+              run: |
+                  if [ "$RUNNER_OS" == "Windows" ]; then
+                    BINARY="dist/HexapodLink/HexapodLink.exe"
+                  else
+                    BINARY="dist/HexapodLink/HexapodLink"
+                  fi
+
+                  "$BINARY" --no-window --port 8050 > smoke.log 2>&1 &
+                  PID=$!
+
+                  for _ in $(seq 1 60); do
+                    if curl -fsS --max-time 2 http://127.0.0.1:8050/ > /dev/null 2>&1; then
+                      echo "app served a page"
+                      kill $PID 2>/dev/null || true
+                      exit 0
+                    fi
+                    # If the process died, there is nothing left to wait for.
+                    kill -0 $PID 2>/dev/null || break
+                    sleep 1
+                  done
+
+                  echo "the built app never served a page:"
+                  cat smoke.log
+                  kill $PID 2>/dev/null || true
+                  exit 1
+
+            # Having started once, the app should have unblocked every DLL in the
+            # bundle. Checking the marks are gone is a proxy for the window opening,
+            # which needs a desktop session the runner cannot give us.
+            - name: Check the bundle unblocked itself
+              if: runner.os == 'Windows'
+              shell: pwsh
+              run: |
+                  $marked = Get-ChildItem dist/HexapodLink -Recurse -Filter *.dll |
+                    Where-Object { Get-Item $_.FullName -Stream Zone.Identifier -ErrorAction SilentlyContinue }
+
+                  if ($marked) {
+                    Write-Output "still carrying the Mark of the Web:"
+                    $marked | ForEach-Object { Write-Output "  $($_.FullName)" }
+                    exit 1
+                  }
+
+                  Write-Output "all bundled DLLs unblocked"
+
+            - name: Report bundle size
+              shell: bash
+              run: du -sh dist/HexapodLink
+
+            - uses: actions/upload-artifact@v7
+              with:
+                  name: ${{ matrix.artifact }}
+                  path: dist/HexapodLink
+                  # These are build outputs off every push; the default 90 days is far
+                  # longer than they stay interesting.
+                  retention-days: 1
+                  if-no-files-found: error
+
+            # The archives that go on the release. Each unpacks to one HexapodLink/
+            # folder. Linux gets a tarball because zip drops the executable bit, and
+            # a binary that needs a chmod before it runs is a support question.
+            - name: Package for release
+              if: startsWith(github.ref, 'refs/tags/')
+              shell: bash
+              run: |
+                  mkdir -p release
+                  NAME="HexapodLink-${GITHUB_REF_NAME}-${{ matrix.platform }}"
+                  cd dist
+                  if [ "$RUNNER_OS" == "Windows" ]; then
+                    7z a -tzip -mx=9 "../release/$NAME.zip" HexapodLink > /dev/null
+                  else
+                    tar -czf "../release/$NAME.tar.gz" HexapodLink
+                  fi
+                  ls -lh ../release
+
+            - name: Upload release archive
+              if: startsWith(github.ref, 'refs/tags/')
+              uses: actions/upload-artifact@v7
+              with:
+                  name: release-${{ matrix.platform }}
+                  path: release/*
+                  retention-days: 7
+                  if-no-files-found: error
+
+    # Runs only for a v* tag, and only once every platform built and passed its
+    # smoke test: a release missing one platform is worse than a late one.
+    release:
+        name: Publish release
+        needs: build
         if: startsWith(github.ref, 'refs/tags/')
-        shell: bash
-        run: |
-          APP_VERSION=$(sed -nE 's/^APP_VERSION = "([^"]+)"/\1/p' texts.py)
-          if [ "v$APP_VERSION" != "$GITHUB_REF_NAME" ]; then
-            echo "::error file=texts.py::Tag $GITHUB_REF_NAME does not match APP_VERSION \"$APP_VERSION\" in texts.py."
-            exit 1
-          fi
+        runs-on: ubuntu-latest
 
-      - uses: actions/setup-python@v7
-        with:
-          python-version: "3.14"
+        permissions:
+            contents: write
 
-      # pywebview's Linux backend is GTK/WebKit2 through PyGObject, which needs
-      # the system headers to build and the typelibs to import. PyInstaller
-      # imports `gi` during analysis, so these are build-time requirements, not
-      # just runtime ones.
-      - name: Install GTK/WebKit build dependencies
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          # 24.04 ships WebKit 4.1; on 22.04 these are the -4.0 packages, which
-          # pywebview also accepts.
-          sudo apt-get install -y --no-install-recommends \
-            libgirepository1.0-dev \
-            libcairo2-dev \
-            pkg-config \
-            libwebkit2gtk-4.1-0 \
-            gir1.2-webkit2-4.1
+        steps:
+            - uses: actions/download-artifact@v7
+              with:
+                  pattern: release-*
+                  path: release
+                  merge-multiple: true
 
-      # A fresh runner is already the minimal environment the spec asks for --
-      # PyInstaller bundles whatever it finds installed, and building from a rich
-      # environment (a conda env with MKL, or anything that has pulled in polars,
-      # pyarrow or PySide6) takes the output from ~130 MB to ~1 GB. Installing
-      # only requirements-desktop.txt is what keeps that true here.
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements-desktop.txt
+            - name: Write checksums
+              working-directory: release
+              run: |
+                  sha256sum HexapodLink-* > SHA256SUMS.txt
+                  cat SHA256SUMS.txt
 
-      - name: Build
-        run: pyinstaller hexapod.spec --noconfirm --clean
-
-      # Stamp the bundle the way Windows stamps anything extracted from a
-      # downloaded .zip -- which is how everyone gets this artifact. A managed
-      # assembly carrying that stamp will not load, so without the runtime hook
-      # that clears it the app has no window at all; see rthook_clear_motw.py.
-      # The smoke test below then runs a marked bundle, and the step after it
-      # checks that the marks are gone.
-      - name: Mark the bundle with the Mark of the Web
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          Get-ChildItem dist/HexapodLink -Recurse -Filter *.dll | ForEach-Object {
-            Set-Content -Path $_.FullName -Stream Zone.Identifier -Value "[ZoneTransfer]`r`nZoneId=3"
-          }
-
-      # The binary starting is the only thing that proves the bundle is complete:
-      # a missing Dash data file or an unresolved hidden import shows up as a
-      # blank window at runtime, not as a build error. --no-window serves without
-      # opening a GUI, so this needs no display on either platform.
-      - name: Smoke test the bundle
-        shell: bash
-        run: |
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            BINARY="dist/HexapodLink/HexapodLink.exe"
-          else
-            BINARY="dist/HexapodLink/HexapodLink"
-          fi
-
-          "$BINARY" --no-window --port 8050 > smoke.log 2>&1 &
-          PID=$!
-
-          for _ in $(seq 1 60); do
-            if curl -fsS --max-time 2 http://127.0.0.1:8050/ > /dev/null 2>&1; then
-              echo "app served a page"
-              kill $PID 2>/dev/null || true
-              exit 0
-            fi
-            # If the process died, there is nothing left to wait for.
-            kill -0 $PID 2>/dev/null || break
-            sleep 1
-          done
-
-          echo "the built app never served a page:"
-          cat smoke.log
-          kill $PID 2>/dev/null || true
-          exit 1
-
-      # Having started once, the app should have unblocked every DLL in the
-      # bundle. Checking the marks are gone is a proxy for the window opening,
-      # which needs a desktop session the runner cannot give us.
-      - name: Check the bundle unblocked itself
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $marked = Get-ChildItem dist/HexapodLink -Recurse -Filter *.dll |
-            Where-Object { Get-Item $_.FullName -Stream Zone.Identifier -ErrorAction SilentlyContinue }
-
-          if ($marked) {
-            Write-Output "still carrying the Mark of the Web:"
-            $marked | ForEach-Object { Write-Output "  $($_.FullName)" }
-            exit 1
-          }
-
-          Write-Output "all bundled DLLs unblocked"
-
-      - name: Report bundle size
-        shell: bash
-        run: du -sh dist/HexapodLink
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: ${{ matrix.artifact }}
-          path: dist/HexapodLink
-          # These are build outputs off every push; the default 90 days is far
-          # longer than they stay interesting.
-          retention-days: 1
-          if-no-files-found: error
-
-      # The archives that go on the release. Each unpacks to one HexapodLink/
-      # folder. Linux gets a tarball because zip drops the executable bit, and
-      # a binary that needs a chmod before it runs is a support question.
-      - name: Package for release
-        if: startsWith(github.ref, 'refs/tags/')
-        shell: bash
-        run: |
-          mkdir -p release
-          NAME="HexapodLink-${GITHUB_REF_NAME}-${{ matrix.platform }}"
-          cd dist
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            7z a -tzip -mx=9 "../release/$NAME.zip" HexapodLink > /dev/null
-          else
-            tar -czf "../release/$NAME.tar.gz" HexapodLink
-          fi
-          ls -lh ../release
-
-      - name: Upload release archive
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: actions/upload-artifact@v7
-        with:
-          name: release-${{ matrix.platform }}
-          path: release/*
-          retention-days: 7
-          if-no-files-found: error
-
-  # Runs only for a v* tag, and only once every platform built and passed its
-  # smoke test: a release missing one platform is worse than a late one.
-  release:
-    name: Publish release
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-latest
-
-    permissions:
-      contents: write
-
-    steps:
-      - uses: actions/download-artifact@v7
-        with:
-          pattern: release-*
-          path: release
-          merge-multiple: true
-
-      - name: Write checksums
-        working-directory: release
-        run: |
-          sha256sum HexapodLink-* > SHA256SUMS.txt
-          cat SHA256SUMS.txt
-
-      # A tag like v1.1.0-rc.1 publishes as a pre-release, so it is offered to
-      # nobody who just clicks "Latest". Re-running the workflow on a tag that
-      # already has a release replaces its files rather than failing.
-      - name: Create or update the GitHub release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          TAG: ${{ github.ref_name }}
-        run: |
-          if gh release view "$TAG" > /dev/null 2>&1; then
-            gh release upload "$TAG" release/* --clobber
-          else
-            FLAGS=(--title "Hexapod Link ${TAG#v}" --generate-notes --verify-tag)
-            case "$TAG" in *-*) FLAGS+=(--prerelease) ;; esac
-            gh release create "$TAG" release/* "${FLAGS[@]}"
-          fi
+            # A tag like v1.1.0-rc.1 publishes as a pre-release, so it is offered to
+            # nobody who just clicks "Latest". Re-running the workflow on a tag that
+            # already has a release replaces its files rather than failing.
+            - name: Create or update the GitHub release
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  GH_REPO: ${{ github.repository }}
+                  TAG: ${{ github.ref_name }}
+              run: |
+                  if gh release view "$TAG" > /dev/null 2>&1; then
+                    gh release upload "$TAG" release/* --clobber
+                  else
+                    FLAGS=(--title "Hexapod Link ${TAG#v}" --generate-notes --verify-tag)
+                    case "$TAG" in *-*) FLAGS+=(--prerelease) ;; esac
+                    gh release create "$TAG" release/* "${FLAGS[@]}"
+                  fi

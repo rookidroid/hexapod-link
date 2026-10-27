@@ -1,10 +1,10 @@
 {
-  "name": "hexapod-link-three-bundle",
-  "private": true,
-  "description": "Builds assets/vendor/three.bundle.min.js; see tools/build_three_bundle.sh.",
-  "license": "MIT",
-  "devDependencies": {
-    "esbuild": "0.28.2",
-    "three": "0.186.1"
-  }
+    "name": "hexapod-link-three-bundle",
+    "private": true,
+    "description": "Builds assets/vendor/three.bundle.min.js; see tools/build_three_bundle.sh.",
+    "license": "MIT",
+    "devDependencies": {
+        "esbuild": "0.28.2",
+        "three": "0.186.1"
+    }
 }

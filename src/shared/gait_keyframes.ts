@@ -22,8 +22,8 @@
 // is eased, so a sequence played at 100 % walks as the robot does, and looping
 // a cycle has no seam.
 
-import * as kf from "./keyframes";
 import type { Keyframe, PoseState } from "./keyframes";
+import * as kf from "./keyframes";
 import { generatePoses, type Pose } from "./path_generator";
 import * as pl from "./pose_layers";
 import {
@@ -32,7 +32,7 @@ import {
     getSimulatorDimensions,
     type RobotConfig,
 } from "./robot_config";
-import { degrees, identity3, matVec, type Mat3, type Vec3 } from "./util";
+import { degrees, identity3, type Mat3, matVec, type Vec3 } from "./util";
 
 /** How far (mm) a foot may stray from the gait's own path between keyframes. */
 export const TOLERANCE_MM = 1.0;
@@ -75,7 +75,7 @@ function rotationAngles(r: Mat3): Vec3 {
 /** Eigenvector of the largest eigenvalue of a symmetric 4x4 (Jacobi). */
 function principalEigenvector(input: number[][]): number[] {
     const a = input.map((row) => [...row]);
-    const v = [0, 1, 2, 3].map((i) => [0, 1, 2, 3].map((j) => (i === j ? 1 : 0)));
+    const v: number[][] = [0, 1, 2, 3].map((i) => [0, 1, 2, 3].map((j) => (i === j ? 1 : 0)));
     for (let sweep = 0; sweep < 100; sweep++) {
         let off = 0;
         for (let p = 0; p < 4; p++) for (let q = p + 1; q < 4; q++) off += a[p][q] * a[p][q];

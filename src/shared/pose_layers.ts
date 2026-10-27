@@ -30,7 +30,7 @@ import {
     type RobotConfig,
 } from "./robot_config";
 import { orderAroundCentre, type Scene, type SceneJoint, transformScene } from "./scene";
-import { deepEqual, matVec, pyRound, rotationOf, type Mat3, type Vec3 } from "./util";
+import { deepEqual, type Mat3, matVec, pyRound, rotationOf, type Vec3 } from "./util";
 
 export { BODY_KEYS, type Body, type BodyKey, type PoseState };
 

@@ -52,7 +52,9 @@ export function expectClose(actual: unknown, expected: unknown, tol = 1e-6, path
     if (Array.isArray(expected)) {
         expect(Array.isArray(actual), `${path} is an array`).toBe(true);
         expect((actual as unknown[]).length, `${path}.length`).toBe(expected.length);
-        expected.forEach((e, i) => expectClose((actual as unknown[])[i], e, tol, `${path}[${i}]`));
+        expected.forEach((e, i) => {
+            expectClose((actual as unknown[])[i], e, tol, `${path}[${i}]`);
+        });
         return;
     }
     if (typeof expected === "object") {

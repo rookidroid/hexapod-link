@@ -5,8 +5,8 @@ import { describe, expect, it } from "vitest";
 import { MOTION_TYPES } from "../src/shared/motions";
 import { LEG_NAMES } from "../src/shared/naming";
 import {
-    genPosture,
     generatePoses,
+    genPosture,
     inverseKinematics,
     pathRotateZ,
     semicircleGenerator,

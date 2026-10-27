@@ -11,9 +11,7 @@
 // the window is made smaller than the sizes were set for.
 //
 // Only above `lg`: below it everything stacks and the splitters are hidden.
-(function () {
-    "use strict";
-
+(() => {
     var STORE_ID = "layout-sizes";
     var WIDE = window.matchMedia("(min-width: 992px)");
     // How much of the window's height the view always keeps (px; --view-min-h
@@ -36,25 +34,23 @@
             cursor: "row-resize",
             // How big the dock is, and how big it is made with the pointer
             // at (x, y).
-            current: function (box) { return box.height; },
-            fromPointer: function (x, y, box) { return box.bottom - y; },
-            range: function () {
+            current: (box) => box.height,
+            fromPointer: (x, y, box) => box.bottom - y,
+            range: () => {
                 var room = document.querySelector(".workspace").clientHeight - VIEW_MIN_H;
                 return [DOCK_MIN_H, Math.max(DOCK_MIN_H, room)];
             },
-            keys: {ArrowUp: 1, ArrowDown: -1},
+            keys: { ArrowUp: 1, ArrowDown: -1 },
         },
         lib: {
             variable: "--lib-w",
             key: "lib_w",
             selector: ".dock-col-library",
             cursor: "col-resize",
-            current: function (box) { return box.width; },
-            fromPointer: function (x, y, box) { return x - box.left; },
-            range: function () {
-                return columnRange(LIB_MIN_W, LIB_MAX_SHARE);
-            },
-            keys: {ArrowLeft: -1, ArrowRight: 1},
+            current: (box) => box.width,
+            fromPointer: (x, y, box) => x - box.left,
+            range: () => columnRange(LIB_MIN_W, LIB_MAX_SHARE),
+            keys: { ArrowLeft: -1, ArrowRight: 1 },
         },
     };
 
@@ -106,13 +102,13 @@
     // Every size as set, each in pixels or null for one left to the
     // stylesheet; so two saves close together cannot undo one another.
     function save() {
-        var data = {n: Date.now()};
-        Object.keys(SIZES).forEach(function (name) {
+        var data = { n: Date.now() };
+        Object.keys(SIZES).forEach((name) => {
             var px = parseFloat(root.style.getPropertyValue(SIZES[name].variable));
             data[SIZES[name].key] = isNaN(px) ? null : Math.round(px);
         });
         if (window.dash_clientside && window.dash_clientside.set_props) {
-            window.dash_clientside.set_props(STORE_ID, {data: data});
+            window.dash_clientside.set_props(STORE_ID, { data: data });
         }
     }
 
@@ -134,7 +130,7 @@
             // Not a live pointer (a synthetic event): the document's
             // listeners still follow it.
         }
-        dragging = {size: size, splitter: splitter, pointer: event.pointerId, moved: false};
+        dragging = { size: size, splitter: splitter, pointer: event.pointerId, moved: false };
         root.classList.add("is-resizing");
         root.style.setProperty("--resize-cursor", size.cursor);
     }

@@ -22,7 +22,7 @@
 // p1 - coxia point
 // p2 - femur point
 // p3 - foot tip
-import { matMul } from "./util";
+
 import {
     frameYrotateXtranslate,
     frameZrotateXytranslate,
@@ -30,6 +30,7 @@ import {
     point,
     pointWrt,
 } from "./points";
+import { matMul } from "./util";
 
 export class Linkage {
     alpha = 0;

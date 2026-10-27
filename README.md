@@ -44,15 +44,15 @@ moves to the real robot.
 
 Everything is on one screen:
 
-| Where | What it does |
-|---|---|
-| **Top bar** | Shows whether a robot is connected. Click it to connect. The ☾ / ☀ button switches between dark and light colours. |
-| **3D view** (the middle) | Shows the robot. Drag with the left mouse button to look around it, drag with the right button to slide the view, and use the scroll wheel to zoom. A short reminder of this sits at the bottom of the view. |
-| **Stream to robot** and **Dimensions** (top left) | Make the real robot follow the screen as you pose it. See or change the robot's measurements. |
-| **Pose** (bottom left) | Every joint's angle, plus the controls for the part you have clicked. |
-| **Controller** (bottom right) | Buttons that drive the robot around. |
-| **Playback bar** (bottom middle) | Play your animation, slow it down or speed it up, repeat it, or run it on the robot. |
-| **Gaits** and **Sequence** (the panel along the bottom) | Build your animation. |
+| Where                                                   | What it does                                                                                                                                                                                                 |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Top bar**                                             | Shows whether a robot is connected. Click it to connect. The ☾ / ☀ button switches between dark and light colours.                                                                                           |
+| **3D view** (the middle)                                | Shows the robot. Drag with the left mouse button to look around it, drag with the right button to slide the view, and use the scroll wheel to zoom. A short reminder of this sits at the bottom of the view. |
+| **Stream to robot** and **Dimensions** (top left)       | Make the real robot follow the screen as you pose it. See or change the robot's measurements.                                                                                                                |
+| **Pose** (bottom left)                                  | Every joint's angle, plus the controls for the part you have clicked.                                                                                                                                        |
+| **Controller** (bottom right)                           | Buttons that drive the robot around.                                                                                                                                                                         |
+| **Playback bar** (bottom middle)                        | Play your animation, slow it down or speed it up, repeat it, or run it on the robot.                                                                                                                         |
+| **Gaits** and **Sequence** (the panel along the bottom) | Build your animation.                                                                                                                                                                                        |
 
 **Pose**, **Dimensions** and **Controller** can be folded away. Click a
 panel's title to open or close it.
@@ -248,7 +248,7 @@ Tips:
 - Pause playback anywhere and that moment becomes the pose on screen. Change
   it, then click **+ Add pose at …** to add a new keyframe right there.
 - A foot moves in a straight line from one keyframe to the next. To step
-  *over* something, add a keyframe in between with the foot lifted.
+  _over_ something, add a keyframe in between with the foot lifted.
 - **Save…** and **Load…** keep a sequence as a file on your computer. A file
   only opens for the robot model it was made on.
 - To keep a sequence as your own gait, switch **Gaits** to **Mine**, give it
@@ -293,14 +293,14 @@ out.
 
 ## Something not working?
 
-| What you see | What to try |
-|---|---|
-| **Connect** ends in **Fault** | Make sure your computer is on the robot's WiFi, not your home WiFi, and that the robot is switched on. Hover over the status light to see why it failed. |
-| Some buttons are greyed out | They need a connected robot. **Stream to robot**, **Run on robot** and the **Controller** turn on once a robot is connected. |
-| A leg won't go where you drag it | It is already reaching as far as it can, or a joint is at its limit. The **Pose** panel tells you which leg. |
-| A sequence file won't load | It was made for a different robot model. |
-| The real robot's legs are a little off from the screen | Adjust them on the robot's own calibration page. |
-| The window is blank or doesn't open | Use the app in your web browser instead. See [Step 1](#step-1-install-the-app). |
+| What you see                                           | What to try                                                                                                                                              |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Connect** ends in **Fault**                          | Make sure your computer is on the robot's WiFi, not your home WiFi, and that the robot is switched on. Hover over the status light to see why it failed. |
+| Some buttons are greyed out                            | They need a connected robot. **Stream to robot**, **Run on robot** and the **Controller** turn on once a robot is connected.                             |
+| A leg won't go where you drag it                       | It is already reaching as far as it can, or a joint is at its limit. The **Pose** panel tells you which leg.                                             |
+| A sequence file won't load                             | It was made for a different robot model.                                                                                                                 |
+| The real robot's legs are a little off from the screen | Adjust them on the robot's own calibration page.                                                                                                         |
+| The window is blank or doesn't open                    | Use the app in your web browser instead. See [Step 1](#step-1-install-the-app).                                                                          |
 
 ## For developers
 

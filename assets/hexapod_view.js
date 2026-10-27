@@ -26,9 +26,7 @@
 // see tools/build_three_bundle.sh. It is only looked up when a view is first
 // drawn, so the order the two files load in does not matter.
 
-(function () {
-    "use strict";
-
+(() => {
     // The workspace's stores, written while editing.
     var FOOT_TARGET_ID = "pose-foot-target";
     var BODY_TARGET_ID = "pose-body-target";
@@ -100,14 +98,14 @@
             return;
         }
         flushScheduled = true;
-        window.setTimeout(function () {
+        window.setTimeout(() => {
             var batch = pendingProps;
             pendingProps = {};
             flushScheduled = false;
             if (!(window.dash_clientside && window.dash_clientside.set_props)) {
                 return;
             }
-            Object.keys(batch).forEach(function (key) {
+            Object.keys(batch).forEach((key) => {
                 window.dash_clientside.set_props(key, batch[key]);
             });
         }, 0);
@@ -206,14 +204,14 @@
         };
         scene.add(v.root);
 
-        orbit.addEventListener("change", function () {
+        orbit.addEventListener("change", () => {
             cameras[id] = cameraState(v);
             requestFrame(v);
         });
-        gizmo.addEventListener("change", function () {
+        gizmo.addEventListener("change", () => {
             requestFrame(v);
         });
-        gizmo.addEventListener("dragging-changed", function (event) {
+        gizmo.addEventListener("dragging-changed", (event) => {
             v.dragging = event.value;
             if (event.value && isJoint(v.selected)) {
                 startJointDrag(v);
@@ -226,7 +224,7 @@
                 sendTarget(v, true);
             }
         });
-        gizmo.addEventListener("objectChange", function () {
+        gizmo.addEventListener("objectChange", () => {
             if (v.jointDrag && v.dragging) {
                 // The leg follows the ring straight away, as a dragged foot
                 // follows the cursor; the server's scene catches up.
@@ -237,23 +235,23 @@
         });
 
         var canvas = renderer.domElement;
-        canvas.addEventListener("pointerdown", function (event) {
+        canvas.addEventListener("pointerdown", (event) => {
             v.pointerDown = { x: event.clientX, y: event.clientY };
         });
-        canvas.addEventListener("pointermove", function (event) {
+        canvas.addEventListener("pointermove", (event) => {
             if (v.hoverFrame) {
                 return;
             }
             v.hoverFrame = true;
-            window.requestAnimationFrame(function () {
+            window.requestAnimationFrame(() => {
                 v.hoverFrame = false;
                 hover(v, event);
             });
         });
-        canvas.addEventListener("pointerleave", function () {
+        canvas.addEventListener("pointerleave", () => {
             label.style.display = "none";
         });
-        canvas.addEventListener("pointerup", function (event) {
+        canvas.addEventListener("pointerup", (event) => {
             var start = v.pointerDown;
             v.pointerDown = null;
             if (!start || v.dragging || gizmo.axis) {
@@ -265,7 +263,7 @@
             }
         });
 
-        v.resizeObserver = new ResizeObserver(function () {
+        v.resizeObserver = new ResizeObserver(() => {
             resize(v);
         });
         v.resizeObserver.observe(container);
@@ -281,7 +279,7 @@
         v.gizmo.detach();
         v.gizmo.dispose();
         v.orbit.dispose();
-        v.root.traverse(function (o) {
+        v.root.traverse((o) => {
             if (o.geometry) {
                 o.geometry.dispose();
             }
@@ -301,7 +299,7 @@
 
     // Views whose page has been navigated away from.
     function disposeDetached() {
-        Object.keys(views).forEach(function (id) {
+        Object.keys(views).forEach((id) => {
             var v = views[id];
             if (!v.container.isConnected || document.getElementById(id) !== v.container) {
                 disposeView(v);
@@ -339,7 +337,7 @@
             return;
         }
         v.frameRequested = true;
-        window.requestAnimationFrame(function () {
+        window.requestAnimationFrame(() => {
             v.frameRequested = false;
             if (views[v.id] === v && v.container.isConnected) {
                 v.renderer.render(v.scene, v.camera);
@@ -356,7 +354,7 @@
 
         while (v.root.children.length) {
             var child = v.root.children.pop();
-            child.traverse(function (o) {
+            child.traverse((o) => {
                 if (o.geometry) {
                     o.geometry.dispose();
                 }
@@ -365,7 +363,7 @@
 
         function mat(color, extra) {
             return new T.MeshStandardMaterial(
-                Object.assign({ color: color, roughness: 0.55, metalness: 0.1 }, extra || {})
+                Object.assign({ color: color, roughness: 0.55, metalness: 0.1 }, extra || {}),
             );
         }
 
@@ -421,16 +419,13 @@
                 polygonOffset: true,
                 polygonOffsetFactor: 1,
                 polygonOffsetUnits: 1,
-            })
+            }),
         );
         var grid = new T.LineSegments(
             gridGeometry(T, groundRadius, cell, 5, lineColor),
-            new T.LineBasicMaterial({ vertexColors: true })
+            new T.LineBasicMaterial({ vertexColors: true }),
         );
-        var shadow = new T.Mesh(
-            disc,
-            new T.ShadowMaterial({ opacity: 0.4, depthWrite: false })
-        );
+        var shadow = new T.Mesh(disc, new T.ShadowMaterial({ opacity: 0.4, depthWrite: false }));
         shadow.receiveShadow = true;
         shadow.renderOrder = 1;
         parts.ground = new T.Group();
@@ -456,12 +451,12 @@
                 opacity: 0.16,
                 side: T.DoubleSide,
                 depthWrite: false,
-            })
+            }),
         );
         parts.support.renderOrder = 2;
         parts.supportOutline = new T.LineLoop(
             new T.BufferGeometry(),
-            new T.LineBasicMaterial({ color: c.support, transparent: true, opacity: 0.7 })
+            new T.LineBasicMaterial({ color: c.support, transparent: true, opacity: 0.7 }),
         );
         parts.supportOutline.renderOrder = 3;
         v.root.add(parts.support, parts.supportOutline);
@@ -472,7 +467,7 @@
         parts.bodyTrim = solid(new T.BufferGeometry(), mat(c.bodyOutline));
         parts.head = new T.Mesh(
             new T.BufferGeometry(),
-            mat(c.head, { emissive: c.head, emissiveIntensity: 0.35, side: T.DoubleSide })
+            mat(c.head, { emissive: c.head, emissiveIntensity: 0.35, side: T.DoubleSide }),
         );
         parts.cog = new T.Mesh(cylinder, mat(c.cog, { emissive: c.cog, emissiveIntensity: 0.25 }));
         parts.cog.scale.set(hubRadius * 0.7, hubRadius * 0.7, thickness * 1.12);
@@ -489,7 +484,10 @@
                 transparent: true,
                 depthTest: false,
             });
-            var axis = { shaft: new T.Mesh(cylinder, axisMaterial), head: new T.Mesh(cone, axisMaterial) };
+            var axis = {
+                shaft: new T.Mesh(cylinder, axisMaterial),
+                head: new T.Mesh(cone, axisMaterial),
+            };
             axis.shaft.renderOrder = axis.head.renderOrder = 10;
             axis.shaft.visible = axis.head.visible = false;
             parts.axes.push(axis);
@@ -505,9 +503,12 @@
         var accent = mat(c.jointAccent);
         // A joint picked is lit as a foot picked is.
         parts.hub = hub;
-        parts.hubPicked = mat(c.footSelected, { emissive: c.footSelected, emissiveIntensity: 0.35 });
+        parts.hubPicked = mat(c.footSelected, {
+            emissive: c.footSelected,
+            emissiveIntensity: 0.35,
+        });
         for (var i = 0; i < 6; i++) {
-            var segments = [cylinder, femur, tibia].map(function (shape) {
+            var segments = [cylinder, femur, tibia].map((shape) => {
                 var seg = solid(shape, armour);
                 seg.userData.radius = linkRadius;
                 seg.userData.leg = i;
@@ -644,7 +645,7 @@
         // A fan from the first point; the points come convex and in order.
         var positions = [];
         for (var i = 1; i + 1 < points.length; i++) {
-            [points[0], points[i], points[i + 1]].forEach(function (p) {
+            [points[0], points[i], points[i + 1]].forEach((p) => {
                 positions.push(p[0], p[1], z === undefined ? p[2] : z);
             });
         }
@@ -657,8 +658,8 @@
     // Flat-faced geometry from triangles, each three Vector3s.
     function facetGeometry(T, triangles) {
         var positions = [];
-        triangles.forEach(function (triangle) {
-            triangle.forEach(function (p) {
+        triangles.forEach((triangle) => {
+            triangle.forEach((p) => {
                 positions.push(p.x, p.y, p.z);
             });
         });
@@ -676,20 +677,20 @@
         var n = ring.length;
         var centre = new T.Vector3();
         var radius = 0;
-        ring.forEach(function (p) {
+        ring.forEach((p) => {
             centre.add(p);
         });
         centre.divideScalar(n);
-        ring.forEach(function (p) {
+        ring.forEach((p) => {
             radius += p.distanceTo(centre) / n;
         });
         var inset = radius > 0 ? Math.max(0, 1 - chamfer / radius) : 1;
 
         // `ring` drawn in by `scale` and moved `height` along `up`.
         function level(scale, height) {
-            return ring.map(function (p) {
-                return p.clone().sub(centre).multiplyScalar(scale).add(centre).addScaledVector(up, height);
-            });
+            return ring.map((p) =>
+                p.clone().sub(centre).multiplyScalar(scale).add(centre).addScaledVector(up, height),
+            );
         }
         var half = thickness / 2;
         var bottom = level(inset, -half);
@@ -756,25 +757,23 @@
         parts.support.geometry = polygonGeometry(T, support, data.ground + 0.5);
         parts.supportOutline.geometry.dispose();
         parts.supportOutline.geometry = new T.BufferGeometry().setFromPoints(
-            support.map(function (p) {
-                return new T.Vector3(p[0], p[1], data.ground + 0.6);
-            })
+            support.map((p) => new T.Vector3(p[0], p[1], data.ground + 0.6)),
         );
 
         // The body's outline in the order that walks round the hexagon
         // anticlockwise: the vertices come in leg order, right side front to
         // back then left side.
         var up = bodyUp(T, data.body);
-        var ring = [3, 4, 5, 2, 1, 0].map(function (i) {
-            return vec(T, data.body[i]);
-        });
+        var ring = [3, 4, 5, 2, 1, 0].map((i) => vec(T, data.body[i]));
         var plate = plateGeometry(T, ring, up, parts.thickness, parts.thickness * 0.22);
         parts.body.geometry.dispose();
         parts.body.geometry = plate.faces;
         parts.bodyTrim.geometry.dispose();
         parts.bodyTrim.geometry = plate.trim;
         var bodyPicked = v.editable && v.selected === BODY;
-        parts.bodyTrim.material.color.set(bodyPicked ? v.colors.footSelected : v.colors.bodyOutline);
+        parts.bodyTrim.material.color.set(
+            bodyPicked ? v.colors.footSelected : v.colors.bodyOutline,
+        );
 
         // On the plate's top face, a chevron from the centre towards the head.
         var cog = vec(T, data.cog || [0, 0, 0]);
@@ -801,7 +800,7 @@
             v.bodyHandle.rotation.set(
                 data.frame.rot[0] * DEGREE,
                 data.frame.rot[1] * DEGREE,
-                data.frame.rot[2] * DEGREE
+                data.frame.rot[2] * DEGREE,
             );
         }
 
@@ -906,7 +905,7 @@
         v.jointHandle.position.copy(vec(T, points[index]));
         v.jointHandle.quaternion.setFromUnitVectors(
             new T.Vector3(0, 0, 1),
-            vec(T, joint.axis).normalize()
+            vec(T, joint.axis).normalize(),
         );
         v.jointHandle.updateMatrixWorld();
     }
@@ -985,7 +984,7 @@
         var rect = v.renderer.domElement.getBoundingClientRect();
         var pointer = new T.Vector2(
             ((event.clientX - rect.left) / rect.width) * 2 - 1,
-            -((event.clientY - rect.top) / rect.height) * 2 + 1
+            -((event.clientY - rect.top) / rect.height) * 2 + 1,
         );
         v.raycaster.setFromCamera(pointer, v.camera);
         var hits = v.raycaster.intersectObjects(objects, false);
@@ -1085,9 +1084,7 @@
             angle: joint.angle,
             most: typeof joint.most === "number" ? joint.most : 180,
             axis: vec(T, joint.axis).normalize(),
-            points: v.data.legs[what.leg].map(function (p) {
-                return p.slice();
-            }),
+            points: v.data.legs[what.leg].map((p) => p.slice()),
             quaternion: v.jointHandle.quaternion.clone(),
             droppedAt: null,
         };
@@ -1122,7 +1119,7 @@
         var T = three();
         var pivot = vec(T, drag.points[drag.index]);
         var turn = (drag.angle - drag.start) * DEGREE;
-        var leg = drag.points.map(function (p, i) {
+        var leg = drag.points.map((p, i) => {
             if (i <= drag.index) {
                 return p;
             }
@@ -1160,7 +1157,7 @@
         }
         var elapsed = Date.now() - v.lastSent;
         if (!now && elapsed < SEND_INTERVAL_MS) {
-            v.sendTimer = window.setTimeout(function () {
+            v.sendTimer = window.setTimeout(() => {
                 v.sendTimer = null;
                 sendTarget(v, true);
             }, SEND_INTERVAL_MS - elapsed);
