@@ -215,25 +215,192 @@ body {
     overflow: hidden;
 }
 
-/* The sliders and checklists (styles/vendor/dash-widgets.css, the look the
-   app had under Dash) read their colours from these. */
+/* The sliders and checkboxes (WIDGETS below) read their colours from these. */
 .app-shell {
-    --Dash-Spacing: 4px;
-    --Dash-Fill-Interactive-Strong: var(--ind-accent);
-    --Dash-Fill-Interactive-Weak: rgba(var(--ind-accent-rgb), 0.15);
-    --Dash-Fill-Primary-Hover: var(--ind-accent-hover);
-    --Dash-Fill-Primary-Active: var(--ind-accent-active);
-    --Dash-Stroke-Strong: var(--ind-border-strong);
-    --Dash-Stroke-Weak: var(--ind-border);
-    --Dash-Text-Strong: var(--ind-text);
-    --Dash-Text-Primary: var(--ind-text);
-    --Dash-Text-Weak: var(--ind-text-muted);
-    --Dash-Fill-Inverse-Strong: var(--ind-surface-alt);
-    --Dash-Fill-Disabled: var(--ind-track);
+    --widget-spacing: 4px;
+    --widget-accent: var(--ind-accent);
+    --widget-border: var(--ind-border-strong);
+    --widget-text: var(--ind-text);
+    --widget-surface: var(--ind-surface-alt);
+    --widget-track: var(--ind-track);
 
     display: flex;
     flex-direction: column;
     height: 100vh;
+}
+
+/* ===========================================
+   WIDGETS
+   The base look of the sliders, their value boxes and the checkboxes
+   (components/widgets.tsx): a slider is a track with the range filled in up
+   to a round thumb, and a box beside it to type the value in. Coloured by the
+   --widget-* tokens above; the panels and the dock restyle them further down.
+   =========================================== */
+
+.ind-check {
+    padding: var(--widget-spacing) 0;
+    color: var(--widget-text);
+    cursor: pointer;
+    display: flex;
+    align-items: baseline;
+    user-select: none;
+}
+
+.ind-check:not(:has(input[disabled])):hover,
+.ind-check:not(:has(input[disabled])):focus-within {
+    color: var(--widget-accent);
+}
+
+.ind-check:has(input[disabled]) {
+    cursor: not-allowed;
+}
+
+.ind-check-box,
+.ind-check-text {
+    display: flex;
+    align-items: center;
+}
+
+.ind-check-input {
+    display: inline-block;
+    margin: 0 calc(var(--widget-spacing) * 2) 0 0;
+    box-sizing: border-box;
+    border: 1px solid var(--widget-border);
+    accent-color: var(--widget-accent);
+    outline-color: var(--widget-accent);
+}
+
+.ind-slider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    container-type: inline-size;
+}
+
+.ind-slider-wrapper {
+    flex: 1 1 0%;
+    min-width: 0px;
+}
+
+.ind-slider-root {
+    position: relative;
+    z-index: 0;
+    display: flex;
+    align-items: center;
+    user-select: none;
+    touch-action: none;
+    width: 100%;
+    height: 14px;
+    padding: 17px 0px;
+    box-sizing: border-box;
+}
+
+.ind-slider-track {
+    position: relative;
+    flex-grow: 1;
+    border-radius: 9999px;
+    height: 4px;
+    background-color: var(--widget-track);
+}
+
+.ind-slider-range {
+    position: absolute;
+    border-radius: 9999px;
+    height: 100%;
+    background-color: var(--widget-accent);
+}
+
+.ind-slider-thumb {
+    position: relative;
+    z-index: 1;
+    display: block;
+    width: 16px;
+    height: 16px;
+    background-color: var(--widget-accent);
+    border: 2px solid var(--widget-surface);
+    border-radius: 50%;
+    cursor: pointer;
+    outline: none;
+    transition: 0.15s ease-in-out;
+}
+
+.ind-slider-thumb:focus,
+.ind-slider-thumb:hover {
+    transform: scale(1.125);
+}
+
+.ind-slider-thumb:focus {
+    outline: 2px solid var(--widget-accent);
+}
+
+.ind-slider-thumb[data-disabled],
+.ind-slider-input:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.ind-slider-root[data-disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.ind-slider-root[data-disabled] .ind-slider-range {
+    background-color: var(--widget-track);
+}
+
+.ind-slider-root[data-disabled] .ind-slider-thumb {
+    cursor: not-allowed;
+    border-color: var(--widget-track);
+}
+
+/* The value box, after the track; it goes when the slider is too narrow for
+   it. */
+.ind-slider-input {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    background: var(--widget-surface);
+    border-radius: var(--widget-spacing);
+    border: 1px solid var(--widget-border);
+    container-type: inline-size;
+    vertical-align: middle;
+    color: inherit;
+    overflow: hidden;
+    order: 1;
+    min-width: 5cqw;
+    max-width: 33cqw;
+    text-align: center;
+    appearance: textfield;
+    font-family: inherit;
+    font-size: inherit;
+    box-sizing: content-box;
+    height: 30px;
+}
+
+.ind-slider-input:focus-within {
+    border: 1px solid var(--widget-accent);
+}
+
+.ind-slider-input::selection {
+    color: var(--widget-surface);
+    background: var(--widget-accent);
+}
+
+.ind-slider-input:focus {
+    outline: 1px solid var(--widget-accent);
+}
+
+.ind-slider-input::-webkit-inner-spin-button,
+.ind-slider-input::-webkit-outer-spin-button {
+    appearance: none;
+    margin: 0px;
+}
+
+@container (max-width: 300px) {
+    .ind-slider .ind-slider-input {
+        display: none;
+    }
 }
 
 /* ===========================================
@@ -988,11 +1155,11 @@ body {
     border-bottom: 1px dashed var(--ind-border);
 }
 
-/* A slider's direct-input box. Dash hides it once the slider is under 300px
+/* A slider's value box. WIDGETS hides it once the slider is under 300px
    wide, which over the view is most of the time; the value is half of what
    the field shows, so it stays. A fixed width -- room for "-178.5" -- keeps
    the track from changing length as the value changes. */
-.ind-inline-slider .dash-slider-container .dash-range-slider-input {
+.ind-inline-slider .ind-slider .ind-slider-input {
     display: block;
     box-sizing: border-box;
     height: auto;
@@ -1095,7 +1262,7 @@ body {
 }
 
 /* Checklists (Loop, Ease in) as a checkbox and its word. */
-.dock-check label.dash-options-list-option {
+.dock-check label.ind-check {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
@@ -1107,7 +1274,7 @@ body {
 }
 
 /* A square plate, ticked in white on the accent when on. */
-.dock-check .dash-options-list-option-checkbox {
+.dock-check .ind-check-input {
     -webkit-appearance: none;
     appearance: none;
     flex: 0 0 auto;
@@ -1123,22 +1290,22 @@ body {
     transition: background-color 0.1s ease, border-color 0.1s ease;
 }
 
-.dock-check .dash-options-list-option-checkbox:hover {
+.dock-check .ind-check-input:hover {
     border-color: var(--ind-accent);
 }
 
-.dock-check .dash-options-list-option-checkbox:checked {
+.dock-check .ind-check-input:checked {
     background-color: var(--ind-accent);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 6.3l2.6 2.6L10 3.4' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='square'/%3E%3C/svg%3E");
     border-color: var(--ind-accent);
 }
 
-.dock-check .dash-options-list-option-checkbox:focus-visible {
+.dock-check .ind-check-input:focus-visible {
     outline: none;
     box-shadow: var(--ind-glow);
 }
 
-.hud-panel .dock-check .dash-options-list-option-checkbox:not(:checked) {
+.hud-panel .dock-check .ind-check-input:not(:checked) {
     background-color: rgba(var(--hud-cyan-rgb), 0.06);
     border-color: rgba(var(--hud-cyan-rgb), 0.45);
 }
@@ -1183,15 +1350,13 @@ body {
 }
 
 /* A card over the dark view, in either theme: the stream controls, the
-   dimensions and the pose. Dash's sliders and the inputs inside one are
+   dimensions and the pose. The sliders and the inputs inside one are
    redrawn for it. */
 .hud-panel {
-    --Dash-Fill-Disabled: rgba(var(--hud-cyan-rgb), 0.2);
-    --Dash-Fill-Inverse-Strong: var(--view-bg);
-    --Dash-Text-Primary: var(--hud-text);
-    --Dash-Text-Strong: var(--hud-text);
-    --Dash-Stroke-Strong: var(--hud-border);
-    --Dash-Stroke-Weak: var(--hud-border);
+    --widget-track: rgba(var(--hud-cyan-rgb), 0.2);
+    --widget-surface: var(--view-bg);
+    --widget-text: var(--hud-text);
+    --widget-border: var(--hud-border);
     --chamfer: 9px;
     color: var(--hud-text);
     background-color: var(--hud-bg);
@@ -1209,7 +1374,7 @@ body {
 }
 
 .hud-panel .form-control,
-.hud-panel .dash-range-slider-input {
+.hud-panel .ind-slider-input {
     color: var(--hud-text) !important;
     background-color: rgba(var(--hud-cyan-rgb), 0.06) !important;
     border: 1px solid var(--hud-border) !important;
@@ -1542,8 +1707,8 @@ body {
     margin-bottom: 0.2rem;
 }
 
-/* Dash pads a slider to 34px tall; these are stacked three deep. */
-.hud-body-sliders .dash-slider-root {
+/* A slider is padded to 34px tall; these are stacked three deep. */
+.hud-body-sliders .ind-slider-root {
     padding-block: 13px;
 }
 
@@ -1639,7 +1804,7 @@ body {
     border-color: var(--hud-border);
 }
 
-.playback-hud .dock-check label.dash-options-list-option {
+.playback-hud .dock-check label.ind-check {
     color: var(--hud-text);
 }
 
@@ -2002,7 +2167,7 @@ body {
     min-width: 3rem;
 }
 
-.ind-dock-scrubber .dash-slider-container {
+.ind-dock-scrubber .ind-slider {
     width: 100%;
 }
 
@@ -2025,7 +2190,7 @@ body {
     min-width: 0;
 }
 
-.ind-inline-slider .dash-slider-container {
+.ind-inline-slider .ind-slider {
     width: 100%;
     gap: 0.5rem;
 }
@@ -2489,7 +2654,7 @@ body {
 .ind-kf-card,
 .form-control,
 .input-group-text,
-.dash-range-slider-input,
+.ind-slider-input,
 .dock-seg-item {
     background-image:
         linear-gradient(
@@ -2586,7 +2751,7 @@ body {
    top-right. */
 .form-control,
 .input-group-text,
-.dash-range-slider-input {
+.ind-slider-input {
     --chamfer: 6px;
     --corner: var(--ind-border-strong);
 }
@@ -2597,12 +2762,12 @@ body {
 
 .hud-panel .form-control,
 .hud-panel .input-group-text,
-.hud-panel .dash-range-slider-input {
+.hud-panel .ind-slider-input {
     --corner: var(--hud-border);
 }
 
 .hud-panel .form-control:focus,
-.hud-panel .dash-range-slider-input:focus {
+.hud-panel .ind-slider-input:focus {
     --corner: rgba(var(--hud-cyan-rgb), 0.75);
 }
 

@@ -60,10 +60,8 @@ and the window's buttons.
 - The UI colours are in
   [`industrial.css`](../src/renderer/src/styles/industrial.css): the light
   theme's tokens are on `:root`, and the dark theme overrides them under
-  `:root[data-theme="dark"]`. The sliders and checkboxes keep the markup the
-  app had under Dash, styled by
-  [`vendor/dash-widgets.css`](../src/renderer/src/styles/vendor/dash-widgets.css)
-  under `industrial.css`.
+  `:root[data-theme="dark"]`. The sliders' and checkboxes' base look is its
+  WIDGETS block.
 - The 3D view's colours are in [`style.ts`](../src/shared/style.ts). The view
   is a dark CAD-style monitor in both themes.
 - The robot is drawn by one three.js view,

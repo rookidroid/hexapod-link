@@ -1,7 +1,5 @@
 // Building blocks of the panels over the view and of the dock, so they all lay
-// their controls out the same way. Their markup and class names are the ones
-// the Dash version of the app drew, so styles/industrial.css (and the widget
-// base in styles/vendor/dash-widgets.css) style them as before.
+// their controls out the same way. Styled by WIDGETS in styles/industrial.css.
 
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
@@ -172,14 +170,14 @@ export function Slider({
     const places = decimals(step);
     const chars = Math.max(String(min).length, String(max).length) + (places ? places + 1 : 0);
     return (
-        <div id={id} className="dash-slider-container">
+        <div id={id} className="ind-slider">
             {input && (
                 <NumberInput
-                    className="dash-input-container dash-range-slider-input  dash-range-slider-max-input"
+                    className="ind-slider-input"
                     value={value}
                     step={step}
                     disabled={disabled}
-                    style={{ width: `calc(${chars}ch + calc(var(--Dash-Spacing) * 2))` }}
+                    style={{ width: `calc(${chars}ch + calc(var(--widget-spacing) * 2))` }}
                     onCommit={(v) => {
                         if (v !== null) {
                             const next = snap(v);
@@ -189,14 +187,14 @@ export function Slider({
                     }}
                 />
             )}
-            <div className="dash-slider-wrapper">
+            <div className="ind-slider-wrapper">
                 <span
                     ref={track}
                     dir="ltr"
                     data-orientation="horizontal"
                     aria-disabled={disabled ? "true" : "false"}
                     {...(disabled ? { "data-disabled": "" } : {})}
-                    className="dash-slider-root"
+                    className="ind-slider-root"
                     data-included="true"
                     style={
                         {
@@ -230,12 +228,12 @@ export function Slider({
                 >
                     <span
                         data-orientation="horizontal"
-                        className="dash-slider-track"
+                        className="ind-slider-track"
                         {...(disabled ? { "data-disabled": "" } : {})}
                     >
                         <span
                             data-orientation="horizontal"
-                            className="dash-slider-range"
+                            className="ind-slider-range"
                             style={{ left: "0%", right: `${100 - fraction * 100}%` }}
                         />
                     </span>
@@ -254,7 +252,7 @@ export function Slider({
                             aria-orientation="horizontal"
                             data-orientation="horizontal"
                             tabIndex={disabled ? undefined : 0}
-                            className="dash-slider-thumb dash-slider-thumb-1"
+                            className="ind-slider-thumb"
                             {...(disabled ? { "data-disabled": "" } : {})}
                             onKeyDown={(e) => {
                                 if (disabled) return;
@@ -330,7 +328,7 @@ export function SliderField({
     );
 }
 
-/** A segmented choice, as dbc.RadioItems drew it. */
+/** A segmented choice: radio buttons drawn as one bar. */
 export function Segmented<T extends string>({
     id,
     options,
@@ -372,7 +370,7 @@ export function Segmented<T extends string>({
     );
 }
 
-/** One checkbox, as dcc.Checklist drew it. */
+/** One checkbox, with its label. */
 export function Check({
     id,
     label,
@@ -387,17 +385,17 @@ export function Check({
     className?: string;
 }) {
     return (
-        <div id={id} className={`dash-options-list dash-checklist ${className}`.trim()}>
-            <label className="dash-options-list-option">
-                <span className="dash-options-list-option-wrapper">
+        <div id={id} className={`ind-checklist ${className}`.trim()}>
+            <label className="ind-check">
+                <span className="ind-check-box">
                     <input
                         type="checkbox"
-                        className="dash-options-list-option-checkbox"
+                        className="ind-check-input"
                         checked={checked}
                         onChange={(e) => onChange(e.target.checked)}
                     />
                 </span>
-                <span className="dash-options-list-option-text">
+                <span className="ind-check-text">
                     <span>{label}</span>
                 </span>
             </label>
