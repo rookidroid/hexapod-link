@@ -2,8 +2,8 @@
    HEXAPOD LINK — WORKSTATION THEME (LIGHT / DARK)
 
    One screen built around the 3D view: a top bar, the view with the pose's
-   controls laid over it, and a dock along the bottom (pages/shell.py
-   make_workspace, pages/workspace.py).
+   controls laid over it, and a dock along the bottom (App.tsx,
+   components/View.tsx).
 
    Styled after the RX-78-2 Gundam: white armour plates framed in navy,
    Federation blue as the accent, red and V-fin yellow as trim. Light is the
@@ -14,14 +14,14 @@
 
    Every colour that differs between the themes is a token on :root. The dark
    values override them when <html> carries data-theme="dark"; the attribute is
-   set by hexapod_link.py and the top bar's theme toggle (pages/shell.py).
+   set by the preload script before the first paint, and by the top bar's
+   theme toggle (components/TopBar.tsx).
    ============================================= */
 
-/* Fonts are bundled locally (assets/fonts) rather than pulled from Google
+/* Fonts are bundled locally (styles/fonts) rather than pulled from Google
    Fonts, so the desktop build renders correctly with no network. All three
    families are SIL Open Font License 1.1. Latin subset only.
-   Paths are relative to this file, which keeps them correct under any
-   Dash requests_pathname_prefix. */
+   Paths are relative to this file; the build bundles them. */
 
 @font-face {
     font-family: 'Chakra Petch';
@@ -144,7 +144,7 @@
     --hud-border: rgba(var(--hud-cyan-rgb), 0.28);
     --hud-text: #e4eeff;
     --hud-muted: #8aa2c8;
-    /* What is picked, as the view marks it (HEAD_COLOR in style_settings.py). */
+    /* What is picked, as the view marks it (HEAD_COLOR in shared/style.ts). */
     --hud-picked: #f7c600;
 
     --font-ui: 'Chakra Petch', system-ui, sans-serif;
@@ -159,7 +159,7 @@
     --trim-w: 68px;
     /* The dock's height and the width of its Gaits library (a percentage
        there is of the dock); dragging the workspace's splitters sets them on
-       <html> instead (assets/workspace_resize.js). */
+       <html> instead (components/Splitter.tsx). */
     --dock-h: 15rem;
     --lib-w: clamp(14rem, 18%, 18rem);
     /* How much of the workspace's height the view always keeps, however tall
@@ -1145,7 +1145,7 @@ body {
 
 /* ===========================================
    VIEW
-   The three.js view (assets/hexapod_view.js) fills its area; buttons sit in
+   The three.js view (view/hexapodView.js) fills its area; buttons sit in
    the top-right corner, how the body picked is dragged over the top edge, and
    the pose -- its joint angles, and the controls of what is picked -- in the
    bottom-left, all drawn for the dark monitor in either theme.
@@ -1563,7 +1563,7 @@ body {
 
 /* ---- Controller ----
    On the view's bottom-right corner: the body pad and the move pad, drawn by
-   assets/drive_pads.js, over the readout and the speed. A held zone lights
+   components/RobotHuds.tsx, over the readout and the speed. A held zone lights
    in the accent, as a pressed button does. */
 
 .hexapod-view-drive {
@@ -1585,7 +1585,7 @@ body {
    there is not room for one line, the robot's buttons go on the next.
    Folded, the pose and the controller sit either side of it; opened, either
    goes up above it, so it is never covered. How tall it is, --playback-h,
-   is kept up to date by assets/playback_bar.js. */
+   is kept up to date by components/View.tsx. */
 
 .hexapod-view-frame {
     /* How far up a corner's panel goes when opened: clear of the bar. */
@@ -2174,7 +2174,7 @@ body {
 }
 
 /* A line and its arrowhead, filled from the left as playback goes through
-   the move (--kf-progress, set by pages/pose.py). */
+   the move (--kf-progress, set by components/Dock.tsx). */
 .ind-kf-arrow {
     position: relative;
     flex: 1 1 auto;

@@ -19,9 +19,9 @@
         "format": "biome check --write .",
         "dist": "electron-vite build && electron-builder --publish never",
         "fake-robot": "node --experimental-strip-types tools/fake_robot.ts",
-        "screenshots": "electron-vite build && node --experimental-strip-types tools/make_screenshots.ts"
+        "screenshots": "electron-vite build && node --experimental-strip-types tools/make_screenshots.ts",
+        "smoke": "node --experimental-strip-types tools/smoke_test.ts"
     },
-    "dependencies": {},
     "devDependencies": {
         "@biomejs/biome": "2.6.3",
         "@types/node": "22.20.5",
@@ -32,8 +32,11 @@
         "electron": "45.0.0",
         "electron-builder": "26.18.0",
         "electron-vite": "6.0.0",
+        "gifenc": "^1.0.3",
+        "playwright-core": "^1.64.1",
         "react": "19.3.1",
         "react-dom": "19.3.1",
+        "sharp": "^0.35.5",
         "three": "0.186.1",
         "typescript": "5.9.3",
         "vite": "8.3.5",

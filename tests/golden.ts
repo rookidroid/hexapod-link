@@ -1,4 +1,4 @@
-// The Python app's own results, recorded by tools/dump_golden.py before the
+// The Python app's own results, recorded (by a script removed with it) before the
 // port, for the robots in tests/fixtures/robot_config.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

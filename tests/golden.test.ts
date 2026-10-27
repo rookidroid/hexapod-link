@@ -1,4 +1,4 @@
-// The port against what the Python app computed (tools/dump_golden.py).
+// The port against what the Python app computed, recorded before it was removed.
 import { describe, expect, it } from "vitest";
 import { gaitKeyframes, robotPoses } from "../src/shared/gait_keyframes";
 import * as kf from "../src/shared/keyframes";

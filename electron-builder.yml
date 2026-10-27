@@ -1,0 +1,30 @@
+# The standalone app, as a folder: `npm run dist` writes dist/<platform>-unpacked,
+# which CI renames HexapodLink/ and archives for a release
+# (.github/workflows/build-desktop.yml).
+appId: com.rookidroid.hexapodlink
+productName: HexapodLink
+executableName: HexapodLink
+copyright: Copyright © rookidroid
+directories:
+  output: dist
+  buildResources: resources
+# Everything the app runs is bundled into out/ by electron-vite; its npm
+# packages are all build-time ones, so none are shipped.
+files:
+  - out/**/*
+  - resources/icon.png
+  - resources/app.ico
+  - package.json
+asar: true
+electronLanguages: [en-US]
+win:
+  target: dir
+  icon: resources/app.ico
+linux:
+  target: dir
+  icon: resources/icon.png
+  category: Utility
+mac:
+  target: dir
+  icon: resources/icon.png
+  category: public.app-category.utilities

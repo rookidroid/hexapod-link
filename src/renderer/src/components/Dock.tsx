@@ -39,12 +39,14 @@ function Section({
 }
 
 function GaitRow({
+    gait,
     label,
     note,
     onInsert,
     onReplace,
     extra,
 }: {
+    gait?: string;
     label: string;
     note?: string;
     onInsert: () => void;
@@ -52,7 +54,7 @@ function GaitRow({
     extra?: React.ReactNode;
 }) {
     return (
-        <div className="dock-gait-row">
+        <div className="dock-gait-row" data-gait={gait}>
             <div className="dock-gait-text">
                 <span className="dock-gait-name">{label}</span>
                 {note && <span className="dock-gait-note">{note}</span>}
@@ -112,6 +114,7 @@ function Library() {
                     ...motions.map((motion) => (
                         <GaitRow
                             key={motion}
+                            gait={motion}
                             label={GAIT_LABELS[motion]}
                             onInsert={() => void store.insertGait("builtin", motion, false)}
                             onReplace={() => void store.insertGait("builtin", motion, true)}

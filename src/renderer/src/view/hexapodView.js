@@ -55,7 +55,7 @@ var CLICK_SLOP = 5;
 // A degree, in radians.
 var DEGREE = Math.PI / 180;
 
-// Fallbacks only; every scene carries style_settings.py's colours.
+// Fallbacks only; every scene carries shared/style.ts's colours.
 var DEFAULT_COLORS = {
     background: "#0a1428",
     ground: "#13213f",
@@ -164,13 +164,13 @@ function createView(id, container) {
 
     // What the gizmo holds the body by: nothing to see, placed on the
     // body's frame. Its Euler angles are turned in the order the pose's
-    // rotations are (hexapod/pose_layers.py), so they are those angles.
+    // rotations are (shared/pose_layers.ts), so they are those angles.
     var bodyHandle = new T.Group();
     bodyHandle.rotation.order = "XYZ";
     scene.add(bodyHandle);
 
     // What the gizmo turns a joint by: placed on the joint, its z the
-    // axis a positive angle turns the joint about (hexapod/pose_layers.py
+    // axis a positive angle turns the joint about (shared/pose_layers.ts
     // scene_joints), so the ring the gizmo shows is the one about z.
     var jointHandle = new T.Group();
     scene.add(jointHandle);
@@ -1175,7 +1175,7 @@ function sendTarget(v, now) {
 
 // ------------------------------------------------------------- public
 
-// Draws `data` (hexapod/scene.py) into the element with id `containerId`.
+// Draws `data` (shared/pose_layers.ts scene()) into the element with id `containerId`.
 //
 // options.editable  the body and the feet can be picked up and dragged
 //                   (false while a sequence is previewed)

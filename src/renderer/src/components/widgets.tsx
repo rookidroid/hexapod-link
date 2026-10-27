@@ -41,6 +41,7 @@ export function NumberInput({
     placeholder,
     disabled,
     min,
+    style,
 }: {
     value: number | null | undefined;
     onCommit: (value: number | null) => void;
@@ -50,6 +51,7 @@ export function NumberInput({
     placeholder?: string;
     disabled?: boolean;
     min?: number;
+    style?: React.CSSProperties;
 }) {
     const [draft, setDraft] = useState<string | null>(null);
     const commit = () => {
@@ -67,6 +69,7 @@ export function NumberInput({
             min={min}
             placeholder={placeholder}
             disabled={disabled}
+            style={style}
             value={draft ?? shown(value)}
             onChange={(e) => setDraft(e.target.value)}
             onBlur={commit}
@@ -165,6 +168,9 @@ export function Slider({
     }, [value]);
 
     const thumbOffset = 8 - 16 * fraction;
+    // The value box is as wide as the longest value the slider can take.
+    const places = decimals(step);
+    const chars = Math.max(String(min).length, String(max).length) + (places ? places + 1 : 0);
     return (
         <div id={id} className="dash-slider-container">
             {input && (
@@ -173,6 +179,7 @@ export function Slider({
                     value={value}
                     step={step}
                     disabled={disabled}
+                    style={{ width: `calc(${chars}ch + calc(var(--Dash-Spacing) * 2))` }}
                     onCommit={(v) => {
                         if (v !== null) {
                             const next = snap(v);
