@@ -9,3 +9,7 @@ out/
 
 # electron-builder output
 dist/
+
+# Python caches left in an old checkout
+__pycache__/
+*.pyc
