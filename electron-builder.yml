@@ -1,5 +1,8 @@
-# The standalone app, as a folder: `npm run dist` writes dist/<platform>-unpacked,
-# which CI renames HexapodLink/ and archives for a release
+# The standalone app. `npm run dist` writes, for the platform it runs on:
+#   - an installer: HexapodLink-v<version>-windows-x64-setup.exe, or
+#     HexapodLink-v<version>-linux-x64.AppImage and .deb
+#   - the app as a plain folder, dist/<platform>-unpacked, which CI renames
+#     HexapodLink/ and archives as the portable download
 # (.github/workflows/build-desktop.yml).
 appId: com.rookidroid.hexapodlink
 productName: HexapodLink
@@ -16,14 +19,51 @@ files:
   - resources/app.ico
   - package.json
 asar: true
+# Smaller downloads, for a slower build.
+compression: maximum
 electronLanguages: [en-US]
+
 win:
-  target: dir
+  target:
+    - target: nsis
+      arch: [x64]
   icon: resources/app.ico
+# A normal "Next, Next, Install" installer, for the current user only so it
+# needs no admin rights. It adds Start menu and desktop shortcuts and an
+# entry in Apps & features to uninstall it. Saved poses and gaits live in the
+# home folder, so uninstalling or upgrading keeps them.
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Hexapod Link
+  uninstallDisplayName: Hexapod Link
+  artifactName: HexapodLink-v${version}-windows-x64-setup.${ext}
+  # The app has no auto-updater, so the update-friendly block layout buys
+  # nothing; packing it as one solid archive makes the download far smaller.
+  differentialPackage: false
+
 linux:
-  target: dir
+  target:
+    - target: AppImage
+      arch: [x64]
+    - target: deb
+      arch: [x64]
   icon: resources/icon.png
   category: Utility
+  synopsis: Pose, animate and drive a six-legged robot.
+  maintainer: rookidroid <rookiepeng@users.noreply.github.com>
+  desktop:
+    entry:
+      Name: Hexapod Link
+      StartupWMClass: HexapodLink
+appImage:
+  artifactName: HexapodLink-v${version}-linux-x64.${ext}
+deb:
+  artifactName: HexapodLink-v${version}-linux-x64.${ext}
+
 mac:
   target: dir
   icon: resources/icon.png

@@ -65,14 +65,23 @@ panel's title to open or close it.
 
 1. Go to the [latest release](https://github.com/rookidroid/hexapod-link/releases/latest).
 2. Under **Assets**, download the file for your computer:
-   - Windows: `HexapodLink-…-windows-x64.zip`
-   - Linux: `HexapodLink-…-linux-x64.tar.gz`
-3. Unzip it. You get a folder called `HexapodLink`.
-4. Open the folder and double-click **HexapodLink** (`HexapodLink.exe` on
-   Windows).
+   - Windows: `HexapodLink-…-windows-x64-setup.exe`. Double-click it and
+     follow the steps. It adds **Hexapod Link** to the Start menu and the
+     desktop, and you can uninstall it from **Settings → Apps**.
+   - Linux: `HexapodLink-…-linux-x64.AppImage`. Make it runnable
+     (right-click → **Properties → Allow executing as program**, or
+     `chmod +x` it), then double-click it. On Debian or Ubuntu you can
+     instead install `HexapodLink-…-linux-x64.deb` with
+     `sudo apt install ./HexapodLink-…-linux-x64.deb`.
+3. Rather not install anything? Download the `-portable` `.zip` (Windows) or
+   `.tar.gz` (Linux) instead, unpack it, and double-click **HexapodLink**
+   (`HexapodLink.exe` on Windows) in the `HexapodLink` folder.
+
+Your saved poses and gaits are kept in your home folder, so updating or
+uninstalling the app keeps them.
 
 The window opens with a robot standing ready. Windows may warn you that the
-app comes from an unknown publisher. If it does, click **More info**, then
+app (or its installer) comes from an unknown publisher. If it does, click **More info**, then
 **Run anyway**.
 
 <details>
