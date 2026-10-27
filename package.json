@@ -1,0 +1,43 @@
+{
+  "name": "hexapod-link",
+  "productName": "HexapodLink",
+  "version": "1.0.1",
+  "description": "Pose, animate and drive a six-legged robot from your computer.",
+  "license": "MIT",
+  "author": "rookidroid",
+  "homepage": "https://github.com/rookidroid/hexapod-link",
+  "private": true,
+  "main": "out/main/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "start": "electron-vite preview",
+    "build": "electron-vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "dist": "electron-vite build && electron-builder --publish never",
+    "fake-robot": "node --experimental-strip-types tools/fake_robot.ts",
+    "screenshots": "electron-vite build && node --experimental-strip-types tools/make_screenshots.ts"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@biomejs/biome": "2.6.3",
+    "@types/node": "22.20.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/three": "0.186.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "electron": "45.0.0",
+    "electron-builder": "26.18.0",
+    "electron-vite": "6.0.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "three": "0.186.1",
+    "typescript": "5.9.3",
+    "vite": "8.3.5",
+    "vitest": "5.0.5",
+    "zustand": "5.0.16"
+  }
+}

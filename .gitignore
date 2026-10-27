@@ -14,3 +14,7 @@ dist/
 
 # tools/build_three_bundle.sh
 tools/three-bundle/node_modules/
+
+# Node / Electron
+node_modules/
+out/
