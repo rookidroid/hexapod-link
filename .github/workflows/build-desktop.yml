@@ -27,11 +27,9 @@ jobs:
         include:
           - os: windows-latest
             name: Windows
-            artifact: HexapodLink-windows
             platform: windows-x64
           - os: ubuntu-latest
             name: Linux
-            artifact: HexapodLink-linux
             platform: linux-x64
 
     steps:
@@ -58,8 +56,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # electron-builder writes the app as a folder, dist/<platform>-unpacked;
-      # it is renamed HexapodLink/, the folder the release archives unpack to.
+      # electron-builder writes the installers and, on the way, the app as a
+      # folder, dist/<platform>-unpacked; that is renamed HexapodLink/, the
+      # folder the portable archives unpack to.
       - name: Build
         shell: bash
         run: |
@@ -84,39 +83,37 @@ jobs:
         shell: bash
         run: du -sh dist/HexapodLink
 
-      - uses: actions/upload-artifact@v7
-        with:
-          name: ${{ matrix.artifact }}
-          path: dist/HexapodLink
-          # These are build outputs off every push; the default 90 days is far
-          # longer than they stay interesting.
-          retention-days: 1
-          if-no-files-found: error
-
-      # The archives that go on the release. Each unpacks to one HexapodLink/
-      # folder. Linux gets a tarball because zip drops the executable bit, and
-      # a binary that needs a chmod before it runs is a support question.
-      - name: Package for release
-        if: startsWith(github.ref, 'refs/tags/')
+      # What people download, for every build so any push can be tried out:
+      #   - the installer electron-builder wrote: a setup .exe on Windows, an
+      #     AppImage and a .deb on Linux
+      #   - a portable archive of the same app that unpacks to one HexapodLink/
+      #     folder. Linux gets a tarball because zip drops the executable bit,
+      #     and a binary that needs a chmod before it runs is a support question.
+      # On a tag the version equals the tag (checked above), so names match the
+      # release either way.
+      - name: Package
         shell: bash
         run: |
+          APP_VERSION=$(node -p "require('./package.json').version")
+          NAME="HexapodLink-v${APP_VERSION}-${{ matrix.platform }}"
           mkdir -p release
-          NAME="HexapodLink-${GITHUB_REF_NAME}-${{ matrix.platform }}"
-          cd dist
           if [ "$RUNNER_OS" == "Windows" ]; then
-            7z a -tzip -mx=9 "../release/$NAME.zip" HexapodLink > /dev/null
+            mv dist/HexapodLink-*-setup.exe release/
+            (cd dist && 7z a -tzip -mx=9 "../release/$NAME-portable.zip" HexapodLink > /dev/null)
           else
-            tar -czf "../release/$NAME.tar.gz" HexapodLink
+            mv dist/HexapodLink-*.AppImage dist/HexapodLink-*.deb release/
+            tar -czf "release/$NAME-portable.tar.gz" -C dist HexapodLink
           fi
-          ls -lh ../release
+          ls -lh release
 
-      - name: Upload release archive
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v7
         with:
-          name: release-${{ matrix.platform }}
+          name: HexapodLink-${{ matrix.platform }}
           path: release/*
-          retention-days: 7
+          # Off a plain push these are only for trying a build, and the default
+          # 90 days is far longer than they stay interesting. A tag keeps them
+          # long enough for the release job, and a re-run of it.
+          retention-days: ${{ startsWith(github.ref, 'refs/tags/') && 7 || 1 }}
           if-no-files-found: error
 
   # Runs only for a v* tag, and only once every platform built and passed its
@@ -133,7 +130,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v8
         with:
-          pattern: release-*
+          pattern: HexapodLink-*
           path: release
           merge-multiple: true
 

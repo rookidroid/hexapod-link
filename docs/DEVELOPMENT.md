@@ -94,19 +94,23 @@ without a flash. Dark is the default.
 $ npm run dist
 ```
 
-[electron-builder](https://www.electron.build/) writes the app for the
-platform it runs on as a folder, `dist/<platform>-unpacked/`, with
-`HexapodLink` (`HexapodLink.exe` on Windows) in it; see
-[`electron-builder.yml`](../electron-builder.yml). The page, the main
-process and every npm package it uses are bundled into `out/` by
-electron-vite first, so no `node_modules` ship.
+[electron-builder](https://www.electron.build/) writes, into `dist/`, an
+installer for the platform it runs on -- `HexapodLink-v<version>-windows-x64-setup.exe`
+(NSIS, per-user, no admin rights needed) on Windows, an `.AppImage` and a
+`.deb` on Linux -- and on the way the app as a plain folder,
+`dist/<platform>-unpacked/`, with `HexapodLink` (`HexapodLink.exe` on
+Windows) in it; see [`electron-builder.yml`](../electron-builder.yml). The
+page, the main process and every npm package it uses are bundled into `out/`
+by electron-vite first, so no `node_modules` ship. To get just the folder,
+quicker, run `npx electron-vite build && npx electron-builder --dir`.
 
-The `build-desktop` GitHub Actions workflow builds and smoke-tests this folder
-for Windows and Linux on every push, and keeps the result as a run artifact
-for a day. On a `v*` tag it archives each as `HexapodLink-<tag>-<platform>`
-(a `.zip` for Windows, a `.tar.gz` for Linux), both unpacking to one
-`HexapodLink/` folder, and publishes them as a release. The tag has to match
-the version in `package.json`, which is also what the top bar shows.
+The `build-desktop` GitHub Actions workflow builds Windows and Linux on every
+push, smoke-tests the unpacked app, and keeps what a person would download
+as a run artifact for a day: the installers, plus a portable archive of the
+folder, `HexapodLink-v<version>-<platform>-portable` (a `.zip` for Windows, a
+`.tar.gz` for Linux), unpacking to one `HexapodLink/` folder. On a `v*` tag it
+publishes all of them, with a `SHA256SUMS.txt`, as a release. The tag has to
+match the version in `package.json`, which is also what the top bar shows.
 
 ## How the app talks to a robot
 
@@ -267,8 +271,8 @@ $ npm run lint     # check
 - [`lint.yml`](../.github/workflows/lint.yml) -- runs `biome ci`; findings show
   up as annotations on the PR diff.
 - [`build-desktop.yml`](../.github/workflows/build-desktop.yml) -- builds the
-  standalone app for Windows and Linux, smoke-tests the built binary, and
-  publishes a release for a `v*` tag.
+  standalone app and its installers for Windows and Linux, smoke-tests the
+  built binary, and publishes a release for a `v*` tag.
 - [Dependabot](../.github/dependabot.yml) -- weekly update checks for npm
   packages and GitHub Actions versions.
 
