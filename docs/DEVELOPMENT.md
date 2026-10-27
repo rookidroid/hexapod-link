@@ -62,6 +62,8 @@ and the window's buttons.
   theme's tokens are on `:root`, and the dark theme overrides them under
   `:root[data-theme="dark"]`. The sliders' and checkboxes' base look is its
   WIDGETS block.
+  It builds on [`bootstrap.css`](../src/renderer/src/styles/bootstrap.css),
+  Bootstrap trimmed to the classes the components use.
 - The 3D view's colours are in [`style.ts`](../src/shared/style.ts). The view
   is a dark CAD-style monitor in both themes.
 - The robot is drawn by one three.js view,
