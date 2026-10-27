@@ -1157,14 +1157,15 @@ body {
 
 /* A slider's value box. WIDGETS hides it once the slider is under 300px
    wide, which over the view is most of the time; the value is half of what
-   the field shows, so it stays. A fixed width -- room for "-178.5" -- keeps
-   the track from changing length as the value changes. */
+   the field shows, so it stays. A fixed width -- room for "-178.5" plus the
+   padding, border and step arrows (which keep their space while hidden) --
+   keeps the track from changing length as the value changes. */
 .ind-inline-slider .ind-slider .ind-slider-input {
     display: block;
     box-sizing: border-box;
     height: auto;
     max-width: none;
-    width: 6.5ch !important;
+    width: calc(6ch + 0.7rem + 0.9rem + 2px) !important;
     flex: 0 0 auto;
     font-family: var(--font-mono) !important;
     font-variant-numeric: tabular-nums;
