@@ -164,7 +164,7 @@ export function inverseKinematics(dest: readonly (readonly number[])[], config: 
         const a2 = Math.acos((lr2 - j2j3 * j2j3 + j3Tip * j3Tip) / (2 * j3Tip * lr));
         return [
             a0,
-            90 - ((ar + a1) * 180) / PI * scale,
+            90 - (((ar + a1) * 180) / PI) * scale,
             (90 - ((a1 + a2) * 180) / PI) * scale + 90,
         ] as Vec3;
     });
@@ -225,12 +225,7 @@ export function genFastwalkPath(
     return legsPath([r, rMir, r, lMir, l, lMir], standby);
 }
 
-export function genTurnPath(
-    standby: Stance,
-    gSteps = 28,
-    gRadius = 35,
-    direction = "left",
-): Path {
+export function genTurnPath(standby: Stance, gSteps = 28, gRadius = 35, direction = "left"): Path {
     // semicircleGenerator strokes along +y, so rotating a leg's stroke by that
     // leg's azimuth from the cog aims it tangent to the turn circle. The
     // azimuth is read off the standby stance rather than hardcoded, which is
@@ -337,13 +332,14 @@ export function genTwistPath(
     const stepX = twistXAngle / quarter;
     const stepY = twistYAngle / quarter;
     const m = rotateXMatrix(raiseAngle);
-    const frame = (z: number, x: number) =>
-        matMul(matMul(m, rotateZMatrix(z)), rotateXMatrix(x));
+    const frame = (z: number, x: number) => matMul(matMul(m, rotateZMatrix(z)), rotateXMatrix(x));
     const frames: number[][][] = [];
     for (let i = 0; i < quarter; i++) frames.push(frame(i * stepX, i * stepY));
-    for (let i = 0; i < quarter; i++) frames.push(frame((quarter - i) * stepX, (quarter - i) * stepY));
+    for (let i = 0; i < quarter; i++)
+        frames.push(frame((quarter - i) * stepX, (quarter - i) * stepY));
     for (let i = 0; i < quarter; i++) frames.push(frame(-i * stepX, i * stepY));
-    for (let i = 0; i < quarter; i++) frames.push(frame((-quarter + i) * stepX, (quarter - i) * stepY));
+    for (let i = 0; i < quarter; i++)
+        frames.push(frame((-quarter + i) * stepX, (quarter - i) * stepY));
     const path = swayPath(standby, frames);
     while (path.length < gSteps) {
         path.push(zeros(6));

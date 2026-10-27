@@ -73,7 +73,9 @@ export function clampPoseAngles(
 /** A pose as a flat list of 18 servo ticks, leg-major, matching the firmware's
  * LUT layout. Legs left out stand at zero. */
 export function poseToTicks(
-    pose: Partial<Pose> | readonly ({ coxia?: number; femur?: number; tibia?: number } | undefined)[],
+    pose:
+        | Partial<Pose>
+        | readonly ({ coxia?: number; femur?: number; tibia?: number } | undefined)[],
     robot: RobotConfig = DEFAULT_CONFIG,
 ): number[] {
     const signs = getLegSigns(robot);
@@ -113,7 +115,12 @@ export function motionPacket(motionId: number, seq: number, speedPct: number): U
 }
 
 /** 44 bytes: hold a pose, each servo slewing at most `maxStep` ticks a cycle. */
-export function posePacket(ticks: readonly number[], seq: number, maxStep: number, snap = false): Uint8Array {
+export function posePacket(
+    ticks: readonly number[],
+    seq: number,
+    maxStep: number,
+    snap = false,
+): Uint8Array {
     const view = new DataView(new ArrayBuffer(8 + 2 * 18));
     view.setUint8(0, MAGIC_POSE);
     view.setUint8(1, snap ? POSE_FLAG_SNAP : 0);

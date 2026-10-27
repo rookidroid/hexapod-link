@@ -23,7 +23,12 @@ import * as kf from "./keyframes";
 import { BODY_KEYS, type Body, type BodyKey, type Keyframe, type PoseState } from "./keyframes";
 import type { Pose } from "./path_generator";
 import { frameRotxyz } from "./points";
-import { getJointLimits, getSimulatorDimensions, type JointLimits, type RobotConfig } from "./robot_config";
+import {
+    getJointLimits,
+    getSimulatorDimensions,
+    type JointLimits,
+    type RobotConfig,
+} from "./robot_config";
 import { orderAroundCentre, type Scene, type SceneJoint, transformScene } from "./scene";
 import { deepEqual, matVec, pyRound, rotationOf, type Mat3, type Vec3 } from "./util";
 
@@ -41,7 +46,10 @@ function number(value: unknown): number {
     return pyRound(Number(value || 0), 4);
 }
 
-export function makeState(body: Partial<Record<BodyKey, unknown>>, offsets: readonly (readonly number[])[]): PoseState {
+export function makeState(
+    body: Partial<Record<BodyKey, unknown>>,
+    offsets: readonly (readonly number[])[],
+): PoseState {
     return {
         body: Object.fromEntries(BODY_KEYS.map((key) => [key, number(body[key])])) as Body,
         offsets: kf.cleanFeet(offsets),
@@ -116,7 +124,9 @@ function intoBody(p: readonly number[], rotation: Mat3): Vec3 {
 export function bodyFeet(state: PoseState, robot: RobotConfig): Vec3[] {
     const { planted, rotation, origin } = placement(state, robot);
     return kf.cleanFeet(
-        planted.map((p) => intoBody([p[0] - origin[0], p[1] - origin[1], p[2] - origin[2]], rotation)),
+        planted.map((p) =>
+            intoBody([p[0] - origin[0], p[1] - origin[1], p[2] - origin[2]], rotation),
+        ),
     );
 }
 
@@ -141,7 +151,12 @@ function withOffset(state: PoseState, leg: number, offset: readonly number[]): P
 }
 
 /** The state with one foot moved to `target`, in the view's coordinates. */
-export function withFootAt(state: PoseState, leg: number, target: readonly number[], robot: RobotConfig): PoseState {
+export function withFootAt(
+    state: PoseState,
+    leg: number,
+    target: readonly number[],
+    robot: RobotConfig,
+): PoseState {
     const ground = kf.groundHeight(robot);
     const standby = kf.standbyFeet(robot)[leg];
     return withOffset(state, leg, [
@@ -195,7 +210,11 @@ export function withLegAngles(
     const pose = solved.map((joints) => ({ ...joints }));
     Object.assign(pose[leg], angles);
     const foot = kf.poseToFeet(pose, robot)[leg];
-    return withOffset(state, leg, backToWorld(foot, placement(state, robot), kf.standbyFeet(robot)[leg]));
+    return withOffset(
+        state,
+        leg,
+        backToWorld(foot, placement(state, robot), kf.standbyFeet(robot)[leg]),
+    );
 }
 
 export interface BodyFrame {
@@ -216,7 +235,11 @@ export function bodyFrame(state: PoseState, robot: RobotConfig): BodyFrame {
 
 /** The body layer that puts the body at `origin`, turned by `rot`: what
  * bodyFrame() gives back. Not held to any range; that is the caller's. */
-export function bodyAt(origin: readonly number[], rot: readonly number[], robot: RobotConfig): Body {
+export function bodyAt(
+    origin: readonly number[],
+    rot: readonly number[],
+    robot: RobotConfig,
+): Body {
     const d = getSimulatorDimensions(robot);
     const ground = kf.groundHeight(robot);
     const world = [origin[0] + 0.0, origin[1] + 0.0, origin[2] + ground];
@@ -281,13 +304,21 @@ export function fromFeet(feet: readonly (readonly number[])[], robot: RobotConfi
     const standby = kf.standbyFeet(robot);
     return makeState(
         {},
-        feet.map((f, leg) => [f[0] - standby[leg][0], f[1] - standby[leg][1], f[2] - standby[leg][2]]),
+        feet.map((f, leg) => [
+            f[0] - standby[leg][0],
+            f[1] - standby[leg][1],
+            f[2] - standby[leg][2],
+        ]),
     );
 }
 
 /** How far either way (degrees) a joint is turned by its ring in the view: a
  * little inside its limit, so the leg can still be solved. */
-export function jointMost(joint: keyof JointLimits, robot: RobotConfig, limits?: JointLimits): number {
+export function jointMost(
+    joint: keyof JointLimits,
+    robot: RobotConfig,
+    limits?: JointLimits,
+): number {
     limits = limits ?? getJointLimits(robot);
     return pyRound(Math.max(Number(limits[joint]) - kf.LIMIT_MARGIN_DEG, 0.0), 3);
 }
@@ -367,7 +398,9 @@ export function sequence(
     let states: PoseState[] | null;
     if (keyframes.length && keyframes.every((frame) => isState(frame.state))) {
         const vectors = keyframes.map((frame) => stateToVector(frame.state as PoseState));
-        states = kf.interpolateArrays(vectors, keyframes, fps, loop, ease, speed).map(vectorToState);
+        states = kf
+            .interpolateArrays(vectors, keyframes, fps, loop, ease, speed)
+            .map(vectorToState);
         feet = states.map((state) => bodyFeet(state, robot));
     } else {
         states = null;

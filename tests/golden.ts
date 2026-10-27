@@ -23,7 +23,10 @@ export const ROBOT_CONFIGS = Object.fromEntries(
 const cache = new Map<string, any>();
 export function golden(name: string): any {
     if (!cache.has(name)) {
-        cache.set(name, JSON.parse(readFileSync(join(FIXTURES, "golden", `${name}.json`), "utf-8")));
+        cache.set(
+            name,
+            JSON.parse(readFileSync(join(FIXTURES, "golden", `${name}.json`), "utf-8")),
+        );
     }
     return cache.get(name);
 }
@@ -71,3 +74,24 @@ export function expectClose(actual: unknown, expected: unknown, tol = 1e-6, path
 
 export const poseList = (pose: { coxia: number; femur: number; tibia: number }[]) =>
     pose.map((leg) => [leg.coxia, leg.femur, leg.tibia]);
+
+import { DEFAULT_CONFIG } from "../src/shared/robot_config";
+
+/** The fixture robots and the default, as the Python tests ran them. */
+export const ROBOTS: [string, RobotConfig][] = [
+    ...ROBOT_NAMES.map((name) => [name, ROBOT_CONFIGS[name]] as [string, RobotConfig]),
+    ["default", DEFAULT_CONFIG],
+];
+
+/** numpy.testing.assert_allclose(actual, expected, atol), shapes included. */
+export function allClose(actual: unknown, expected: unknown, atol: number, where = ""): void {
+    expectClose(actual, expected, atol, where || "$");
+}
+
+/** Every number in a nested array. */
+export function numbers(value: unknown): number[] {
+    if (Array.isArray(value)) return value.flatMap(numbers);
+    if (typeof value === "number") return [value];
+    if (value && typeof value === "object") return Object.values(value).flatMap(numbers);
+    return [];
+}

@@ -26,7 +26,12 @@ import * as kf from "./keyframes";
 import type { Keyframe, PoseState } from "./keyframes";
 import { generatePoses, type Pose } from "./path_generator";
 import * as pl from "./pose_layers";
-import { getJointLimits, getSequenceFps, getSimulatorDimensions, type RobotConfig } from "./robot_config";
+import {
+    getJointLimits,
+    getSequenceFps,
+    getSimulatorDimensions,
+    type RobotConfig,
+} from "./robot_config";
 import { degrees, identity3, matVec, type Mat3, type Vec3 } from "./util";
 
 /** How far (mm) a foot may stray from the gait's own path between keyframes. */
@@ -169,7 +174,13 @@ export function frameState(feet: Vec3[], robot: RobotConfig): PoseState {
     };
     // The offsets are taken from the body as it is kept, rounded, so the two
     // layers still put the feet exactly where the gait has them.
-    const kept = pl.placement(pl.makeState(body, Array.from({ length: 6 }, () => [0, 0, 0])), robot);
+    const kept = pl.placement(
+        pl.makeState(
+            body,
+            Array.from({ length: 6 }, () => [0, 0, 0]),
+        ),
+        robot,
+    );
     return pl.makeState(
         body,
         feet.map((f, leg) => {
@@ -219,7 +230,11 @@ function fits(
  * wherever the sequence was. The first one's time is the move into it from
  * the end of the cycle, so a cycle put in twice, or looped, runs on without a
  * seam. */
-export function gaitKeyframes(motionName: string, robot: RobotConfig, tolerance = TOLERANCE_MM): Keyframe[] {
+export function gaitKeyframes(
+    motionName: string,
+    robot: RobotConfig,
+    tolerance = TOLERANCE_MM,
+): Keyframe[] {
     const poses = robotPoses(motionName, robot);
     const feet = poses.map((pose) => kf.poseToFeet(pose, robot));
     const states = feet.map((f) => frameState(f, robot));

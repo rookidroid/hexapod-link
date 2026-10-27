@@ -111,7 +111,11 @@ export function transformScene(
 ): Scene {
     const move = (p: readonly number[]): Vec3 => {
         const r = matVec(rotation, p);
-        return [pyRound(r[0] + shift[0], 3), pyRound(r[1] + shift[1], 3), pyRound(r[2] + shift[2], 3)];
+        return [
+            pyRound(r[0] + shift[0], 3),
+            pyRound(r[1] + shift[1], 3),
+            pyRound(r[2] + shift[2], 3),
+        ];
     };
     return {
         ...scene,

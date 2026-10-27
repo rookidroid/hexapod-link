@@ -62,7 +62,14 @@ export const LIMIT_MARGIN_DEG = 0.5;
 // The nearest (mm) a foot held in reach comes to its coxia's axis.
 const MIN_RADIUS = 1.0;
 
-export const BODY_KEYS = ["percent_x", "percent_y", "percent_z", "rot_x", "rot_y", "rot_z"] as const;
+export const BODY_KEYS = [
+    "percent_x",
+    "percent_y",
+    "percent_z",
+    "rot_x",
+    "rot_y",
+    "rot_z",
+] as const;
 export type BodyKey = (typeof BODY_KEYS)[number];
 export type Body = Record<BodyKey, number>;
 
@@ -160,7 +167,12 @@ function planeFoot(femur: number, tibia: number, femurLength: number, tibiaLengt
 
 /** planeFoot() run backwards, as inverseKinematics() does it: (femur, tibia),
  * or null for a foot the two cannot reach. */
-function planeAngles(out: number, up: number, femurLength: number, tibiaLength: number): Plane | null {
+function planeAngles(
+    out: number,
+    up: number,
+    femurLength: number,
+    tibiaLength: number,
+): Plane | null {
     const reach2 = out * out + up * up;
     const reach = Math.sqrt(reach2);
     if (reach < 1e-9) {
@@ -437,13 +449,23 @@ export function numberOf(keyframe: Keyframe): number | null {
 }
 
 /** `keyframe` with a new pose, keeping its time, easing and number. */
-export function remade(keyframe: Keyframe, feet: readonly (readonly number[])[], state?: PoseState): Keyframe {
+export function remade(
+    keyframe: Keyframe,
+    feet: readonly (readonly number[])[],
+    state?: PoseState,
+): Keyframe {
     return makeKeyframe(feet, keyframe.duration_ms, state, eases(keyframe), numberOf(keyframe));
 }
 
 /** `keyframe` easing into it, or not, and otherwise as it was. */
 export function withEase(keyframe: Keyframe, ease: boolean): Keyframe {
-    return makeKeyframe(keyframe.feet, keyframe.duration_ms, keyframe.state, ease, numberOf(keyframe));
+    return makeKeyframe(
+        keyframe.feet,
+        keyframe.duration_ms,
+        keyframe.state,
+        ease,
+        numberOf(keyframe),
+    );
 }
 
 /** The keyframes without their numbers: how keyframes taken from elsewhere
@@ -506,7 +528,12 @@ type Sample = [start: number, end: number, t: number];
  * looping the last frame is the last keyframe; looping, the move back to the
  * first keyframe is included but not the first keyframe again, so the frames
  * play round without a seam. */
-function samples(keyframes: readonly Keyframe[], fps: number, loop: boolean, speed: number): Sample[] {
+function samples(
+    keyframes: readonly Keyframe[],
+    fps: number,
+    loop: boolean,
+    speed: number,
+): Sample[] {
     const count = keyframes.length;
     const pairs: [number, number][] = [];
     for (let i = 1; i < count; i++) {
@@ -515,7 +542,9 @@ function samples(keyframes: readonly Keyframe[], fps: number, loop: boolean, spe
     if (loop && count > 1) {
         pairs.push([count - 1, 0]);
     }
-    const seconds = pairs.map(([, end]) => clampDuration(keyframes[end].duration_ms) / 1000.0 / speed);
+    const seconds = pairs.map(
+        ([, end]) => clampDuration(keyframes[end].duration_ms) / 1000.0 / speed,
+    );
     const total = seconds.reduce((a, b) => a + b, 0);
 
     const out: Sample[] = [[0, 0, 0.0]];
@@ -627,7 +656,11 @@ export function solveFrames(feetFrames: readonly Vec3[][], robot: RobotConfig): 
 }
 
 /** How long one pass through the keyframes takes, at `speed`. */
-export function sequenceDurationMs(keyframes: readonly Keyframe[], loop = false, speed = 1.0): number {
+export function sequenceDurationMs(
+    keyframes: readonly Keyframe[],
+    loop = false,
+    speed = 1.0,
+): number {
     if (!keyframes.length) {
         return 0;
     }
@@ -648,7 +681,10 @@ export interface KeyframeDocument {
 }
 
 /** The keyframes as a document to save. */
-export function dumpDocument(keyframes: readonly Keyframe[], robot: { name: string }): KeyframeDocument {
+export function dumpDocument(
+    keyframes: readonly Keyframe[],
+    robot: { name: string },
+): KeyframeDocument {
     return {
         format: FILE_FORMAT,
         version: FILE_VERSION,
