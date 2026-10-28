@@ -1195,16 +1195,28 @@ function render(containerId, data, options) {
         v = views[containerId] = createView(containerId, container);
     }
 
-    if (data.colors) {
-        v.colors = Object.assign({}, DEFAULT_COLORS, data.colors);
+    // The theme's colours, given by the page, win over the scene's own.
+    var colors = options.colors || data.colors;
+    var recolored = false;
+    if (colors) {
+        var next = Object.assign({}, DEFAULT_COLORS, colors);
+        recolored = !sameColors(v.colors, next);
+        v.colors = next;
     }
-    if (fresh || !v.parts || Math.abs(v.size - data.size) > 1e-6) {
+    var resized = fresh || !v.parts || Math.abs(v.size - data.size) > 1e-6;
+    var keep = null;
+    if (resized || recolored) {
         // The feet are about to be rebuilt, so let go of what is being
-        // held rather than leave the gizmo on a dead mesh.
+        // held rather than leave the gizmo on a dead mesh. Only new
+        // colours take it up again once they are drawn.
         if (v.selected !== null) {
             v.gizmo.detach();
+            if (resized) {
+                setProps(SELECTION_ID, { data: null });
+            } else {
+                keep = v.selected;
+            }
             v.selected = null;
-            setProps(SELECTION_ID, { data: null });
         }
         v.renderer.setClearColor(v.colors.background);
         buildParts(v, data);
@@ -1223,7 +1235,16 @@ function render(containerId, data, options) {
     v.data = data;
     settleJointDrag(v);
     draw(v, shownData(v));
+    if (keep !== null) {
+        select(v, keep);
+    }
     return true;
+}
+
+function sameColors(a, b) {
+    return Object.keys(b).every(function (key) {
+        return a[key] === b[key];
+    });
 }
 
 function resetCamera(containerId) {

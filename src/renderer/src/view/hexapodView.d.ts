@@ -1,13 +1,15 @@
 import type { Scene } from "../../../shared/scene";
+import type { ViewerColors } from "../../../shared/style";
 
 export type Picked = null | number | "body" | { leg: number; joint: "coxia" | "femur" | "tibia" };
 
 export interface HexapodView {
-    /** Draw `scene` into the element with id `containerId`. */
+    /** Draw `scene` into the element with id `containerId`, in `colors` if
+     * given rather than the scene's own. */
     render(
         containerId: string,
         scene: Scene,
-        options?: { editable?: boolean; zoom?: boolean },
+        options?: { editable?: boolean; zoom?: boolean; colors?: ViewerColors },
     ): boolean;
     resetCamera(containerId: string): void;
     select(containerId: string, what: Picked): void;

@@ -136,16 +136,24 @@
        as armour plates are (CORNERS, at the end). */
     --chamfer: 7px;
 
-    /* The 3D view is the cockpit's panoramic monitor in both themes, and so
-       is what is laid over it: navy plates edged in HUD cyan. */
-    --view-bg: #0a1428;
-    --hud-cyan-rgb: 76, 201, 240;
-    --hud-bg: rgba(8, 16, 34, 0.84);
-    --hud-border: rgba(var(--hud-cyan-rgb), 0.28);
-    --hud-text: #e4eeff;
-    --hud-muted: #8aa2c8;
-    /* What is picked, as the view marks it (HEAD_COLOR in shared/style.ts). */
-    --hud-picked: #f7c600;
+    /* The 3D view and what is laid over it. In the light theme a pale
+       hangar floor under white plates edged in Federation blue; in the dark
+       one the cockpit's monitor, navy plates edged in HUD cyan. The view's
+       own colours are in shared/style.ts; --view-bg is its background. */
+    --view-bg: #e6ebf3;
+    --hud-cyan-rgb: 29, 79, 163;
+    --hud-bg: rgba(246, 248, 251, 0.88);
+    --hud-border: rgba(var(--hud-cyan-rgb), 0.3);
+    --hud-text: #0f1a30;
+    --hud-muted: #4a5875;
+    --hud-input-bg: rgba(255, 255, 255, 0.7);
+    --hud-alert: #b42318;
+    /* The top bar's shade, where it lies over the view. */
+    --hud-shade: rgba(230, 235, 243, 0.75);
+    /* What is picked, as the view marks it (footSelected in
+       shared/style.ts), and the same as text on a HUD card. */
+    --hud-picked: #f2b705;
+    --hud-picked-text: #9a6b00;
 
     --font-ui: 'Chakra Petch', system-ui, sans-serif;
     --font-display: 'Michroma', 'Chakra Petch', sans-serif;
@@ -196,6 +204,18 @@
     --ind-glow: 0 0 0 1px rgba(76, 201, 240, 0.45), 0 0 14px rgba(76, 201, 240, 0.25);
     --ind-glow-inset: inset 0 0 0 2px rgba(76, 201, 240, 0.7);
     --shadow-soft: 0 2px 10px rgba(0, 0, 0, 0.55);
+
+    --view-bg: #0a1428;
+    --hud-cyan-rgb: 76, 201, 240;
+    --hud-bg: rgba(8, 16, 34, 0.84);
+    --hud-border: rgba(var(--hud-cyan-rgb), 0.28);
+    --hud-text: #e4eeff;
+    --hud-muted: #8aa2c8;
+    --hud-input-bg: rgba(8, 16, 34, 0.6);
+    --hud-alert: #ffb4b4;
+    --hud-shade: rgba(6, 12, 24, 0.62);
+    --hud-picked: #f7c600;
+    --hud-picked-text: #f7c600;
 }
 
 /* ===========================================
@@ -621,8 +641,8 @@ body {
    Above `lg` the top bar is laid over the top of the 3D view rather than
    above it, and is see-through, with only a faint shade so its text reads:
    the view, and the robot in it, run up to the window's top edge. Being on
-   the dark monitor, it takes the HUD's colours in either theme. In the
-   desktop app it is the window's title bar too (WINDOW below). */
+   the view, it takes the HUD's colours. In the desktop app it is the
+   window's title bar too (WINDOW below). */
 
 @media (min-width: 992px) {
     :root {
@@ -634,23 +654,14 @@ body {
     }
 
     .topbar {
-        color-scheme: dark;
         --ind-surface-alt: var(--hud-bg);
         --ind-border: var(--hud-border);
         --ind-border-strong: rgba(var(--hud-cyan-rgb), 0.45);
         --ind-frame: rgba(var(--hud-cyan-rgb), 0.45);
-        --ind-accent: #3d7cf0;
-        --ind-accent-hover: #2f68d6;
-        --ind-accent-active: #2455b4;
-        --ind-accent-rgb: 61, 124, 240;
-        --ind-accent-alt: #ffd23f;
-        --ind-red: #ff4d4d;
-        --ind-ok: #22c55e;
-        --ind-outline: #02060f;
         --ind-text: var(--hud-text);
         --ind-text-muted: var(--hud-muted);
         --ind-hover: rgba(var(--hud-cyan-rgb), 0.14);
-        --ind-input-bg: rgba(8, 16, 34, 0.6);
+        --ind-input-bg: var(--hud-input-bg);
         --ind-glow: 0 0 0 1px rgba(var(--hud-cyan-rgb), 0.45), 0 0 14px rgba(var(--hud-cyan-rgb), 0.25);
         --ind-glow-inset: inset 0 0 0 2px rgba(var(--hud-cyan-rgb), 0.7);
 
@@ -660,7 +671,7 @@ body {
         right: 0;
         height: var(--topbar-h);
         color: var(--ind-text);
-        background: linear-gradient(to bottom, rgba(6, 12, 24, 0.62), rgba(6, 12, 24, 0));
+        background: linear-gradient(to bottom, var(--hud-shade), transparent);
         box-shadow: none;
         user-select: none;
     }
@@ -1316,7 +1327,7 @@ body {
    The three.js view (view/hexapodView.js) fills its area; buttons sit in
    the top-right corner, how the body picked is dragged over the top edge, and
    the pose -- its joint angles, and the controls of what is picked -- in the
-   bottom-left, all drawn for the dark monitor in either theme.
+   bottom-left, all in the HUD's colours, which follow the theme.
    =========================================== */
 
 .hexapod-view-frame,
@@ -1350,7 +1361,7 @@ body {
     gap: 0.4rem;
 }
 
-/* A card over the dark view, in either theme: the stream controls, the
+/* A card over the view: the stream controls, the
    dimensions and the pose. The sliders and the inputs inside one are
    redrawn for it. */
 .hud-panel {
@@ -1591,7 +1602,7 @@ body {
 
 /* A leg out of reach has no angles: a dash in their place. */
 .pose-hud .ind-joint-grid input::placeholder {
-    color: #ffb4b4;
+    color: var(--hud-alert);
     opacity: 1;
     text-align: center;
 }
@@ -1624,7 +1635,7 @@ body {
 }
 
 .hud-pick.is-picked {
-    color: var(--view-bg);
+    color: #0a1428;
     background: var(--hud-picked);
     border-color: var(--hud-picked);
 }
@@ -1642,7 +1653,7 @@ body {
 }
 
 .pose-hud .ind-alert {
-    color: #ffb4b4;
+    color: var(--hud-alert);
     background: rgba(255, 92, 92, 0.12);
     margin-top: 0.4rem;
 }
@@ -1673,7 +1684,7 @@ body {
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: var(--hud-picked);
+    color: var(--hud-picked-text);
 }
 
 .hud-panel .dock-seg-item {

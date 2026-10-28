@@ -8,14 +8,14 @@
 // the body, adding gaits to the sequence, playing it -- taking a picture at
 // each step. What it writes to docs/images/:
 //
-//     app         app.png, app-dark.png   the whole window, in each theme
+//     app         app.png                 the whole window
 //                 controller.png          the controller, cut out of it
 //     walk        walk.gif                a walk cycle, in the 3D view alone
 //     pose        pose.gif                posing the body and a foot
-//     sequence    sequence.gif,           building a sequence and playing it,
-//                 sequence-dark.gif       in each theme
+//     sequence    sequence.gif            building a sequence and playing it
 //
-// They are therefore always of the current UI: rerun this after a theme or
+// All in the dark theme (THEME). They are therefore always of the current
+// UI: rerun this after a theme or
 // layout change rather than editing the images by hand. The stand-in robot
 // listens on the robot's UDP port, so no real robot session can be running on
 // this machine at the same time. The preferences, robot cache and gaits of this
@@ -52,12 +52,8 @@ const SEQUENCE_WINDOW: [number, number] = [1200, 720];
 const GIF_WIDTH = 840;
 const WALK_WIDTH = 760;
 
-// Every themed shot is taken once per theme, with this suffix on the file
-// name. The README picks between the two with a <picture> element.
-const THEMES: [string, string][] = [
-    ["light", ""],
-    ["dark", "-dark"],
-];
+// The theme every shot is taken in.
+const THEME = "dark";
 
 // What the whole-window shot shows instead of the neutral start-up pose: one
 // foot lifted, under a body shifted and tilted off centre, all well within
@@ -108,10 +104,10 @@ class Shooter {
 
     /** A fresh window of the size given, connected to the stand-in robot,
      * with the overlays named in `panels` open. */
-    async open(window: [number, number], theme = "light", panels: string[] = []): Promise<Page> {
+    async open(window: [number, number], panels: string[] = []): Promise<Page> {
         await this.close();
         const preferences = {
-            theme,
+            theme: THEME,
             panels: Object.fromEntries(
                 ["pose", "controller", "dimensions"].map((k) => [k, panels.includes(k)]),
             ),
@@ -382,9 +378,9 @@ async function play(shooter: Shooter, recorder: Recorder, frameMs: number): Prom
 // The shots
 // ................................
 
-/** The whole window in each theme, and the controller cut out of it. */
+/** The whole window, and the controller cut out of it. */
 async function shootApp(shooter: Shooter): Promise<void> {
-    await shooter.open(APP_WINDOW, "light", ["pose", "controller"]);
+    await shooter.open(APP_WINDOW, ["pose", "controller"]);
     // Standby, then the pose, then a gait: a sequence with the pose selected
     // in it, and the body picked up.
     await shooter.act("addPose");
@@ -404,11 +400,7 @@ async function shootApp(shooter: Shooter): Promise<void> {
     await shooter.act("selectKeyframe", 1);
     await shooter.pick("body");
 
-    for (const [theme, suffix] of THEMES) {
-        if (theme !== "light") await shooter.click("#theme-toggle");
-        await save(await shooter.shot(), `app${suffix}.png`, APP_WIDTH);
-    }
-    // Laid over the view, which looks the same in both themes.
+    await save(await shooter.shot(), "app.png", APP_WIDTH);
     const box = await shooter.box("#drive-hud");
     const margin = 10;
     await save(
@@ -459,7 +451,7 @@ async function shootWalk(shooter: Shooter): Promise<void> {
 
 /** Posing the robot in the view: the body moved and turned, a foot lifted. */
 async function shootPose(shooter: Shooter): Promise<void> {
-    await shooter.open(POSE_WINDOW, "light", ["pose"]);
+    await shooter.open(POSE_WINDOW, ["pose"]);
     const view = await shooter.box(".hexapod-view-frame");
     // The pose's controls take the view's left side; the robot is moved clear
     // of them, as one would with the right mouse button.
@@ -518,8 +510,8 @@ async function shootPose(shooter: Shooter): Promise<void> {
 }
 
 /** A sequence put together from the robot's gaits, then played. */
-async function shootSequence(shooter: Shooter, theme: string, suffix: string): Promise<void> {
-    await shooter.open(SEQUENCE_WINDOW, theme);
+async function shootSequence(shooter: Shooter): Promise<void> {
+    await shooter.open(SEQUENCE_WINDOW);
     const view = await shooter.box(".hexapod-view-frame");
     await shooter.wheel(view.x + view.width / 2, view.y + view.height / 2, -100, 2);
     const recorder = new Recorder(shooter, undefined, GIF_WIDTH);
@@ -536,16 +528,14 @@ async function shootSequence(shooter: Shooter, theme: string, suffix: string): P
     // Run out where it ends, which makes that frame the pose.
     await shooter.act("playhead", last);
     await recorder.frame(2000);
-    recorder.save(`sequence${suffix}.gif`);
+    recorder.save("sequence.gif");
 }
 
 const SHOTS: Record<string, (shooter: Shooter) => Promise<void>> = {
     app: shootApp,
     walk: shootWalk,
     pose: shootPose,
-    sequence: async (shooter) => {
-        for (const [theme, suffix] of THEMES) await shootSequence(shooter, theme, suffix);
-    },
+    sequence: shootSequence,
 };
 
 async function main(): Promise<void> {

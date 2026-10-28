@@ -8,6 +8,7 @@
 // dragged -- or a frame of the sequence while previewing, which cannot.
 
 import { useEffect, useRef } from "react";
+import { VIEWER_THEMES } from "../../../shared/style";
 import { previewOf, solvedOf, useStore } from "../state/store";
 import { hexapodView } from "../view/hexapodView";
 import { PlaybackHud } from "./PlaybackHud";
@@ -30,18 +31,19 @@ function View3D() {
             hexapodView.on("pose-joint-target", (t) => store.jointTarget(t)),
         ];
         let shown: unknown = null;
+        let shownTheme: unknown = null;
         const draw = () => {
             const s = useStore.getState();
             const preview = previewOf(s);
-            if (s.mode === "preview" && preview.states.length) {
-                const scene = preview.scene(s.frame);
-                if (scene !== shown) hexapodView.render(VIEW_ID, scene, { editable: false });
-                shown = scene;
-            } else {
-                const scene = solvedOf(s).scene;
-                if (scene !== shown) hexapodView.render(VIEW_ID, scene, { editable: true });
-                shown = scene;
-            }
+            const previewing = s.mode === "preview" && preview.states.length > 0;
+            const scene = previewing ? preview.scene(s.frame) : solvedOf(s).scene;
+            if (scene === shown && s.theme === shownTheme) return;
+            hexapodView.render(VIEW_ID, scene, {
+                editable: !previewing,
+                colors: VIEWER_THEMES[s.theme],
+            });
+            shown = scene;
+            shownTheme = s.theme;
         };
         draw();
         hexapodView.setBodyMode(VIEW_ID, useStore.getState().bodyMode);

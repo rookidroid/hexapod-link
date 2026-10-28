@@ -40,7 +40,7 @@ moves to the real robot.
 
 ## A quick tour of the window
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/app-dark.png"><img src="docs/images/app.png" alt="The Hexapod Link window"></picture>
+<img src="docs/images/app.png" alt="The Hexapod Link window">
 
 Everything is on one screen:
 
@@ -186,7 +186,7 @@ may move.
 ## Make an animation
 
 <p align="center">
-  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/sequence-dark.gif"><img src="docs/images/sequence.gif" alt="Adding three gaits to the sequence, then playing it"></picture>
+  <img src="docs/images/sequence.gif" alt="Adding three gaits to the sequence, then playing it">
 </p>
 
 An animation is called a **sequence**. It is a row of **keyframes**: poses

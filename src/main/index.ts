@@ -16,6 +16,7 @@ import { fileURLToPath } from "node:url";
 import { app, BrowserWindow, screen, shell } from "electron";
 import type { Startup } from "../shared/api";
 import { APP_TITLE } from "../shared/settings";
+import { VIEWER_THEMES } from "../shared/style";
 import { registerIpc } from "./ipc";
 import { RobotLink } from "./robot_link";
 import * as storage from "./storage";
@@ -80,7 +81,7 @@ function createWindow(): void {
         minHeight: WINDOW_MIN_SIZE[1],
         frame: !FRAMELESS,
         titleBarStyle: FRAMELESS && process.platform === "darwin" ? "hidden" : "default",
-        backgroundColor: "#0a1428",
+        backgroundColor: VIEWER_THEMES[storage.loadTheme()].background,
         icon: iconPath(),
         show: false,
         webPreferences: {

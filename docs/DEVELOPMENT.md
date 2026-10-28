@@ -220,10 +220,12 @@ $ npm run screenshots -- app pose  # only those
 
 | Name | Writes | Shows |
 |---|---|---|
-| `app` | `app.png`, `app-dark.png`, `controller.png` | the whole window in each theme, and the controller cut out of it |
+| `app` | `app.png`, `controller.png` | the whole window, and the controller cut out of it |
 | `walk` | `walk.gif` | a walk cycle, in the 3D view alone |
 | `pose` | `pose.gif` | posing the body and a foot |
-| `sequence` | `sequence.gif`, `sequence-dark.gif` | building a sequence and playing it, in each theme |
+| `sequence` | `sequence.gif` | building a sequence and playing it |
+
+All of them are in the dark theme.
 
 The app icon is `resources/icon.png` (and `app.ico` for Windows). Rerun the
 screenshots after a UI or theme change rather than editing the images by hand.
