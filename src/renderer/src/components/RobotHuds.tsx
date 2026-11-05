@@ -1,6 +1,5 @@
 // What belongs to the robot rather than to the pose, over the view:
 //
-// * StreamHud switches streaming on and limits its speed.
 // * DimensionsHud names the robot modelled and its measurements, which follow
 //   the connected robot and can be edited to try another body.
 // * DriveHud is the controller: hold a pad and the robot plays that one of its
@@ -19,52 +18,6 @@ import { FieldGrid, FieldLabel, GroupHeader, Hud, NumberField, Slider } from "./
 
 export const controlsClass = (offline: boolean) =>
     offline ? "robot-section-controls is-offline" : "robot-section-controls";
-
-export function StreamHud() {
-    const connected = useStore((s) => s.status.connected);
-    const streaming = useStore((s) => s.status.streaming);
-    const maxStep = useStore((s) => s.maxStep);
-    const { setStreaming, setMaxStep } = useStore.getState();
-    const offline = !connected;
-    return (
-        <div
-            id="robot-stream-hud"
-            className="hud-panel stream-hud"
-            title="Sends every reachable pose to the servos as it changes. Put the hexapod on a stand first: a pose that stands up here will not necessarily stand up on the floor."
-        >
-            <div id="robot-stream-controls" className={controlsClass(offline)}>
-                <div className="form-check form-switch mb-0">
-                    <input
-                        id="robot-stream-switch"
-                        className="form-check-input"
-                        type="checkbox"
-                        disabled={offline}
-                        checked={streaming}
-                        onChange={(e) => void setStreaming(e.target.checked)}
-                    />
-                    <label className="form-check-label form-label" htmlFor="robot-stream-switch">
-                        Stream to robot
-                    </label>
-                </div>
-                <div
-                    className="ind-inline-slider"
-                    title="Max joint speed, in servo ticks per cycle: how fast any servo may slew"
-                >
-                    <FieldLabel>Max speed</FieldLabel>
-                    <Slider
-                        id="robot-max-step-slider"
-                        min={1}
-                        max={30}
-                        step={1}
-                        value={maxStep}
-                        disabled={offline}
-                        onChange={setMaxStep}
-                    />
-                </div>
-            </div>
-        </div>
-    );
-}
 
 const DIMENSION_LABEL = (name: string) => name[0].toUpperCase() + name.slice(1);
 

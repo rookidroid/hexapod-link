@@ -1,5 +1,6 @@
 // The top bar, which is also the window's title bar: the app's name, the
-// robot link's status pill (which opens to connect), the theme, and in the
+// robot -- a split pill: the link's status, which opens to connect, and a
+// Stream toggle beside it -- the theme, and in the
 // frameless window its own minimize, maximize and close buttons. It lies over
 // the top of the 3D view, see-through so the view shows behind it.
 
@@ -8,7 +9,7 @@ import { describeFirmware } from "../../../shared/robot_config";
 import { APP_TITLE, ROBOT_DEFAULT_IP } from "../../../shared/settings";
 import { api } from "../api";
 import { useStore } from "../state/store";
-import { Button, FieldLabel } from "./widgets";
+import { Button, FieldLabel, Slider } from "./widgets";
 
 // What the theme button offers is the other theme, so it shows that one's icon.
 const THEME_ICON = { light: "☾", dark: "☀" };
@@ -22,13 +23,14 @@ function linkText(status: ReturnType<typeof useStore.getState>["status"]): strin
 }
 
 /** The link's readout: a status pill that opens a dropdown with the robot's
- * address, Connect, and the link's detail. A click outside it, or Esc,
- * closes it. */
+ * address, Connect, how fast streaming may move the joints, and the link's
+ * detail. A click outside it, or Esc, closes it. */
 function LinkMenu() {
     const status = useStore((s) => s.status);
     const robotIp = useStore((s) => s.robotIp);
     const connecting = useStore((s) => s.connecting);
-    const { set, toggleConnection } = useStore.getState();
+    const maxStep = useStore((s) => s.maxStep);
+    const { set, toggleConnection, setMaxStep } = useStore.getState();
     const [open, setOpen] = useState(false);
     const menu = useRef<HTMLDetailsElement>(null);
     const input = useRef<HTMLInputElement>(null);
@@ -60,8 +62,6 @@ function LinkMenu() {
         [label, state] = ["Fault", "is-fault"];
     } else if (!status.connected) {
         [label, state] = ["Offline", "is-offline"];
-    } else if (status.streaming) {
-        [label, state] = [`${status.robot_label} · Streaming`, "is-streaming"];
     } else {
         [label, state] = [`${status.robot_label} · Online`, "is-online"];
     }
@@ -106,11 +106,50 @@ function LinkMenu() {
                         {status.connected ? "Disconnect" : connecting ? "Connecting…" : "Connect"}
                     </Button>
                 </div>
+                <div
+                    className="ind-inline-slider link-speed"
+                    title="How fast streaming may move any servo, in ticks per cycle"
+                >
+                    <FieldLabel>Max speed</FieldLabel>
+                    <Slider
+                        id="robot-max-step-slider"
+                        min={1}
+                        max={30}
+                        step={1}
+                        value={maxStep}
+                        disabled={!status.connected}
+                        onChange={setMaxStep}
+                    />
+                </div>
                 <div id="link-detail" className="link-detail">
                     {detail}
                 </div>
             </div>
         </details>
+    );
+}
+
+/** The pill's other half: streams to the robot while on, and the view's edge
+ * glows yellow. Only with a robot connected. */
+function StreamToggle() {
+    const connected = useStore((s) => s.status.connected);
+    const streaming = useStore((s) => s.status.streaming);
+    return (
+        <button
+            type="button"
+            id="robot-stream-switch"
+            className={`status-pill stream-toggle${streaming ? " is-on" : ""}`}
+            aria-pressed={streaming}
+            disabled={!connected}
+            title={
+                connected
+                    ? "Stream to robot: sends every reachable pose to the servos as it changes, and the sequence as it plays. Put the hexapod on a stand first: a pose that stands up here will not necessarily stand up on the floor."
+                    : "Stream to robot: connect to a robot first"
+            }
+            onClick={() => void useStore.getState().setStreaming(!streaming)}
+        >
+            Stream
+        </button>
     );
 }
 
@@ -155,8 +194,11 @@ export function TopBar() {
                 <span className="topbar-title">{APP_TITLE}</span>
                 <span className="topbar-version">v{api.startup.version}</span>
             </div>
-            <LinkMenu />
-            <div className="d-flex">
+            <div className="topbar-end">
+                <div className="robot-link">
+                    <LinkMenu />
+                    <StreamToggle />
+                </div>
                 <button
                     type="button"
                     id="theme-toggle"
@@ -166,8 +208,8 @@ export function TopBar() {
                 >
                     {THEME_ICON[theme]}
                 </button>
+                <WindowButtons />
             </div>
-            <WindowButtons />
         </header>
     );
 }

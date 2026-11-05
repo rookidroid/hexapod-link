@@ -184,8 +184,8 @@ are edited, and what is streamed is solved on the edited body too.
 
 A sequence is keyframes of that pose. Between keyframes each layer moves on
 its own, so a body tilting from one keyframe to the next tilts over planted
-feet, while a moved foot travels in a straight line. **Run on robot** streams
-them in real time, smoothed to the robot's own frame rate.
+feet, while a moved foot travels in a straight line. With **Stream** on,
+**Play** streams them in real time, smoothed to the robot's own frame rate.
 
 A built-in gait put into a sequence is worked out into the few keyframes that
 trace its path to within a millimetre (15 to 24 for a walk, depending on the

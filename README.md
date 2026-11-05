@@ -50,12 +50,12 @@ Everything is on one screen:
 
 | Where | What it does |
 |---|---|
-| **Top bar** | Shows whether a robot is connected. Click it to connect. The ☾ / ☀ button switches between dark and light colours. |
+| **Top bar** | At the right: whether a robot is connected (click it to connect), and beside it **Stream**, which makes the real robot follow the screen. The ☾ / ☀ button switches between dark and light colours. |
 | **3D view** (the middle) | Shows the robot. Drag with the left mouse button to look around it, drag with the right button to slide the view, and use the scroll wheel to zoom. A short reminder of this sits at the bottom of the view. |
-| **Stream to robot** and **Dimensions** (top left) | Make the real robot follow the screen as you pose it. See or change the robot's measurements. |
+| **Dimensions** (top left) | See or change the robot's measurements. |
 | **Pose** (bottom left) | Every joint's angle, plus the controls for the part you have clicked. |
 | **Controller** (bottom right) | Buttons that drive the robot around. |
-| **Playback bar** (bottom middle) | Play your animation, slow it down or speed it up, repeat it, or run it on the robot. |
+| **Playback bar** (bottom middle) | Play your animation, slow it down or speed it up, repeat it. With **Stream** on, the robot plays along. |
 | **Gaits** and **Sequence** (the panel along the bottom) | Build your animation. |
 
 **Pose**, **Dimensions** and **Controller** can be folded away. Click a
@@ -150,7 +150,8 @@ The app helps keep things safe:
 
 One thing to watch: an animation always starts by moving to its first pose,
 wherever the robot happens to be. That first move can be quick. Make your
-first pose close to standing, or click **Standby** before **Run on robot**.
+first pose close to standing. With **Stream** on, the robot already
+holds the pose on screen before you click **Play**.
 
 ## Pose the robot
 
@@ -183,9 +184,10 @@ Good to know:
 - If you drag something further than a leg can reach, it stops at the edge.
 - You can also type a joint angle straight into the table.
 
-**Want the real robot to copy you as you pose?** Turn on **Stream to robot**
-at the top left. **Max speed** next to it limits how fast the robot's motors
-may move.
+**Want the real robot to copy you as you pose?** Click **Stream**
+at the top right, beside the robot's name; it turns yellow, and so does the edge
+of the 3D view. **Max speed**, in the menu that opens from the robot's name,
+limits how fast the robot's motors may move.
 
 ## Make an animation
 
@@ -223,8 +225,9 @@ walking, like a walk or a turn).
    the move from the last keyframe back to the first uses the first
    keyframe's time; that's the **↺** arrow in front of it (dimmed when Loop
    is off).
-5. **Run it on the robot.** Click **Run on robot**. **Standby** stops it and
-   makes the robot stand.
+5. **Run it on the robot.** Turn on **Stream**, then click **Play**:
+   the robot plays along with the preview. **Pause** stops it on the pose
+   on screen, and the **Controller**'s centre pad makes it stand.
 
 Tips:
 
@@ -279,7 +282,7 @@ out.
 | What you see | What to try |
 |---|---|
 | **Connect** ends in **Fault** | Make sure your computer is on the robot's WiFi, not your home WiFi, and that the robot is switched on. Hover over the status light to see why it failed. |
-| Some buttons are greyed out | They need a connected robot. **Stream to robot**, **Run on robot** and the **Controller** turn on once a robot is connected. |
+| Some buttons are greyed out | They need a connected robot. **Stream** and the **Controller** turn on once a robot is connected. |
 | A leg won't go where you drag it | It is already reaching as far as it can, or a joint is at its limit. The **Pose** panel tells you which leg. |
 | A sequence file won't load | It was made for a different robot model. |
 | The real robot's legs are a little off from the screen | Adjust them on the robot's own calibration page. |

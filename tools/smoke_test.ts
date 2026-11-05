@@ -135,9 +135,12 @@ async function main(): Promise<void> {
         );
         assert.match((await page.textContent("#pose-keyframe-editor-label")) ?? "", /Keyframe #/);
 
-        step("run on robot streams the sequence");
+        step("with streaming on, the view glows and Play streams the sequence");
+        await page.click("#robot-stream-switch");
+        await page.waitForSelector(".hexapod-view-frame.is-streaming");
+        assert.equal(await page.getAttribute("#robot-stream-switch", "aria-pressed"), "true");
         const posesBefore = kinds(robot).filter((k) => k === 0xa6).length;
-        await page.click("#pose-run-btn");
+        await page.click("#pose-play-btn");
         await page.waitForFunction(() =>
             document.querySelector("#pose-robot-message")?.textContent?.startsWith("Streaming"),
         );
@@ -146,7 +149,11 @@ async function main(): Promise<void> {
             kinds(robot).filter((k) => k === 0xa6).length > posesBefore + 10,
             "pose packets streamed",
         );
-        await page.click("#pose-stop-btn");
+        if ((await page.textContent("#pose-play-btn"))?.includes("Pause")) {
+            await page.click("#pose-play-btn");
+        }
+        await page.click("#robot-stream-switch");
+        await page.waitForSelector(".hexapod-view-frame:not(.is-streaming)");
 
         step("holding a controller pad drives the robot, letting go stands it");
         await page.click("#drive-hud > summary");

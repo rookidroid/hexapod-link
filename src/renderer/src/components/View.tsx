@@ -1,7 +1,7 @@
 // The 3D view in the middle of the workspace, and what is laid over it:
 //
-//   [stream]                  [move | rotate]         [reset pose][reset view]
-//   [dimensions]                 3D view
+//   [dimensions]              [move | rotate]         [reset pose][reset view]
+//                                 3D view
 //   [pose: angles, what is picked]    [playback]                  [controller]
 //
 // The view draws the pose -- whose body, feet and joints can be picked and
@@ -13,7 +13,7 @@ import { previewOf, solvedOf, useStore } from "../state/store";
 import { hexapodView } from "../view/hexapodView";
 import { PlaybackHud } from "./PlaybackHud";
 import { BodyTool, PoseHud } from "./PoseHud";
-import { DimensionsHud, DriveHud, StreamHud } from "./RobotHuds";
+import { DimensionsHud, DriveHud } from "./RobotHuds";
 import { Button } from "./widgets";
 
 export const VIEW_ID = "view-pose";
@@ -61,6 +61,7 @@ function View3D() {
 
 export function View() {
     const frame = useRef<HTMLDivElement>(null);
+    const streaming = useStore((s) => s.status.streaming);
     const { resetPose } = useStore.getState();
 
     // How tall the playback bar is, as --playback-h on the frame: the pose
@@ -76,8 +77,10 @@ export function View() {
     }, []);
 
     return (
-        <div className="hexapod-view-frame" ref={frame}>
+        <div className={`hexapod-view-frame${streaming ? " is-streaming" : ""}`} ref={frame}>
             <View3D />
+            {/* Yellow round the edge while the robot follows what is shown. */}
+            <div className="hexapod-view-glow" aria-hidden="true" />
             <div className="hexapod-view-overlay">
                 <Button
                     id="pose-reset-btn"
@@ -102,7 +105,6 @@ export function View() {
                 <PoseHud />
             </div>
             <div className="hexapod-view-controls">
-                <StreamHud />
                 <DimensionsHud />
             </div>
             <div className="hexapod-view-drive">

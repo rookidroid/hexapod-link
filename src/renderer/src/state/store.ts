@@ -69,7 +69,7 @@ import { type SavedPose, savedDimensions, savedValues } from "./restore";
 
 export const SELECT_BODY = "body";
 /** Frames a second the preview is drawn at. The robot gets its own, faster,
- * frames: see runOnRobot(). */
+ * frames: see streamSequence(). */
 export const PREVIEW_FPS = 25;
 export const SPEED_MIN_PCT = 25;
 export const SPEED_MAX_PCT = 200;
@@ -355,8 +355,7 @@ interface Actions {
     setStreaming(on: boolean): Promise<void>;
     setMaxStep(maxStep: number): void;
     setDriveSpeed(pct: number): Promise<void>;
-    runOnRobot(): Promise<void>;
-    stopOnRobot(): Promise<void>;
+    streamSequence(fromFrame: number): Promise<void>;
     // The rest.
     set(values: Partial<State>): void;
     listUserGaits(): Promise<void>;
@@ -887,14 +886,18 @@ export const useStore = create<Store>()((set, get) => {
         // ......................
 
         play() {
-            // Playing always shows the sequence; pausing makes the frame it
-            // stopped on the pose.
+            // Playing always shows the sequence, and while streaming the robot
+            // plays it too; pausing makes the frame it stopped on the pose,
+            // which the robot then holds.
             const s = get();
             const playing = !s.playing;
             if (playing) {
-                set({ playing, mode: "preview", frame: s.frame >= maxFrameOf(s) ? 0 : s.frame });
+                const frame = s.frame >= maxFrameOf(s) ? 0 : s.frame;
+                set({ playing, mode: "preview", frame });
+                void get().streamSequence(frame);
             } else {
-                set({ playing });
+                set({ playing, robotMessage: "" });
+                if (s.status.streaming) void api.stopSequence();
                 get().playhead(s.frame);
             }
         },
@@ -1040,6 +1043,8 @@ export const useStore = create<Store>()((set, get) => {
             // switch shows what the link accepted.
             const streaming = await api.setStreaming(on);
             set({ status: { ...get().status, streaming } });
+            // Switched on mid-play: the robot joins in where the preview is.
+            if (streaming && get().playing) await get().streamSequence(get().frame);
         },
 
         setMaxStep(maxStep) {
@@ -1056,17 +1061,12 @@ export const useStore = create<Store>()((set, get) => {
             set({ driveSpeed: applied });
         },
 
-        async runOnRobot() {
+        async streamSequence(fromFrame) {
+            // What Play sends while streaming: nothing without a robot, with
+            // streaming off, or with no keyframes (the pose is streamed as it is).
             const s = get();
-            if (!s.status.connected) {
-                set({ robotMessage: "Not connected — connect to a robot first." });
-                return;
-            }
+            if (!s.status.connected || !s.status.streaming || !s.keyframes.length) return;
             const r = robot();
-            if (!s.keyframes.length) {
-                set({ robotMessage: "Add a pose or a gait first." });
-                return;
-            }
             // The robot gets frames at the rate it plays its own gaits at full
             // speed, so the sequence is as smooth as they are, and in real
             // time: the durations as asked, scaled by the playback speed.
@@ -1076,11 +1076,20 @@ export const useStore = create<Store>()((set, get) => {
             if (badFrames.length) {
                 set({
                     robotMessage:
-                        "Not sent: part of the sequence is out of reach (see the preview).",
+                        "Not streamed: part of the sequence is out of reach (see the preview).",
                 });
                 return;
             }
-            if (!(await api.playSequence(poses, s.loop, fps))) {
+            // From where the preview starts. Looping, the frames before it
+            // come after, so the loop still plays them all.
+            const start = Math.min(
+                Math.round((fromFrame / previewOf(s).fps) * fps),
+                Math.max(poses.length - 1, 0),
+            );
+            const from = s.loop
+                ? [...poses.slice(start), ...poses.slice(0, start)]
+                : poses.slice(start);
+            if (!(await api.playSequence(from, s.loop, fps))) {
                 set({ robotMessage: "Nothing to send." });
                 return;
             }
@@ -1091,16 +1100,6 @@ export const useStore = create<Store>()((set, get) => {
                     `${speed !== 1 ? ` at ${Math.round(speed * 100)} %` : ""}` +
                     `${s.loop ? ", looping" : ""}.`,
             });
-        },
-
-        async stopOnRobot() {
-            if (!get().status.connected) {
-                set({ robotMessage: "Not connected." });
-                return;
-            }
-            await api.stopSequence();
-            await api.sendMotion("standby");
-            set({ robotMessage: "Robot returning to standby." });
         },
 
         // ......................

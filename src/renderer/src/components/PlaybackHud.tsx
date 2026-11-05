@@ -1,10 +1,9 @@
 // Over the middle of the view's bottom edge: play the sequence in the view, or
-// scrub through it, and how fast and whether it loops; then run it on the
-// robot, or stand the robot down. What came of that last is a line under them.
+// scrub through it, and how fast and whether it loops. With Stream to robot on,
+// Play plays it on the robot too. What came of that is a line under them.
 
 import { useEffect } from "react";
 import { maxFrameOf, previewOf, SPEED_MAX_PCT, SPEED_MIN_PCT, useStore } from "../state/store";
-import { controlsClass } from "./RobotHuds";
 import { Button, Check, FieldLabel, NumberInput, Slider } from "./widgets";
 
 export function PlaybackHud() {
@@ -14,7 +13,6 @@ export function PlaybackHud() {
     const preview = useStore(previewOf);
     const speed = useStore((s) => s.speed);
     const loop = useStore((s) => s.loop);
-    const connected = useStore((s) => s.status.connected);
     const robotMessage = useStore((s) => s.robotMessage);
     const store = useStore.getState();
 
@@ -34,6 +32,7 @@ export function PlaybackHud() {
                 id="pose-play-btn"
                 color={playing ? "danger" : "primary"}
                 className="ind-play-btn"
+                title="Play the sequence in the view. With Stream to robot on, the robot plays it too, and holds the pose it is paused on."
                 onClick={store.play}
             >
                 {playing ? "⏸ Pause" : "▶ Play"}
@@ -76,32 +75,6 @@ export function PlaybackHud() {
                 onChange={store.setLoop}
                 className="dock-check"
             />
-            <div
-                className="playback-robot"
-                title="Run the sequence on the robot, or stop it and stand the robot up."
-            >
-                <div
-                    id="pose-robot-controls"
-                    className={`d-flex gap-2 ${controlsClass(!connected)}`}
-                >
-                    <Button
-                        id="pose-run-btn"
-                        color="success"
-                        disabled={!connected}
-                        onClick={() => void store.runOnRobot()}
-                    >
-                        ▶ Run on robot
-                    </Button>
-                    <Button
-                        id="pose-stop-btn"
-                        outline
-                        disabled={!connected}
-                        onClick={() => void store.stopOnRobot()}
-                    >
-                        ■ Standby
-                    </Button>
-                </div>
-            </div>
             <div id="pose-robot-message" className="dock-note playback-message">
                 {robotMessage}
             </div>

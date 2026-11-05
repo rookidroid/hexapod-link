@@ -463,7 +463,16 @@ body {
     align-items: baseline;
     gap: 0.6rem;
     min-width: 0;
+    overflow: hidden;
     white-space: nowrap;
+}
+
+.topbar-end {
+    margin-left: auto;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
 }
 
 .topbar-title {
@@ -487,12 +496,17 @@ body {
 /* ---- Link menu ----
    The status pill, whose LED takes the state's colour: grey offline, green
    online, pulsing yellow while streaming, red on a fault. It is the button of
-   a dropdown, under it at the right, with the robot's address, Connect and
-   the link's detail. */
+   a dropdown, under it, with the robot's address, Connect, the
+   streaming speed limit and the link's detail. Beside it, joined to it, the
+   Stream toggle: the two read as one split pill. */
+
+.robot-link {
+    position: relative;
+    display: flex;
+}
 
 .link-menu {
-    position: relative;
-    margin-left: auto;
+    position: static;
 }
 
 .link-menu > summary {
@@ -561,6 +575,11 @@ body {
     min-width: 6.5rem;
 }
 
+.link-speed {
+    min-width: 0;
+    margin-top: 0.6rem;
+}
+
 /* The pill's tooltip, kept in view: the address, mode and packet count, and
    the firmware, a line each. */
 .link-detail {
@@ -616,6 +635,57 @@ body {
 
 @keyframes status-led-pulse {
     50% { opacity: 0.35; }
+}
+
+/* Split: the status half keeps only its bottom-left chamfer, the Stream half
+   only its top-right, and they share the rule between them. */
+.robot-link .link-menu > .status-pill {
+    background-size: 0 0, var(--chamfer) var(--chamfer);
+}
+
+.stream-toggle {
+    margin-left: -1px;
+    padding-right: 0.9rem;
+    font-family: var(--font-mono);
+    background-size: var(--chamfer) var(--chamfer), 0 0;
+    cursor: pointer;
+}
+
+.stream-toggle:hover:not(:disabled) {
+    border-color: var(--ind-accent);
+    --corner: var(--ind-accent);
+}
+
+.stream-toggle:focus-visible {
+    outline: none;
+    box-shadow: var(--ind-glow-inset);
+}
+
+.stream-toggle:disabled {
+    color: var(--ind-text-muted);
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* On: the streaming yellow, as the glow round the view, with dark text on
+   it and its light pulsing. Red is kept for faults and deleting. */
+.stream-toggle.is-on {
+    --corner: var(--ind-accent-alt);
+    color: #1d1700;
+    background-color: var(--ind-accent-alt);
+    border-color: var(--ind-accent-alt);
+}
+
+.stream-toggle.is-on:hover {
+    --corner: color-mix(in srgb, var(--ind-accent-alt) 80%, #fff);
+    background-color: color-mix(in srgb, var(--ind-accent-alt) 80%, #fff);
+    border-color: color-mix(in srgb, var(--ind-accent-alt) 80%, #fff);
+}
+
+.stream-toggle.is-on::before {
+    background: #1d1700;
+    box-shadow: 0 0 0 3px rgba(29, 23, 0, 0.25);
+    animation: status-led-pulse 1s ease-in-out infinite;
 }
 
 .icon-btn {
@@ -715,7 +785,7 @@ body {
     -webkit-app-region: drag;
 }
 
-[data-window="frameless"] .topbar :is(button, input, summary, details, a) {
+[data-window="frameless"] .topbar :is(button, input, summary, details, a, .link-panel) {
     -webkit-app-region: no-drag;
 }
 
@@ -1347,8 +1417,7 @@ body {
     gap: 0.4rem;
 }
 
-/* The robot's own controls, on the view's top-left corner: streaming, with
-   its speed limit, and under it the robot's dimensions, folded away. */
+/* The robot's dimensions, folded away, on the view's top-left corner. */
 .hexapod-view-controls {
     position: absolute;
     top: calc(var(--view-top) + 12px);
@@ -1361,8 +1430,8 @@ body {
     gap: 0.4rem;
 }
 
-/* A card over the view: the stream controls, the
-   dimensions and the pose. The sliders and the inputs inside one are
+/* A card over the view: the dimensions, the pose
+   and the controller. The sliders and the inputs inside one are
    redrawn for it. */
 .hud-panel {
     --widget-track: rgba(var(--hud-cyan-rgb), 0.2);
@@ -1395,29 +1464,6 @@ body {
 .hud-panel .form-control:focus {
     border-color: rgba(var(--hud-cyan-rgb), 0.75) !important;
     box-shadow: inset 0 0 8px rgba(var(--hud-cyan-rgb), 0.3);
-}
-
-.stream-hud > div {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.4rem 1rem;
-    padding: 0.35rem 0.75rem;
-}
-
-.stream-hud .form-switch .form-check-label {
-    font-size: 0.82rem;
-    white-space: nowrap;
-}
-
-.stream-hud .form-check-input:not(:checked) {
-    background-color: rgba(var(--hud-cyan-rgb), 0.1);
-    border-color: var(--hud-border);
-}
-
-.stream-hud .ind-inline-slider {
-    min-width: 0;
-    width: 12rem;
 }
 
 .dims-hud {
@@ -1757,10 +1803,8 @@ body {
 
 /* ---- Playback ----
    Over the middle of the view's bottom edge, between the pose and the
-   controller: Play, the scrubber and where it is, the speed and Loop, then
-   running it on the robot; what came of that on a line under them. Where
-   there is not room for one line, the robot's buttons go on the next.
-   Folded, the pose and the controller sit either side of it; opened, either
+   controller: Play, the scrubber and where it is, the speed and Loop; what
+   came of streaming it to the robot on a line under them. Folded, the pose and the controller sit either side of it; opened, either
    goes up above it, so it is never covered. How tall it is, --playback-h,
    is kept up to date by components/View.tsx. */
 
@@ -1820,17 +1864,53 @@ body {
     color: var(--hud-text);
 }
 
-/* Set off from playing in the view by a rule; on a line of its own, at the
-   end of it. */
-.playback-robot {
-    margin-left: auto;
-    padding-left: 0.9rem;
-    border-left: 1px solid var(--hud-border);
-}
-
 .playback-message {
     flex-basis: 100%;
     white-space: normal;
+}
+
+.playback-message:empty {
+    display: none;
+}
+
+/* While streaming to the robot, a yellow glow round the edge of the view: what
+   is posed or played here moves the real robot. Over the scene, under the
+   panels, and clicks go through it. */
+.hexapod-view-glow {
+    --stream-glow: var(--ind-accent-alt);
+    --stream-glow-soft: color-mix(in srgb, var(--ind-accent-alt) 60%, transparent);
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    box-shadow:
+        inset 0 0 0 3px var(--stream-glow),
+        inset 0 0 70px 14px var(--stream-glow-soft);
+}
+
+[data-bs-theme="dark"] .hexapod-view-glow {
+    --stream-glow-soft: color-mix(in srgb, var(--ind-accent-alt) 50%, transparent);
+}
+
+.hexapod-view-frame.is-streaming .hexapod-view-glow {
+    opacity: 1;
+    animation: stream-glow 2s ease-in-out infinite;
+}
+
+@keyframes stream-glow {
+    50% {
+        box-shadow:
+            inset 0 0 0 3px var(--stream-glow),
+            inset 0 0 40px 6px var(--stream-glow-soft);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hexapod-view-frame.is-streaming .hexapod-view-glow {
+        animation: none;
+    }
 }
 
 /* How to work the view, in small print just above the bar. It is only
