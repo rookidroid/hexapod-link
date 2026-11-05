@@ -19,7 +19,7 @@ Hexapod Link shows your [rookidroid](https://rookidroid.com/) hexapod robot in
 moves to the real robot.
 
 <p align="center">
-  <img src="docs/images/walk.gif" width="760" alt="A hexapod walking in the 3D view">
+  <img src="docs/images/real-robot.webp" width="760" alt="Posing the hexapod in the app while the real robot copies each move">
 </p>
 
 ## What you can do
@@ -37,6 +37,10 @@ moves to the real robot.
 - **Use any robot in the family.** Nougat, Mochi, Macaroon and the others all
   work. Your robot tells the app its size when it connects, so the 3D model
   always matches it.
+
+<p align="center">
+  <img src="docs/images/walk.gif" width="760" alt="A hexapod walking in the 3D view">
+</p>
 
 ## A quick tour of the window
 
