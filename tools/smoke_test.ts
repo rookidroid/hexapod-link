@@ -101,10 +101,12 @@ async function main(): Promise<void> {
         await page.click("#pose-add-btn");
         await page.waitForSelector('[data-kf="0"]');
 
-        step("a gait from the library goes in as keyframes");
+        step("a gait from the library goes in as keyframes, and the library closes");
+        await page.click("#pose-library-btn");
         await page.click(
             '#pose-gait-list-builtin .dock-gait-row:has-text("Walk forward") button[title^="Add"]',
         );
+        await page.waitForSelector("#library-dialog", { state: "detached" });
         const count = await page.locator("[data-kf]").count();
         assert.ok(count > 5, `walk keyframes: ${count}`);
 

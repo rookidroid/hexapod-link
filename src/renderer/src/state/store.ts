@@ -823,7 +823,7 @@ export const useStore = create<Store>()((set, get) => {
             } else {
                 const loaded = await api.loadGait(id, r.name);
                 if (loaded.error || !loaded.keyframes) {
-                    commit({ message: loaded.error ?? "Could not read the gait." });
+                    commit({ message: loaded.error ?? "Could not read that saved move." });
                     return;
                 }
                 inserted = loaded.keyframes;

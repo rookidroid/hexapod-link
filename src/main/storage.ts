@@ -99,10 +99,10 @@ export function saveTheme(theme: Theme): boolean {
     return savePreference("theme", theme);
 }
 
-// The workspace's sizes, set by dragging its splitters: the height of the dock
-// and the width of the Gaits library, in CSS pixels. null for one never
-// dragged, which leaves it to the stylesheet.
-export const LAYOUT_SIZES = ["dock_h", "lib_w"] as const;
+// The workspace's sizes, set by dragging its splitter: the height of the dock,
+// in CSS pixels. null for one never dragged, which leaves it to the
+// stylesheet.
+export const LAYOUT_SIZES = ["dock_h"] as const;
 export type LayoutSizes = Record<(typeof LAYOUT_SIZES)[number], number | null>;
 const LAYOUT_MIN_PX = 100;
 const LAYOUT_MAX_PX = 4000;
@@ -117,7 +117,7 @@ function layoutSize(value: unknown): number | null {
 export function loadLayout(): LayoutSizes {
     const saved = loadPreferences().layout;
     const s = isObject(saved) ? saved : {};
-    return { dock_h: layoutSize(s.dock_h), lib_w: layoutSize(s.lib_w) };
+    return { dock_h: layoutSize(s.dock_h) };
 }
 
 /** Store the sizes given, keeping a saved one not among them; one that is not
@@ -281,7 +281,7 @@ export function cleanName(name: unknown): string {
         .slice(0, MAX_NAME_LENGTH)
         .trim();
     if (!cleaned) {
-        throw new Error("Give the gait a name.");
+        throw new Error("Give it a name first.");
     }
     return cleaned;
 }
@@ -300,7 +300,7 @@ export function gaitId(name: string, robot: { name: string }): string {
 
 function gaitPath(id: unknown): string {
     if (typeof id !== "string" || !ID_PATTERN.test(id)) {
-        throw new kf.KeyframeFileError("No such gait.");
+        throw new kf.KeyframeFileError("No such saved move.");
     }
     return join(gaitsDir(), `${id}.json`);
 }
@@ -356,12 +356,14 @@ export function loadGait(id: string, robot: { name: string }): kf.Keyframe[] {
         return readGait(path, id, robot)[1];
     } catch (error) {
         if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-            throw new kf.KeyframeFileError("That gait is not there any more.");
+            throw new kf.KeyframeFileError("That saved move is not there any more.");
         }
         if (error instanceof kf.KeyframeFileError) {
             throw error;
         }
-        throw new kf.KeyframeFileError(`Could not read the gait: ${(error as Error).message}`);
+        throw new kf.KeyframeFileError(
+            `Could not read that saved move: ${(error as Error).message}`,
+        );
     }
 }
 

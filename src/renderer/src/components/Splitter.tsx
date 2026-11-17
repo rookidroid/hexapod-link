@@ -1,13 +1,12 @@
-// The workspace's splitters: one on the dock's top edge sets its height, and
-// one between the dock's columns the width of the Gaits library, the sequence
-// taking what is left. Drag one, or focus it and use the arrow keys (Shift for
-// bigger steps); double-click it to put the size back to the stylesheet's.
+// The workspace's splitter: on the dock's top edge, it sets the dock's height.
+// Drag it, or focus it and use the arrow keys (Shift for bigger steps);
+// double-click it to put the size back to the stylesheet's.
 //
-// A size is a CSS variable on <html> (WORKSPACE in styles/industrial.css),
-// where the preload script puts the saved ones before the page is drawn. One
+// The size is a CSS variable on <html> (WORKSPACE in styles/industrial.css),
+// where the preload script puts the saved one before the page is drawn. One
 // let go of is kept with the preferences. A drag is held to the window, so
 // the view always keeps some room. Only above `lg`: below it everything
-// stacks and the splitters are hidden.
+// stacks and the splitter is hidden.
 
 import { useRef } from "react";
 import { api } from "../api";
@@ -16,17 +15,12 @@ import { api } from "../api";
 // the stylesheet), and the shortest the dock may be made.
 const VIEW_MIN_H = 180;
 const DOCK_MIN_H = 140;
-// The library's least width, its most as a share of the dock, and what the
-// sequence always keeps.
-const LIB_MIN_W = 180;
-const LIB_MAX_SHARE = 0.35;
-const SEQUENCE_MIN_W = 320;
 const KEY_STEP = 16;
 const KEY_STEP_BIG = 64;
 
 interface Size {
     variable: string;
-    key: "dock_h" | "lib_w";
+    key: "dock_h";
     selector: string;
     cursor: string;
     label: string;
@@ -37,7 +31,7 @@ interface Size {
     keys: Record<string, number>;
 }
 
-const SIZES: Record<"dock" | "lib", Size> = {
+const SIZES: Record<"dock", Size> = {
     dock: {
         variable: "--dock-h",
         key: "dock_h",
@@ -52,22 +46,6 @@ const SIZES: Record<"dock" | "lib", Size> = {
             return [DOCK_MIN_H, Math.max(DOCK_MIN_H, room)];
         },
         keys: { ArrowUp: 1, ArrowDown: -1 },
-    },
-    lib: {
-        variable: "--lib-w",
-        key: "lib_w",
-        selector: ".dock-col-library",
-        cursor: "col-resize",
-        label: "resize the Gaits library",
-        orientation: "vertical",
-        current: (box) => box.width,
-        fromPointer: (x, _y, box) => x - box.left,
-        range: () => {
-            const width = document.querySelector(".dock")?.clientWidth ?? 0;
-            const room = width - SEQUENCE_MIN_W;
-            return [LIB_MIN_W, Math.max(LIB_MIN_W, Math.min(width * LIB_MAX_SHARE, room))];
-        },
-        keys: { ArrowLeft: -1, ArrowRight: 1 },
     },
 };
 
@@ -92,7 +70,7 @@ function save(): void {
 
 const box = (size: Size) => document.querySelector(size.selector)?.getBoundingClientRect() ?? null;
 
-export function Splitter({ kind }: { kind: "dock" | "lib" }) {
+export function Splitter({ kind }: { kind: "dock" }) {
     const size = SIZES[kind];
     const dragging = useRef<{ pointer: number; moved: boolean } | null>(null);
     const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);

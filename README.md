@@ -56,7 +56,7 @@ Everything is on one screen:
 | **Pose** (bottom left) | Every joint's angle, plus the controls for the part you have clicked. |
 | **Controller** (bottom right) | Buttons that drive the robot around. |
 | **Playback bar** (bottom middle) | Play your animation, slow it down or speed it up, repeat it. With **Stream** on, the robot plays along. |
-| **Gaits** and **Sequence** (the panel along the bottom) | Build your animation. |
+| **Sequence** (the panel along the bottom) | Build your animation. Its **Library…** button opens the ready-made and saved moves. |
 
 **Pose**, **Dimensions** and **Controller** can be folded away. Click a
 panel's title to open or close it.
@@ -202,9 +202,12 @@ how long the robot takes to get to it.
 The robot's ready-made moves are called **gaits** (a gait is a way of
 walking, like a walk or a turn).
 
-1. **Add a gait.** In **Gaits**, click **+** next to one to add it to your
-   sequence. Click **+** again to add it once more; the copies join up
-   smoothly. **⇄** replaces your whole sequence with that gait instead.
+1. **Add a gait.** Click **Library…** on the **Sequence** panel (or
+   **Start from the library…** when the sequence is empty). Under
+   **Built in**, click **+** next to a gait to add it to your sequence; the
+   library closes so you can see the new keyframes. Add it again to repeat
+   it; the copies join up smoothly. **⇄** replaces your whole sequence with
+   that gait instead.
 2. **Add your own pose.** Pose the robot, then click **+ Add pose**. If a
    keyframe in the middle is selected, the button says **+ Insert after #2**
    (or whichever one it is), and the new pose goes right after it.
@@ -237,9 +240,9 @@ Tips:
   *over* something, add a keyframe in between with the foot lifted.
 - **Save…** and **Load…** keep a sequence as a file on your computer. A file
   only opens for the robot model it was made on.
-- To keep a sequence as your own gait, switch **Gaits** to **Mine**, give it
-  a name and click **Save sequence**. It stays in the list from then on, with
-  the same **+** and **⇄** buttons as the built-in gaits.
+- To keep a sequence as your own move, open the **Library**, switch to
+  **Saved**, give it a name and click **Save current**. It stays in the list
+  from then on, with the same **+** and **⇄** buttons as the built-in gaits.
 
 ## Drive with the controller
 

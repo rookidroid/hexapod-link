@@ -1,16 +1,15 @@
-// The dock: two columns across the bottom of the window. On the left, the
-// library of gaits to put into the sequence: the robot's, and one's own. On
-// the right, the sequence: the track of keyframes -- poses, and gaits put in
-// as theirs -- and an editor for the one selected. The library's width can be
-// dragged; the sequence takes what is left.
+// The dock, across the bottom of the window: the sequence -- the track of
+// keyframes, poses and moves put in as theirs -- and an editor for the one
+// selected. Its Library button, or the empty track's, calls up the library
+// over the window: the robot's gaits and one's own saved moves, to put into
+// the sequence.
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import * as kf from "../../../shared/keyframes";
 import { GAIT_LABELS, GAIT_MENU } from "../../../shared/motions";
 import { api } from "../api";
 import { previewOf, useStore } from "../state/store";
 import { MAX_NAME_LENGTH_HINT } from "./limits";
-import { Splitter } from "./Splitter";
 import { Button, FieldLabel, NumberInput, Segmented } from "./widgets";
 
 const INSERT_TITLE = "Add it to the sequence, after the keyframe selected or at the end";
@@ -38,7 +37,7 @@ function Section({
     );
 }
 
-function GaitRow({
+function LibraryRow({
     gait,
     label,
     note,
@@ -70,127 +69,174 @@ function GaitRow({
     );
 }
 
-function Library() {
+/** The library, over the whole window: the robot's gaits, body moves and
+ * postures, and one's own saved moves. Putting one into the sequence closes
+ * it, so the new keyframes are in sight; so does Esc, ×, or a click beside it. */
+function LibraryDialog({ onClose }: { onClose: () => void }) {
     const source = useStore((s) => s.gaitSource);
     const gaitName = useStore((s) => s.gaitName);
     const userGaits = useStore((s) => s.userGaits);
     const message = useStore((s) => s.userGaitMessage);
     const robotName = useStore((s) => s.robotConfig.name);
+    const robotLabel = useStore((s) => s.robotConfig.label || s.robotConfig.name);
+    const empty = useStore((s) => !s.keyframes.length);
     const store = useStore.getState();
+    const panel = useRef<HTMLDivElement>(null);
 
-    // One's own gaits for the robot modelled; a gait belongs to the robot it
-    // was made on.
+    // One's own moves for the robot modelled, read afresh each time it opens;
+    // a saved move belongs to the robot it was made on.
     useEffect(() => {
         void useStore.getState().listUserGaits();
     }, [robotName]);
 
-    return (
-        <Section
-            title="Gaits"
-            className="dock-library"
-            head={
-                <Segmented
-                    id="pose-gait-source"
-                    className="dock-seg dock-push"
-                    options={[
-                        { label: "Built-in", value: "builtin" },
-                        { label: "Mine", value: "mine" },
-                    ]}
-                    value={source}
-                    onChange={(gaitSource) => store.set({ gaitSource })}
-                />
+    useEffect(() => {
+        panel.current?.focus();
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === "Escape") {
+                e.stopPropagation();
+                onClose();
             }
+        };
+        document.addEventListener("keydown", onKey, true);
+        return () => document.removeEventListener("keydown", onKey, true);
+    }, [onClose]);
+
+    const pick = (kind: "builtin" | "mine", id: string, replace: boolean) => {
+        void store.insertGait(kind, id, replace);
+        onClose();
+    };
+
+    return (
+        <div
+            className="library-backdrop"
+            onPointerDown={(e) => {
+                if (e.target === e.currentTarget) onClose();
+            }}
         >
-            {/* Both lists stay mounted; the one not picked is only hidden. */}
             <div
-                id="pose-gait-list-builtin"
-                className="dock-gait-list"
-                style={source === "builtin" ? undefined : { display: "none" }}
+                id="library-dialog"
+                className="library-dialog"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="library-dialog-title"
+                tabIndex={-1}
+                ref={panel}
             >
-                {GAIT_MENU.map(([group, motions]) => [
-                    <div className="dock-gait-group" key={group}>
-                        {group}
-                    </div>,
-                    ...motions.map((motion) => (
-                        <GaitRow
-                            key={motion}
-                            gait={motion}
-                            label={GAIT_LABELS[motion]}
-                            onInsert={() => void store.insertGait("builtin", motion, false)}
-                            onReplace={() => void store.insertGait("builtin", motion, true)}
-                        />
-                    )),
-                ])}
-            </div>
-            <div
-                id="pose-gait-list-mine"
-                className="dock-gait-mine"
-                style={source === "mine" ? undefined : { display: "none" }}
-            >
-                {/* Keeps the whole sequence under the name; a gait of that name
-                    already there is replaced. */}
-                <div className="dock-gait-save">
-                    <input
-                        id="pose-user-gait-name"
-                        className="form-control-sm form-control"
-                        placeholder="Name"
-                        maxLength={MAX_NAME_LENGTH_HINT}
-                        value={gaitName}
-                        onChange={(e) => store.set({ gaitName: e.target.value })}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter") void store.saveUserGait();
-                        }}
+                <div className="dock-section-head">
+                    <h6 id="library-dialog-title" className="dock-section-title">
+                        Library
+                    </h6>
+                    <Segmented
+                        id="pose-gait-source"
+                        className="dock-seg dock-push"
+                        options={[
+                            { label: "Built in", value: "builtin" },
+                            { label: "Saved", value: "mine" },
+                        ]}
+                        value={source}
+                        onChange={(gaitSource) => store.set({ gaitSource })}
                     />
                     <Button
-                        id="pose-user-gait-save-btn"
-                        color="primary"
-                        title="Keep the whole sequence as a gait of your own"
-                        onClick={() => void store.saveUserGait()}
+                        id="library-close-btn"
+                        outline
+                        className="library-close"
+                        title="Close the library"
+                        onClick={onClose}
                     >
-                        Save sequence
+                        ×
                     </Button>
                 </div>
-                <div id="pose-user-gait-message" className="dock-message">
-                    {message && <div className="ind-alert mb-3">⚠ {message}</div>}
-                </div>
-                <div id="pose-user-gait-list" className="dock-gait-list">
-                    {userGaits.length ? (
-                        userGaits.map((gait) => (
-                            <GaitRow
-                                key={gait.id}
-                                label={gait.name}
-                                note={`${gait.count} keyframe${gait.count !== 1 ? "s" : ""} · ${(gait.duration_ms / 1000).toFixed(2)} s`}
-                                onInsert={() => void store.insertGait("mine", gait.id, false)}
-                                onReplace={() => void store.insertGait("mine", gait.id, true)}
-                                extra={
-                                    // It asks first: the file is gone for good.
-                                    <Button
-                                        outline
-                                        className="dock-gait-btn dock-gait-delete"
-                                        title="Delete this gait"
-                                        onClick={() => {
-                                            if (
-                                                window.confirm(
-                                                    `Delete the gait '${gait.name}'? This cannot be undone.`,
-                                                )
-                                            ) {
-                                                void store.deleteUserGait(gait.id);
-                                            }
-                                        }}
-                                    >
-                                        ×
-                                    </Button>
-                                }
+                <p className="library-hint">
+                    + puts it after the keyframe selected, or at the end; ⇄ swaps the whole sequence
+                    for it.
+                </p>
+                {source === "builtin" ? (
+                    <div id="pose-gait-list-builtin" className="dock-gait-list">
+                        {GAIT_MENU.map(([group, motions]) => [
+                            <div className="dock-gait-group" key={group}>
+                                {group}
+                            </div>,
+                            ...motions.map((motion) => (
+                                <LibraryRow
+                                    key={motion}
+                                    gait={motion}
+                                    label={GAIT_LABELS[motion]}
+                                    onInsert={() => pick("builtin", motion, false)}
+                                    onReplace={() => pick("builtin", motion, true)}
+                                />
+                            )),
+                        ])}
+                    </div>
+                ) : (
+                    <div id="pose-gait-list-mine" className="dock-gait-mine">
+                        {/* Keeps the whole sequence under the name; a saved move
+                            of that name already there is replaced. */}
+                        <div className="dock-gait-save">
+                            <input
+                                id="pose-user-gait-name"
+                                className="form-control-sm form-control"
+                                placeholder="Name"
+                                maxLength={MAX_NAME_LENGTH_HINT}
+                                value={gaitName}
+                                onChange={(e) => store.set({ gaitName: e.target.value })}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") void store.saveUserGait();
+                                }}
                             />
-                        ))
-                    ) : (
-                        <div className="dock-empty">
-                            None yet: build a sequence, name it and save it here.
+                            <Button
+                                id="pose-user-gait-save-btn"
+                                color="primary"
+                                disabled={empty}
+                                title="Keep the current sequence in the library"
+                                onClick={() => void store.saveUserGait()}
+                            >
+                                Save current
+                            </Button>
                         </div>
-                    )}
-                </div>
+                        <div id="pose-user-gait-message" className="dock-message">
+                            {message && <div className="ind-alert mb-3">⚠ {message}</div>}
+                        </div>
+                        <div id="pose-user-gait-list" className="dock-gait-list">
+                            {userGaits.length ? (
+                                userGaits.map((gait) => (
+                                    <LibraryRow
+                                        key={gait.id}
+                                        label={gait.name}
+                                        note={`${gait.count} keyframe${gait.count !== 1 ? "s" : ""} · ${(gait.duration_ms / 1000).toFixed(2)} s`}
+                                        onInsert={() => pick("mine", gait.id, false)}
+                                        onReplace={() => pick("mine", gait.id, true)}
+                                        extra={
+                                            // It asks first: the file is gone for good.
+                                            <Button
+                                                outline
+                                                className="dock-gait-btn dock-gait-delete"
+                                                title="Delete this saved move"
+                                                onClick={() => {
+                                                    if (
+                                                        window.confirm(
+                                                            `Delete the saved move '${gait.name}'? This cannot be undone.`,
+                                                        )
+                                                    ) {
+                                                        void store.deleteUserGait(gait.id);
+                                                    }
+                                                }}
+                                            >
+                                                ×
+                                            </Button>
+                                        }
+                                    />
+                                ))
+                            ) : (
+                                <div className="dock-empty">
+                                    Save the current sequence to reuse it. Saved moves are kept for{" "}
+                                    {robotLabel} and listed here.
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
-        </Section>
+        </div>
     );
 }
 
@@ -216,7 +262,7 @@ function linkTitle(frames: kf.Keyframe[], index: number, loop: boolean): string 
  * move takes, and whether it eases -- with when it is reached. While the
  * sequence plays in the view, or is scrubbed, the arrow into the keyframe it
  * is heading for fills as it goes, and the keyframe it is on is marked. */
-function Track() {
+function Track({ onLibrary }: { onLibrary: () => void }) {
     const frames = useStore((s) => s.keyframes);
     const selected = useStore((s) => s.selected);
     const loop = useStore((s) => s.loop);
@@ -252,8 +298,13 @@ function Track() {
         return (
             <div id="pose-keyframe-list" className="ind-kf-strip" ref={strip}>
                 <div className="dock-empty">
-                    No keyframes yet: pose the robot in the view, then + Add pose, or add a gait
-                    from the library.
+                    No keyframes yet: pose the robot in the view and + Add pose, or start from a
+                    built-in or saved move in the library.
+                    <div className="mt-2">
+                        <Button id="pose-library-start-btn" outline onClick={onLibrary}>
+                            Start from the library…
+                        </Button>
+                    </div>
                 </div>
             </div>
         );
@@ -452,7 +503,7 @@ function Editor() {
     );
 }
 
-function Sequence() {
+function Sequence({ onLibrary }: { onLibrary: () => void }) {
     const frames = useStore((s) => s.keyframes);
     const loop = useStore((s) => s.loop);
     const preview = useStore(previewOf);
@@ -473,6 +524,14 @@ function Sequence() {
                         {summary}
                     </div>
                     <div className="dock-group dock-push">
+                        <Button
+                            id="pose-library-btn"
+                            color="primary"
+                            title="Add a built-in or saved move to the sequence, or save the sequence as one"
+                            onClick={onLibrary}
+                        >
+                            Library…
+                        </Button>
                         <Button
                             id="pose-renumber-btn"
                             outline
@@ -506,7 +565,7 @@ function Sequence() {
             }
         >
             <div className="dock-part dock-part-stack">
-                <Track />
+                <Track onLibrary={onLibrary} />
                 <Editor />
             </div>
             <div id="pose-preview-message" className="dock-message">
@@ -522,16 +581,15 @@ function Sequence() {
 }
 
 export function Dock() {
+    const [library, setLibrary] = useState(false);
+    const open = useCallback(() => setLibrary(true), []);
+    const close = useCallback(() => setLibrary(false), []);
     return (
         <div className="dock">
-            <div className="dock-col dock-col-library">
-                <Library />
-            </div>
             <div className="dock-col dock-col-sequence">
-                <Sequence />
+                <Sequence onLibrary={open} />
             </div>
-            {/* On the line between the columns; the sequence takes what is left. */}
-            <Splitter kind="lib" />
+            {library && <LibraryDialog onClose={close} />}
         </div>
     );
 }

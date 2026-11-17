@@ -17,7 +17,6 @@ function applyStartup(): void {
     }
     root.setAttribute("data-platform", startup.platform);
     if (startup.layout.dock_h) root.style.setProperty("--dock-h", `${startup.layout.dock_h}px`);
-    if (startup.layout.lib_w) root.style.setProperty("--lib-w", `${startup.layout.lib_w}px`);
 }
 if (document.documentElement) {
     applyStartup();
