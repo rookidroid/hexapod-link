@@ -36,7 +36,7 @@ export interface Startup {
     platform: string;
     frameless: boolean;
     theme: Theme;
-    layout: { dock_h: number | null; lib_w: number | null };
+    layout: { dock_h: number | null };
     panels: { pose: boolean; controller: boolean; dimensions: boolean };
     workspace: Record<string, unknown>;
     robotConfig: RobotConfig;
@@ -67,7 +67,7 @@ export interface HexapodApi {
 
     // Kept on disk.
     saveTheme(theme: Theme): void;
-    saveLayout(sizes: Partial<Record<"dock_h" | "lib_w", number | null>>): void;
+    saveLayout(sizes: Partial<Record<"dock_h", number | null>>): void;
     savePanels(states: Partial<Record<"pose" | "controller" | "dimensions", boolean>>): void;
     saveWorkspace(values: Record<string, unknown>): void;
     listGaits(robot: string): Promise<GaitSummary[]>;

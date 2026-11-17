@@ -165,11 +165,9 @@
     --view-top: 0px;
     /* The red block that starts the top bar's trim. */
     --trim-w: 68px;
-    /* The dock's height and the width of its Gaits library (a percentage
-       there is of the dock); dragging the workspace's splitters sets them on
+    /* The dock's height; dragging the workspace's splitter sets it on
        <html> instead (components/Splitter.tsx). */
     --dock-h: 15rem;
-    --lib-w: clamp(14rem, 18%, 18rem);
     /* How much of the workspace's height the view always keeps, however tall
        the dock is set: a window made shorter shortens it, and it comes back
        with the window. */
@@ -912,9 +910,8 @@ body {
     background: var(--view-bg);
 }
 
-/* As tall as --dock-h, scrolling what does not fit; its columns fill it, and
-   the Gaits library scrolls within its own. The navy frame runs along its
-   top, under the view. */
+/* As tall as --dock-h, scrolling what does not fit; the sequence fills it.
+   The navy frame runs along its top, under the view. */
 .ws-dock {
     grid-area: dock;
     min-height: 0;
@@ -925,10 +922,9 @@ body {
     border-top: 1px solid var(--ind-frame);
 }
 
-/* ---- Splitters ----
-   A strip over the dock's top edge, and one on each line between its
-   columns, showing the accent while hovered, focused or dragged. They
-   overlap the areas they resize, so take no room. */
+/* ---- Splitter ----
+   A strip over the dock's top edge, showing the accent while hovered,
+   focused or dragged. It overlaps the areas it resizes, so takes no room. */
 
 .ws-splitter {
     position: relative;
@@ -949,26 +945,6 @@ body {
 .ws-splitter:focus-visible::after,
 .is-resizing .ws-splitter::after {
     opacity: 1;
-}
-
-.ws-splitter[aria-orientation="vertical"] {
-    width: 8px;
-    cursor: col-resize;
-}
-
-.ws-splitter[aria-orientation="vertical"]::after {
-    top: 0;
-    bottom: 0;
-    left: 2px;
-    width: 3px;
-}
-
-/* The dock's: on the line between the Gaits library and the sequence. */
-.ws-splitter-lib {
-    grid-row: 1;
-    grid-column: 1;
-    justify-self: end;
-    margin-right: -4px;
 }
 
 .ws-splitter-dock {
@@ -2125,18 +2101,17 @@ body {
 
 /* ===========================================
    DOCK
-   Two columns: on the left the Gaits library, the robot's and one's own;
-   on the right the sequence -- keyframes of poses and gaits. Playing it, in
+   The sequence -- keyframes of poses, and of moves put in from the Library
+   dialog (the robot's gaits and one's own saved moves). Playing it, in
    the view and on the robot, is over the view (PLAYBACK). Each block is
-   titled like a panel section, with what belongs to it on the same line. The columns
-   stack below `lg`, with the rest of the workspace.
+   titled like a panel section, with what belongs to it on the same line. It
+   stacks below `lg`, with the rest of the workspace.
    =========================================== */
 
 .dock {
     display: grid;
     flex: 1 0 auto;
-    /* The library as set, but never so wide the sequence is squeezed out. */
-    grid-template-columns: min(var(--lib-w), 35%) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
 }
 
 .dock-col {
@@ -2145,18 +2120,8 @@ body {
     flex-direction: column;
 }
 
-.dock-col-library {
-    border-right: 1px solid var(--ind-border);
-}
-
-/* Each in its own column, placed rather than flowed: the splitters between
-   them are placed on those columns too, and would push them along. */
-.dock-col-library {
-    grid-area: 1 / 1;
-}
-
 .dock-col-sequence {
-    grid-area: 1 / 2;
+    grid-area: 1 / 1;
 }
 
 .dock-section + .dock-section {
@@ -2511,22 +2476,58 @@ body {
 }
 
 
-/* ---- Gaits library ----
-   A list of gaits, each with + to put it into the sequence, in groups for
-   the robot's; for one's own, a row to save the sequence as one over it. The
-   list scrolls inside the dock rather than making the dock taller: it takes
-   no height of its own (contain: size), only what the other columns leave. */
+/* ---- Library ----
+   Called up from the sequence over the whole window: the robot's moves, in
+   groups, each with + to put it into the sequence and ⇄ to make it the whole
+   sequence; or the saved ones, under a row to save the sequence as one. The
+   list scrolls inside the dialog, which is never taller than most of the
+   window. */
 
-.dock-library {
-    flex: 1 1 auto;
-    min-height: 0;
+.library-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(6, 12, 24, 0.45);
+}
+
+.library-dialog {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: min(30rem, 100%);
+    height: min(34rem, 80vh);
+    padding: 0.6rem 0.9rem 0.8rem;
+    color: var(--ind-text);
+    background: var(--ind-surface);
+    border: 1px solid var(--ind-frame);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-soft);
+}
+
+.library-dialog:focus {
+    outline: none;
+}
+
+.library-hint {
+    margin: 0;
+    font-size: 0.78rem;
+    color: var(--ind-text-muted);
+}
+
+.btn.library-close {
+    padding: 0 0.45rem;
+    font-weight: 700;
+    line-height: 1.4;
 }
 
 .dock-gait-list,
 .dock-gait-mine {
     flex: 1 1 0;
-    min-height: 7rem;
-    contain: size;
+    min-height: 0;
     overflow-y: auto;
 }
 
@@ -2536,9 +2537,8 @@ body {
     gap: 0.4rem;
 }
 
-.dock-gait-mine .dock-gait-list {
-    contain: none;
-    min-height: 0;
+.dock-gait-mine {
+    overflow: hidden;
 }
 
 .dock-gait-group {
@@ -2609,7 +2609,7 @@ body {
     flex: 0 0 auto;
 }
 
-/* Built-in | Mine: two segments, the one picked filled in the accent. */
+/* Built in | Saved: two segments, the one picked filled in the accent. */
 .dock-seg {
     display: flex;
 }
@@ -2702,31 +2702,13 @@ body {
         grid-template-columns: minmax(0, 1fr);
     }
 
-    .dock-col-library,
     .dock-col-sequence {
         grid-area: auto;
-    }
-
-    .dock-col-library {
-        border-right: none;
-        border-bottom: 1px solid var(--ind-border);
-    }
-
-    /* Stacked, the dock sets no height to fit into: the lists get their own. */
-    .dock-gait-list,
-    .dock-gait-mine {
-        flex: 0 0 auto;
-        height: 13rem;
     }
 
     .ind-kf-strip {
         flex: 0 0 auto;
         height: 9rem;
-    }
-
-    .dock-gait-mine .dock-gait-list {
-        flex: 1 1 0;
-        height: auto;
     }
 }
 

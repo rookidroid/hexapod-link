@@ -64,14 +64,13 @@ describe("preferences", () => {
     });
 
     it("saves layout sizes one at a time", () => {
-        expect(storage.loadLayout()).toEqual({ dock_h: null, lib_w: null });
+        expect(storage.loadLayout()).toEqual({ dock_h: null });
         storage.saveTheme("dark");
-        storage.saveLayout({ lib_w: 412.4, n: 123 });
-        storage.saveLayout({ dock_h: 260 });
-        expect(storage.loadLayout()).toEqual({ lib_w: 412, dock_h: 260 });
+        storage.saveLayout({ dock_h: 260.4, n: 123 });
+        expect(storage.loadLayout()).toEqual({ dock_h: 260 });
         expect(storage.loadTheme()).toBe("dark");
-        storage.saveLayout({ lib_w: null });
-        expect(storage.loadLayout()).toEqual({ dock_h: 260, lib_w: null });
+        storage.saveLayout({ dock_h: null });
+        expect(storage.loadLayout()).toEqual({ dock_h: null });
     });
 
     it.each([null, "300", true, -5, 50, 10_000, Number.NaN])("does not keep size %s", (value) => {
@@ -82,11 +81,11 @@ describe("preferences", () => {
 
     it.each([
         '{"layout": [1]}',
-        '{"layout": {"lib_w": "wide", "dock_h": {}}}',
+        '{"layout": {"lib_w": 300, "dock_h": {}}}',
         '{"layout": {"panel_w": 400}}',
     ])("ignores an unusable layout %s", (contents) => {
         writeFileSync(prefs, contents);
-        expect(storage.loadLayout()).toEqual({ dock_h: null, lib_w: null });
+        expect(storage.loadLayout()).toEqual({ dock_h: null });
     });
 
     it("keeps panels folded until opened, one at a time", () => {

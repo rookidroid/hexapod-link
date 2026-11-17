@@ -358,6 +358,10 @@ function eased(step: number, steps: number): number {
     return t * t * (3 - 2 * t);
 }
 
+// The sequence's Library button: each gait is picked from the dialog it
+// opens, which closes again once one is put in.
+const LIBRARY_BUTTON = "#pose-library-btn";
+
 const gaitButton = (gait: string, kind: "Add" | "Replace") =>
     `#pose-gait-list-builtin .dock-gait-row[data-gait="${gait}"] button[title^="${kind}"]`;
 
@@ -396,6 +400,7 @@ async function shootApp(shooter: Shooter): Promise<void> {
         foot.map((c, i) => c + POSED_FOOT[i]),
     );
     await shooter.act("addPose");
+    await shooter.click(LIBRARY_BUTTON);
     await shooter.click(gaitButton(POSED_GAIT, "Add"));
     await shooter.act("selectKeyframe", 1);
     await shooter.pick("body");
@@ -424,6 +429,7 @@ async function shootWalk(shooter: Shooter): Promise<void> {
     );
     // The gait as the whole sequence, with the move from its last keyframe
     // back to its first: a cycle that repeats.
+    await shooter.click(LIBRARY_BUTTON);
     await shooter.click(gaitButton(WALK_GAIT, "Replace"));
     await shooter.act("setSpeed", WALK_SPEED_PCT);
     await shooter.act("setLoop", true);
@@ -517,6 +523,7 @@ async function shootSequence(shooter: Shooter): Promise<void> {
     const recorder = new Recorder(shooter, undefined, GIF_WIDTH);
     await recorder.frame(1000);
     for (const gait of SEQUENCE_GAITS) {
+        await recorder.press(LIBRARY_BUTTON, 500);
         await recorder.press(gaitButton(gait, "Add"), 700);
     }
     await shooter.mark("#pose-play-btn");
