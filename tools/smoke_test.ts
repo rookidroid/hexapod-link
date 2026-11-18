@@ -97,9 +97,16 @@ async function main(): Promise<void> {
         await page.waitForSelector("#pose-adjust-foot");
         assert.match((await page.textContent("#pose-foot-title")) ?? "", /Left Leg 1 foot/);
 
-        step("+ Add pose records a keyframe");
+        step("+ Add pose asks first, with the time and easing, then records a keyframe");
         await page.click("#pose-add-btn");
+        await page.waitForSelector("#confirm-dialog #confirm-duration");
+        await page.fill("#confirm-duration", "750");
+        await page.press("#confirm-duration", "Enter");
+        await page.click("#confirm-ease-linear + label");
+        await page.click("#confirm-ok-btn");
+        await page.waitForSelector("#confirm-dialog", { state: "detached" });
         await page.waitForSelector('[data-kf="0"]');
+        assert.equal(await page.inputValue("#pose-duration"), "750");
 
         step("a gait from the library goes in as keyframes, and the library closes");
         await page.click("#pose-library-btn");

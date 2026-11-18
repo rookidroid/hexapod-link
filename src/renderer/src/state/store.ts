@@ -316,6 +316,10 @@ interface Out {
 
 type Trigger = "ease" | "playhead" | "other";
 
+/** How a keyframe is reached, as confirmed when it is added or saved over:
+ * left out, it is reached as the bar beside the track says. */
+export type Timing = { duration?: number; ease?: boolean };
+
 interface Actions {
     // The pose.
     footTarget(target: { leg: number; foot: number[]; final: boolean }): void;
@@ -328,8 +332,8 @@ interface Actions {
     resetPose(): void;
     clearFeet(): void;
     // The sequence.
-    addPose(): void;
-    updateKeyframe(): void;
+    addPose(how?: Timing): void;
+    updateKeyframe(how?: Timing): void;
     deleteKeyframe(): void;
     moveKeyframe(step: -1 | 1): void;
     renumber(): void;
@@ -665,7 +669,7 @@ export const useStore = create<Store>()((set, get) => {
         // The sequence
         // ......................
 
-        addPose() {
+        addPose(how = {}) {
             const s = get();
             const r = robot();
             const list = frames();
@@ -681,16 +685,25 @@ export const useStore = create<Store>()((set, get) => {
                 // move did.
                 index = at.after + 1;
                 const following = list[index % list.length];
-                const share = kf.clampDuration(s.duration);
+                const share = kf.clampDuration(how.duration ?? s.duration);
                 const rest = kf.clampDuration(following.duration_ms - share);
                 list[index % list.length] = { ...following, duration_ms: rest };
-                list.splice(index, 0, kf.makeKeyframe(feet, share, state, kf.eases(following)));
+                list.splice(
+                    index,
+                    0,
+                    kf.makeKeyframe(feet, share, state, how.ease ?? kf.eases(following)),
+                );
             } else {
                 index = s.selected === null ? list.length : s.selected + 1;
                 list.splice(
                     index,
                     0,
-                    kf.makeKeyframe(feet, s.duration ?? kf.DEFAULT_DURATION_MS, state, s.ease),
+                    kf.makeKeyframe(
+                        feet,
+                        kf.clampDuration(how.duration ?? s.duration ?? kf.DEFAULT_DURATION_MS),
+                        state,
+                        how.ease ?? s.ease,
+                    ),
                 );
             }
             const keyframes = kf.numbered(list);
@@ -702,20 +715,24 @@ export const useStore = create<Store>()((set, get) => {
             });
         },
 
-        updateKeyframe() {
+        updateKeyframe(how = {}) {
             const s = get();
             if (s.selected === null) {
                 commit({ message: "Pick a keyframe to update." });
                 return;
             }
-            // It keeps its time and easing.
+            // It keeps its number, and its time and easing unless given new ones.
             const list = frames();
-            list[s.selected] = kf.remade(
-                list[s.selected],
+            const old = list[s.selected];
+            const duration = kf.clampDuration(how.duration ?? old.duration_ms);
+            list[s.selected] = kf.makeKeyframe(
                 pl.bodyFeet(s.pose.state, robot()),
+                duration,
                 s.pose.state,
+                how.ease ?? kf.eases(old),
+                kf.numberOf(old),
             );
-            commit({ keyframes: kf.numbered(list), message: "" });
+            commit({ keyframes: kf.numbered(list), duration, message: "" });
         },
 
         deleteKeyframe() {

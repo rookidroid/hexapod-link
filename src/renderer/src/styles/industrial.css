@@ -2518,6 +2518,30 @@ body {
     color: var(--ind-text-muted);
 }
 
+.library-dialog.confirm-dialog {
+    width: min(24rem, 100%);
+    height: auto;
+    gap: 0.7rem;
+}
+
+.confirm-message {
+    margin: 0;
+    font-size: 0.85rem;
+}
+
+.confirm-fields {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem 1rem;
+}
+
+.confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
 .btn.library-close {
     padding: 0 0.45rem;
     font-weight: 700;

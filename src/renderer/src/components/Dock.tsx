@@ -244,6 +244,170 @@ function EaseIcon({ eased }: { eased: boolean }) {
     return <span className={`ind-ease-icon ${eased ? "is-eased" : "is-linear"}`} />;
 }
 
+function EaseChoice({
+    id,
+    ease,
+    onChange,
+}: {
+    id: string;
+    ease: boolean;
+    onChange: (ease: boolean) => void;
+}) {
+    return (
+        <div title="Ease: start and stop the move into this keyframe gently. Linear: run it at a steady speed, as a gait's moves do.">
+            <Segmented
+                id={id}
+                options={[
+                    {
+                        label: (
+                            <>
+                                <EaseIcon eased />
+                                Ease
+                            </>
+                        ),
+                        value: "ease",
+                    },
+                    {
+                        label: (
+                            <>
+                                <EaseIcon eased={false} />
+                                Linear
+                            </>
+                        ),
+                        value: "linear",
+                    },
+                ]}
+                value={ease ? "ease" : "linear"}
+                onChange={(v) => onChange(v === "ease")}
+            />
+        </div>
+    );
+}
+
+type Confirming = "add" | "save" | "delete";
+
+/** Asks before the pose is added, saved over a keyframe, or a keyframe is
+ * deleted. Adding or saving also asks how the keyframe is reached: its time
+ * and easing, starting from the bar's. Enter confirms; Esc, Cancel or a click
+ * beside it does nothing. */
+function ConfirmDialog({
+    kind,
+    title,
+    message,
+    action,
+    duration: initialDuration,
+    ease: initialEase,
+    durationLabel,
+    onConfirm,
+    onClose,
+}: {
+    kind: Confirming;
+    title: string;
+    message: string;
+    action: string;
+    duration: number;
+    ease: boolean;
+    durationLabel: string;
+    onConfirm: (how: { duration: number; ease: boolean }) => void;
+    onClose: () => void;
+}) {
+    const [duration, setDuration] = useState(initialDuration);
+    const [ease, setEase] = useState(initialEase);
+    const panel = useRef<HTMLDivElement>(null);
+    const timed = kind !== "delete";
+    const confirm = () => {
+        onConfirm({ duration, ease });
+        onClose();
+    };
+    const confirmRef = useRef(confirm);
+    confirmRef.current = confirm;
+
+    useEffect(() => {
+        panel.current?.focus();
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === "Escape") {
+                e.stopPropagation();
+                onClose();
+            } else if (e.key === "Enter" && !(e.target instanceof HTMLInputElement)) {
+                // In the time field, Enter only takes the time typed.
+                e.preventDefault();
+                e.stopPropagation();
+                confirmRef.current();
+            }
+        };
+        document.addEventListener("keydown", onKey, true);
+        return () => document.removeEventListener("keydown", onKey, true);
+    }, [onClose]);
+
+    return (
+        <div
+            className="library-backdrop"
+            onPointerDown={(e) => {
+                if (e.target === e.currentTarget) onClose();
+            }}
+        >
+            <div
+                id="confirm-dialog"
+                className="library-dialog confirm-dialog"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="confirm-dialog-title"
+                aria-describedby="confirm-dialog-message"
+                data-kind={kind}
+                tabIndex={-1}
+                ref={panel}
+            >
+                <div className="dock-section-head">
+                    <h6 id="confirm-dialog-title" className="dock-section-title">
+                        {title}
+                    </h6>
+                </div>
+                <p id="confirm-dialog-message" className="confirm-message">
+                    {message}
+                </p>
+                {timed && (
+                    <div className="confirm-fields">
+                        <div
+                            className="dock-inline-field"
+                            title={`Time to reach this keyframe from the one before it, ${kf.MIN_DURATION_MS} to ${kf.MAX_DURATION_MS} ms.`}
+                        >
+                            <FieldLabel id="confirm-duration-label">{durationLabel}</FieldLabel>
+                            <div className="ind-duration-input input-group input-group-sm">
+                                <NumberInput
+                                    id="confirm-duration"
+                                    className="form-control"
+                                    value={duration}
+                                    onCommit={(v) =>
+                                        setDuration(
+                                            v === null || !Number.isFinite(v)
+                                                ? duration
+                                                : kf.clampDuration(v),
+                                        )
+                                    }
+                                />
+                                <span className="input-group-text">ms</span>
+                            </div>
+                        </div>
+                        <EaseChoice id="confirm-ease" ease={ease} onChange={setEase} />
+                    </div>
+                )}
+                <div className="confirm-actions">
+                    <Button id="confirm-cancel-btn" outline onClick={onClose}>
+                        Cancel
+                    </Button>
+                    <Button
+                        id="confirm-ok-btn"
+                        color={kind === "delete" ? "danger" : "primary"}
+                        onClick={confirm}
+                    >
+                        {action}
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function linkTitle(frames: kf.Keyframe[], index: number, loop: boolean): string {
     const frame = frames[index];
     const how = kf.eases(frame) ? "eased" : "linear";
@@ -396,9 +560,61 @@ function Editor() {
     }
     const none = selected === null;
     const name = none ? "" : kf.label(frames[selected]);
+    const [confirming, setConfirming] = useState<Confirming | null>(null);
+    const closeConfirm = useCallback(() => setConfirming(null), []);
+
+    let dialog: React.ReactNode = null;
+    if (confirming === "add") {
+        const where =
+            add === "+ Add pose"
+                ? "at the end of the sequence"
+                : add.replace(/^\+ (Insert|Add pose) /, "");
+        dialog = (
+            <ConfirmDialog
+                kind="add"
+                title="Add pose"
+                message={`Record the pose as a new keyframe ${where}?`}
+                action="Add pose"
+                durationLabel="Transition"
+                duration={duration ?? kf.DEFAULT_DURATION_MS}
+                ease={ease}
+                onConfirm={(how) => store.addPose(how)}
+                onClose={closeConfirm}
+            />
+        );
+    } else if (confirming === "save" && !none) {
+        dialog = (
+            <ConfirmDialog
+                kind="save"
+                title={`Save pose to ${name}`}
+                message={`Overwrite keyframe ${name} with the pose?`}
+                action="Save"
+                durationLabel={selected === 0 ? "Loop back" : "Transition"}
+                duration={frames[selected].duration_ms}
+                ease={kf.eases(frames[selected])}
+                onConfirm={(how) => store.updateKeyframe(how)}
+                onClose={closeConfirm}
+            />
+        );
+    } else if (confirming === "delete" && !none) {
+        dialog = (
+            <ConfirmDialog
+                kind="delete"
+                title={`Delete ${name}`}
+                message={`Delete keyframe ${name} from the sequence?`}
+                action="Delete"
+                durationLabel=""
+                duration={0}
+                ease
+                onConfirm={() => store.deleteKeyframe()}
+                onClose={closeConfirm}
+            />
+        );
+    }
 
     return (
         <div className="dock-kf-editor">
+            {dialog}
             <div className="dock-kf-title">
                 <span id="pose-keyframe-editor-label" className="dock-kf-label">
                     {label}
@@ -422,40 +638,14 @@ function Editor() {
                     <span className="input-group-text">ms</span>
                 </div>
             </div>
-            <div title="Ease: start and stop the move into this keyframe gently. Linear: run it at a steady speed, as a gait's moves do.">
-                <Segmented
-                    id="pose-keyframe-ease"
-                    options={[
-                        {
-                            label: (
-                                <>
-                                    <EaseIcon eased />
-                                    Ease
-                                </>
-                            ),
-                            value: "ease",
-                        },
-                        {
-                            label: (
-                                <>
-                                    <EaseIcon eased={false} />
-                                    Linear
-                                </>
-                            ),
-                            value: "linear",
-                        },
-                    ]}
-                    value={ease ? "ease" : "linear"}
-                    onChange={(v) => store.setEase(v === "ease")}
-                />
-            </div>
+            <EaseChoice id="pose-keyframe-ease" ease={ease} onChange={store.setEase} />
             <div className="dock-group">
                 <Button
                     id="pose-update-btn"
                     outline
                     disabled={none}
                     title="Overwrite the selected keyframe with the pose"
-                    onClick={store.updateKeyframe}
+                    onClick={() => setConfirming("save")}
                 >
                     {none ? "Save pose" : `Save pose to ${name}`}
                 </Button>
@@ -485,7 +675,7 @@ function Editor() {
                     outline
                     disabled={none}
                     title="Delete the selected keyframe"
-                    onClick={store.deleteKeyframe}
+                    onClick={() => setConfirming("delete")}
                 >
                     Delete
                 </Button>
@@ -495,7 +685,7 @@ function Editor() {
                 color="primary"
                 className="dock-add-btn dock-push"
                 title="Record the pose as a keyframe"
-                onClick={store.addPose}
+                onClick={() => setConfirming("add")}
             >
                 {add}
             </Button>
