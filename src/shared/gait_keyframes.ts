@@ -229,11 +229,16 @@ function fits(
  * None is eased into, but the first of a one-off gait (standing up), from
  * wherever the sequence was. The first one's time is the move into it from
  * the end of the cycle, so a cycle put in twice, or looped, runs on without a
- * seam. */
+ * seam.
+ *
+ * The times are the robot's own at `speedPct`: the firmware plays one LUT
+ * frame every DELAY_MS * 100 / speed_pct, so a sequence played at 100 %
+ * walks as fast as the robot walks the gait at that speed. */
 export function gaitKeyframes(
     motionName: string,
     robot: RobotConfig,
     tolerance = TOLERANCE_MM,
+    speedPct = 100,
 ): Keyframe[] {
     const poses = robotPoses(motionName, robot);
     const feet = poses.map((pose) => kf.poseToFeet(pose, robot));
@@ -259,7 +264,7 @@ export function gaitKeyframes(
         kept.push(end);
     }
 
-    const periodMs = 1000.0 / getSequenceFps(robot, 100);
+    const periodMs = 1000.0 / getSequenceFps(robot, speedPct);
     let firstMs: number;
     if (cyclic) {
         kept.pop();

@@ -16,7 +16,7 @@ export function PlaybackHud() {
     const robotMessage = useStore((s) => s.robotMessage);
     const store = useStore.getState();
 
-    // One preview frame per tick while playing.
+    // Show the frame due by the clock, about once a preview frame, while playing.
     useEffect(() => {
         if (!playing) return;
         const timer = setInterval(() => useStore.getState().tick(), 1000 / preview.fps);

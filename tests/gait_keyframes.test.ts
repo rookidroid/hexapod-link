@@ -26,6 +26,19 @@ const maxOff = (a: Vec3[][], b: Vec3[][]) =>
     );
 
 describe.each(ROBOTS)("%s", (_name, robot) => {
+    it("takes as long as the robot does at its speed", () => {
+        // The firmware plays a LUT frame every DELAY_MS * 100 / speed_pct.
+        const frames = gaitFeet("walk_0", robot).length;
+        for (const pct of [100, 60, 20]) {
+            const keyframes = gaitKeyframes("walk_0", robot, undefined, pct);
+            const robotMs = (frames * robot.delay_ms * 100) / pct;
+            // Each keyframe's time is rounded to a whole ms.
+            expect(Math.abs(kf.sequenceDurationMs(keyframes, true) - robotMs)).toBeLessThanOrEqual(
+                keyframes.length,
+            );
+        }
+    });
+
     it.each(GAITS)("plays %s on its own path at its own timing, within limits", (motion) => {
         const truth = gaitFeet(motion, robot);
         const keyframes = gaitKeyframes(motion, robot);

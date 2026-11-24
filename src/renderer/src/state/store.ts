@@ -71,9 +71,15 @@ export const SELECT_BODY = "body";
 /** Frames a second the preview is drawn at. The robot gets its own, faster,
  * frames: see streamSequence(). */
 export const PREVIEW_FPS = 25;
+
+/** When playback started counting (performance.now() ms), from which frame,
+ * and the frame tick() showed last. */
+let playClock: { at: number; from: number; shown: number } | null = null;
 export const SPEED_MIN_PCT = 25;
 export const SPEED_MAX_PCT = 200;
-export const SPEED_DEFAULT_PCT = 60;
+// Gaits come in timed at the robot's own speed (insertGait()), so 100 % plays
+// them as the robot does.
+export const SPEED_DEFAULT_PCT = 100;
 
 /** How far the body's shift sliders go either way: a fraction of its size. */
 export const MAX_SHIFT = 1.0;
@@ -836,7 +842,9 @@ export const useStore = create<Store>()((set, get) => {
             const r = robot();
             let inserted: Keyframe[] = [];
             if (source === "builtin") {
-                inserted = gaitKeyframes(id, r);
+                // Timed as the robot plays the gait at the speed it is set
+                // to, so the sequence at 100 % walks as fast as the robot.
+                inserted = gaitKeyframes(id, r, undefined, get().driveSpeed);
             } else {
                 const loaded = await api.loadGait(id, r.name);
                 if (loaded.error || !loaded.keyframes) {
@@ -910,6 +918,7 @@ export const useStore = create<Store>()((set, get) => {
             const playing = !s.playing;
             if (playing) {
                 const frame = s.frame >= maxFrameOf(s) ? 0 : s.frame;
+                playClock = { at: performance.now(), from: frame, shown: frame };
                 set({ playing, mode: "preview", frame });
                 void get().streamSequence(frame);
             } else {
@@ -920,14 +929,28 @@ export const useStore = create<Store>()((set, get) => {
         },
 
         tick() {
-            // One preview frame per tick, stopping at the end unless looping.
+            // The frame due by the clock, so the preview keeps real time even
+            // when a tick comes late or a frame is slow to draw: late, it
+            // skips ahead rather than playing slow. Stops at the end unless
+            // looping.
             const s = get();
             const max = maxFrameOf(s);
-            const next = s.frame + 1;
-            if (next <= max) {
-                set({ frame: next });
+            const now = performance.now();
+            if (!playClock || playClock.shown !== s.frame) {
+                // Started, or moved by something else: count on from here.
+                playClock = { at: now, from: s.frame, shown: s.frame };
+                return;
+            }
+            const due =
+                playClock.from + Math.floor(((now - playClock.at) * previewOf(s).fps) / 1000);
+            if (due === s.frame) return;
+            if (due <= max) {
+                playClock.shown = due;
+                set({ frame: due });
             } else if (s.loop) {
-                set({ frame: 0 });
+                const frame = due % (max + 1);
+                playClock.shown = frame;
+                set({ frame });
             } else {
                 // Run out: the last frame becomes the pose.
                 set({ frame: max, playing: false });
