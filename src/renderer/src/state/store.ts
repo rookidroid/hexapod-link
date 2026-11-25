@@ -76,10 +76,10 @@ export const PREVIEW_FPS = 25;
  * and the frame tick() showed last. */
 let playClock: { at: number; from: number; shown: number } | null = null;
 export const SPEED_MIN_PCT = 25;
-export const SPEED_MAX_PCT = 200;
-// Gaits come in timed at the robot's own speed (insertGait()), so 100 % plays
-// them as the robot does.
-export const SPEED_DEFAULT_PCT = 100;
+export const SPEED_MAX_PCT = 125;
+// The same on every platform. Gaits come in timed at the robot's own speed
+// (insertGait()), so 100 % plays them as the robot does.
+export const SPEED_DEFAULT_PCT = 75;
 
 /** How far the body's shift sliders go either way: a fraction of its size. */
 export const MAX_SHIFT = 1.0;
